@@ -7,4 +7,7 @@
 - `Controller`: Bytecode patch tại opcode đọc packet skillinfo (`bipush 10` ép thời gian hồi chiêu từ server thành 10ms).
 - `AutoGaoDa`: Triển khai `Runnable`, quản lý vòng lặp Auto Gạo Đá (Map 23, NPC 62, Map 26, NPC 63).
 - `AutoNhanDa`: Triển khai `Runnable`, quản lý Auto Nhận Đá (Map 23, NPC 33).
-- `Code`: Class chính chứa handler tin nhắn chat (`gameAF(String)` / `gameAA(String)`). Lệnh `gaoda` gọi `AutoGaoDa.isAuto`.
+- `AutoDoiDiem`: Triển khai `Runnable`, quản lý Auto Đổi Điểm (Tọa độ XY: 3356-240, tương tác NPC 63 tự động ấn đổi quà).
+- `ThongTinBoss`: Chứa logic tính toán đếm ngược thời gian xuất hiện của từng Boss, tự động sắp xếp Boss sắp ra/đang xuất hiện lên ĐẦU danh sách, và vẽ khung UI HUD Overlay hiển thị trực tiếp trên màn hình game.
+- `InfoMe`: Đã hook `ThongTinBoss.paint(g)` vào phương thức vẽ `gameAA(mGraphics)` để hiển thị bảng HUD liên tục theo từng frame.
+- `Code`: Class chính chứa handler tin nhắn chat (`gameAF(String)` / `gameAA(String)`). Lệnh `ttb` dùng để Bật/Tắt hiển thị bảng lịch Boss trên màn hình.

@@ -6,46 +6,32 @@ public class AutoGaoDa implements Runnable {
             while (isAuto) {
                 Char myChar = Char.getMyChar();
                 if (myChar == null || myChar.cHP <= 0) {
-                    Thread.sleep(1000L);
+                    Thread.sleep(10L);
                     continue;
                 }
 
-                // 1. Di chuyển sang Map 23 (Kenshin / Nhận đá)
-                Code.gameAF("gm23");
-                Thread.sleep(2500L);
-                if (!isAuto) break;
-
-                // 2. Tương tác NPC 62 nhận đá vào Hành trang
-                Code.gameAF("npc62");
-                Thread.sleep(500L);
+                // 1. Nhận đá từ xa (NPC 62)
                 Service.gI().gameAH(62);
-                Thread.sleep(1200L);
-                if (!isAuto) break;
-
+                Thread.sleep(10L);
                 Service.gI().gameAC(62, 0, 0);
                 Service.gI().gameAC(62, 0);
-                Thread.sleep(1500L);
+                GameCanvas.endDlg();
+                InfoDlg.gameAB();
+                Thread.sleep(10L);
                 if (!isAuto) break;
 
-                // 3. Di chuyển sang Map 26 (Giao đá)
-                Code.gameAF("gm26");
-                Thread.sleep(2500L);
-                if (!isAuto) break;
-
-                // 4. Tương tác NPC 63 giao đá từ Hành trang
-                Code.gameAF("npc63");
-                Thread.sleep(500L);
+                // 2. Giao đá từ xa (NPC 63 - Nút 1 / Index 0)
                 Service.gI().gameAH(63);
-                Thread.sleep(1200L);
-                if (!isAuto) break;
-
+                Thread.sleep(10L);
                 Service.gI().gameAC(63, 0, 0);
                 Service.gI().gameAC(63, 0);
-                Thread.sleep(1500L);
+                GameCanvas.endDlg();
+                InfoDlg.gameAB();
+                Thread.sleep(10L);
             }
         } catch (Exception e) {
             try {
-                Thread.sleep(1000L);
+                Thread.sleep(10L);
             } catch (Exception ex) {}
         }
     }

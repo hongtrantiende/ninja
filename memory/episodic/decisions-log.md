@@ -1,5 +1,24 @@
 # Decisions Log
 
+## 2026-07-29: Thêm lệnh chat `ttb` hiển thị Khung Overlay HUD Lịch Boss Trực Tiếp Trên Màn Hình
+- **Quyết định:** Chuyển đổi hiển thị từ Popup Dialog sang **Khung UI HUD Overlay vẽ trực tiếp trên màn hình game** (góc trên bên trái):
+  - Tự động tính toán thời gian đếm ngược còn lại đến lần xuất hiện tiếp theo của từng loại Boss.
+  - Tự động **sắp xếp Boss đang xuất hiện hoặc chuẩn bị xuất hiện sớm nhất lên ĐẦU danh sách**.
+  - Đổi màu sắc trực quan (Đỏ/Vàng cho Boss đang có hoặc < 5 phút, Xanh/Trắng cho Boss sắp tới).
+  - Gõ `ttb` để **Bật/Tắt** khung hiển thị này trực tiếp khi đang treo game/đánh quái.
+- **Thực thi:**
+  1. Nâng cấp `src/ThongTinBoss.java` bổ sung thuật toán sắp xếp và phương thức `paint(mGraphics g)`.
+  2. Thêm `src/InfoMe.java` để hook `ThongTinBoss.paint(g)` vào luồng vẽ game `GameScr`.
+  3. Cập nhật handler `ttb` trong `src/Code.java` gọi `ThongTinBoss.toggle()`.
+  4. Biên dịch, dọn dẹp stubs `javax` và nén lại file [Aeharuna.jar](file:///root/ninja/Aeharuna.jar).
+
+## 2026-07-29: Mod Auto `gaoda` đứng tại chỗ Nhận & Giao đá từ xa (Remote NPC calls)
+- **Quyết định:** Loại bỏ việc chuyển map/di chuyển nhân vật trong `AutoGaoDa.java`. Cho nhân vật đứng yên 1 chỗ gửi trực tiếp gói tin tương tác NPC 62 (Nhận đá) và NPC 63 (Giao đá) từ xa liên tục với delay 10ms. Tự động đóng popup dialog bằng `GameCanvas.endDlg()` và `InfoDlg.gameAB()`.
+- **Thực thi:**
+  1. Thêm `src/AutoDoiDiem.java`.
+  2. Đăng ký lệnh chat `doidiem` trong `src/Code.java`.
+  3. Biên dịch và đóng gói thành công `Aeharuna.jar`.
+
 ## 2026-07-28: Mod Tàn Sát đánh song song 5 skill chạy ngầm (`ts` & `tsn`)
 - **Tối ưu hóa Giao thức Packet Server:**
   1. `Message 41` (`Service.gameAG(s.template.id)`): Gửi lệnh đổi skill ngắn hạn lên Server Ninja School.

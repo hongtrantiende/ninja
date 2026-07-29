@@ -1140,6 +1140,16 @@ implements Runnable {
             }
             return true;
         }
+        if (var31.equals("doidiem")) {
+            AutoDoiDiem.isAuto = !AutoDoiDiem.isAuto;
+            if (AutoDoiDiem.isAuto) {
+                GameScr.gameAC("B\u1eadt Auto \u0110\u1ed5i \u0110i\u1ec3m (3356-240)!");
+                new Thread(new AutoDoiDiem()).start();
+            } else {
+                GameScr.gameAC("T\u1eaft Auto \u0110\u1ed5i \u0110i\u1ec3m!");
+            }
+            return true;
+        }
         if (var31.equals("check")) {
             AutoGoiVe.gameAC = true;
             new Thread(new AutoGoiVe(var1)).start();
@@ -1992,6 +2002,10 @@ implements Runnable {
                                 }
                                 if (var31.equals("tb")) {
                                     new Thread(new TimBoss()).start();
+                                    return true;
+                                }
+                                if (var31.equals("ttb")) {
+                                    ThongTinBoss.toggle();
                                     return true;
                                 }
                                 if (var31.equals("sell")) {
