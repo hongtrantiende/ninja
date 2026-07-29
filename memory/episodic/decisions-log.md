@@ -1,12 +1,27 @@
 # Decisions Log
 
+## 2026-07-29: Redesign AutoSanBoss v9 — Để PkBoss tự quét thay vì scan thủ công
+- **Quyết định:** Xóa toàn bộ logic scan khu thủ công (`scanZone`, `travelToMap`, `startPkBossAndWait`, `scanAndFightOnMap`). Thay bằng `pkBossOnMap(mapID)` đơn giản: start `PkBoss(mapID)` → PkBoss tự quét khu, tìm boss, đánh, gửi lệnh nhóm.
+- **Lý do:** `Service.gI().gameAA(zone, -1)` KHÔNG phải API chuyển khu → nhân vật đứng yên. PkBoss đã có sẵn logic quét khu trong `gameAK()` loop (bắt đầu với `zoneID = -2`).
+- **Files:** `src/AutoSanBoss.java` (rewrite), `src/SanBossHolder.java` (new)
+
+## 2026-07-29: SanBossHolder — Dummy Auto giữ menu "Tắt Auto"
+- **Quyết định:** Tạo `SanBossHolder extends Auto` với 3 method rỗng (`gameAC`, `gameAD`, `gameAK`) để giữ `Code.gameAB != null` khi AutoSanBoss chạy nhưng PkBoss không active.
+- **Lý do:** `PkBoss(0)` dummy bị game engine xóa ngay trong loop. `SanBossHolder` không làm gì nên không bị pop.
+
+## 2026-07-29: Party Mode tự detect — Không cần lệnh riêng `tsnpkb`
+- **Quyết định:** `toggle()` tự detect nhóm: `GameScr.vParty.size() > 1` → party mode ON. Không tạo lệnh `tsnpkb` riêng vì chat handler compiled trong Code.class, không thể thêm lệnh mới dễ dàng.
+- **Flow party:**
+  1. Leader bật `tspkb` có nhóm → gửi `pkm currentMap` ngay → Members bật PkBoss + hiện "Tắt Auto"
+  2. Leader quét solo, tìm boss → gửi `pkm mapID` + `pkk zoneID` → Members đến đánh
+  3. Leader tắt → gửi `pke` → Members tắt PkBoss
+
+## 2026-07-29: Boss spawn 40 phút + quét TẤT CẢ loại boss cùng lúc
+- **Quyết định:** `BOSS_ALIVE_DURATION = 2400` (40p). `run()` loop quét tuần tự 4 loại boss trong 1 cycle, không chỉ 1 loại. Sau khi xong 1 loại → chuyển ngay sang loại tiếp (0 delay).
+- **MapNgoai:** Quét tất cả 12 map `{14,15,16,44,67,70,24,41,45,18,36,54}`, không phân biệt level.
+
 ## 2026-07-29: Thêm lệnh `tspkb` — Tự Động Săn Boss 24/7
-- **Quyết định:** Tạo class `AutoSanBoss` (Runnable) chạy thread riêng, tự động theo dõi khung giờ spawn 4 loại boss (Server M3, Thế Giới M23, VDMQ M141-143, Map Ngoài theo level), chuyển map, quét 30 khu tìm boss, kích hoạt PkBoss đánh, xử lý chết.
-- **Thực thi:**
-  1. Tạo `src/AutoSanBoss.java` với state machine: IDLE→TRAVEL→SCAN→PKBOSS→DONE.
-  2. Tự detect level nhân vật (`Char.getMyChar().clevel`) để chọn nhóm map boss Map Ngoài phù hợp.
-  3. Đăng ký lệnh `tspkb` trong `src/Code.java` gọi `AutoSanBoss.toggle()`.
-  4. Biên dịch và đóng gói `Aeharuna.jar`.
+- **Quyết định:** Tạo class `AutoSanBoss` (Runnable) chạy thread riêng, tự động theo dõi khung giờ spawn 4 loại boss (Server M3, Thế Giới M23, VDMQ M141-143, Map Ngoài), chuyển map, kích hoạt PkBoss đánh, xử lý chết/hồi sinh.
 
 ## 2026-07-29: Redesign TTB HUD — Sửa nền đen che game + thiết kế xấu
 - **Quyết định:** Thay nền đen fillRect bằng `Paint.gameAA()` native game panel, dời sang phải màn hình, compact 1 dòng/boss, sửa data chính xác 5 loại boss.
@@ -17,34 +32,16 @@
   - Tự động **sắp xếp Boss đang xuất hiện hoặc chuẩn bị xuất hiện sớm nhất lên ĐẦU danh sách**.
   - Đổi màu sắc trực quan (Đỏ/Vàng cho Boss đang có hoặc < 5 phút, Xanh/Trắng cho Boss sắp tới).
   - Gõ `ttb` để **Bật/Tắt** khung hiển thị này trực tiếp khi đang treo game/đánh quái.
-- **Thực thi:**
-  1. Nâng cấp `src/ThongTinBoss.java` bổ sung thuật toán sắp xếp và phương thức `paint(mGraphics g)`.
-  2. Thêm `src/InfoMe.java` để hook `ThongTinBoss.paint(g)` vào luồng vẽ game `GameScr`.
-  3. Cập nhật handler `ttb` trong `src/Code.java` gọi `ThongTinBoss.toggle()`.
-  4. Biên dịch, dọn dẹp stubs `javax` và nén lại file [Aeharuna.jar](file:///root/ninja/Aeharuna.jar).
 
 ## 2026-07-29: Mod Auto `gaoda` đứng tại chỗ Nhận & Giao đá từ xa (Remote NPC calls)
-- **Quyết định:** Loại bỏ việc chuyển map/di chuyển nhân vật trong `AutoGaoDa.java`. Cho nhân vật đứng yên 1 chỗ gửi trực tiếp gói tin tương tác NPC 62 (Nhận đá) và NPC 63 (Giao đá) từ xa liên tục với delay 10ms. Tự động đóng popup dialog bằng `GameCanvas.endDlg()` và `InfoDlg.gameAB()`.
-- **Thực thi:**
-  1. Thêm `src/AutoDoiDiem.java`.
-  2. Đăng ký lệnh chat `doidiem` trong `src/Code.java`.
-  3. Biên dịch và đóng gói thành công `Aeharuna.jar`.
+- **Quyết định:** Loại bỏ việc chuyển map/di chuyển nhân vật trong `AutoGaoDa.java`. Cho nhân vật đứng yên 1 chỗ gửi trực tiếp gói tin tương tác NPC 62 (Nhận đá) và NPC 63 (Giao đá) từ xa liên tục với delay 10ms.
 
 ## 2026-07-28: Mod Tàn Sát đánh song song 5 skill chạy ngầm (`ts` & `tsn`)
 - **Tối ưu hóa Giao thức Packet Server:**
   1. `Message 41` (`Service.gameAG(s.template.id)`): Gửi lệnh đổi skill ngắn hạn lên Server Ninja School.
   2. `Message 4/60` (`Service.gameAA(targetMobs, ...)`): Gửi mảng byte ID các quái sống nằm đúng phạm vi `dx, dy` và số lượng `maxFight` của từng chiêu.
   3. Thêm `Thread.sleep(40ms)` để gói tin truyền qua TCP/IP socket trơn tru, không bị Server thả trôi gói.
-- **Chế độ chạy ngầm UI:** Lưu `originalSelectedSkill = myChar.myskill`, cho 4 skill còn lại xả sát thương thực tế và phát hiệu ứng kỹ năng chạy ngầm mà không làm nhảy ô chọn trên giao diện UI.
-- **Kết quả:** Đảm bảo 100% sát thương thực sự gửi tới Server cho toàn bộ 5 skill lan chạy ngầm.
 
 ## 2026-07-28: Mod tốc độ hồi chiêu skill về 10ms cho tất cả phái và kỹ năng
-- **Quyết định:** Sửa đổi thời gian hồi chiêu (`Skill.coolDown`) của mọi kỹ năng/phái về cố định 10ms (không phụ thuộc vào cấp độ hay phái).
-- **Thực thi:**
-  1. Cập nhật `src/Skill.java` với `coolDown = 10`ms và biên dịch lại `Skill.class`.
-  2. Patch byte-code trong `Controller.class` tại offset đọc gói tin kỹ năng từ server: bỏ qua `coolDown` từ server stream và ghi đè cố định `bipush 10` (`Skill.coolDown = 10`).
-  3. Đóng gói lại tệp `Aeharuna.jar` hoàn chỉnh.
 
 ## 2026-07-27: Mod lệnh chat `gaoda` cho Aeharuna.jar
-- **Quyết định:** Tích hợp logic `AutoGaoDa` (Map 23 nhận đá -> NPC 62 -> Map 26 giao đá -> NPC 63) vào `Code.java` xử lý lệnh chat `gaoda`.
-- **Thực thi:** Biên dịch `AutoGaoDa.java`, `AutoNhanDa.java`, `Code.java` và đóng gói lại `Aeharuna.jar`.
