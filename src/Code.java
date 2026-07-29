@@ -2008,6 +2008,10 @@ implements Runnable {
                                     ThongTinBoss.toggle();
                                     return true;
                                 }
+                                if (var31.equals("tspkb")) {
+                                    AutoSanBoss.toggle();
+                                    return true;
+                                }
                                 if (var31.equals("sell")) {
                                     GameScr.gameAC("Auto Sell");
                                     Code.gameAR();

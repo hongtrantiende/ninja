@@ -30,7 +30,7 @@ public class ThongTinBoss {
                 if (diffFromSpawn >= 0 && diffFromSpawn < 900) {
                     isLive = true;
                     secondsLeft = -1;
-                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h00";
+                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h";
                     return;
                 }
 
@@ -41,29 +41,26 @@ public class ThongTinBoss {
 
                 if (diff < secondsLeft) {
                     secondsLeft = diff;
-                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h00";
+                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h";
                 }
             }
         }
     }
 
     private static BossData[] bosses = new BossData[] {
-        new BossData("Boss Server", "Map 3", new int[] {12, 18, 20, 22}),
-        new BossData("Boss Th\u1ebf Gi\u1edbi", "Map 23", new int[] {12, 23}),
-        new BossData("Boss L\u00e0ng C\u1ed5", "Map 135", new int[] {7, 12, 18, 23}),
-        new BossData("Boss VDMQ", "Map 141-143", new int[] {9, 15, 17, 21}),
-        new BossData("Boss 45", "Map 14,15,16", new int[] {6, 11, 17, 22}),
-        new BossData("Boss 55", "Map 44,67,70", new int[] {6, 11, 17, 22}),
-        new BossData("Boss 65", "Map 24,41,45", new int[] {6, 11, 17, 22}),
-        new BossData("Boss 75", "Map 18,36,54", new int[] {6, 11, 17, 22})
+        new BossData("Server", "M3", new int[] {12, 18, 20, 22}),
+        new BossData("TheGioi", "M23", new int[] {12, 23}),
+        new BossData("LangCo", "M135", new int[] {7, 12, 18, 23}),
+        new BossData("VDMQ", "M141-143", new int[] {9, 15, 17, 21}),
+        new BossData("MapNgoai", "45:M14 55:M44 65:M24 75:M18", new int[] {6, 11, 17, 22})
     };
 
     public static void toggle() {
         isEnable = !isEnable;
         if (isEnable) {
-            GameScr.gameAC("B\u1eadt Khung Th\u00f4ng Tin Boss!");
+            GameScr.gameAC("B\u1eadt L\u1ecbch Boss!");
         } else {
-            GameScr.gameAC("T\u1eaft Khung Th\u00f4ng Tin Boss!");
+            GameScr.gameAC("T\u1eaft L\u1ecbch Boss!");
         }
     }
 
@@ -71,15 +68,16 @@ public class ThongTinBoss {
         if (!isEnable) return;
 
         Calendar cal = Calendar.getInstance();
-        int h = cal.get(Calendar.HOUR_OF_DAY);
-        int m = cal.get(Calendar.MINUTE);
-        int s = cal.get(Calendar.SECOND);
-        int currentSecOfDay = h * 3600 + m * 60 + s;
+        int curH = cal.get(Calendar.HOUR_OF_DAY);
+        int curM = cal.get(Calendar.MINUTE);
+        int curS = cal.get(Calendar.SECOND);
+        int currentSecOfDay = curH * 3600 + curM * 60 + curS;
 
         for (int i = 0; i < bosses.length; i++) {
             bosses[i].updateTime(currentSecOfDay);
         }
 
+        // Bubble sort by secondsLeft (nearest first)
         for (int i = 0; i < bosses.length - 1; i++) {
             for (int j = i + 1; j < bosses.length; j++) {
                 if (bosses[i].secondsLeft > bosses[j].secondsLeft) {
@@ -90,53 +88,92 @@ public class ThongTinBoss {
             }
         }
 
-        int panelX = 5;
-        int panelY = 45;
-        int panelW = 165;
-        int itemH = 11;
-        int panelH = 14 + bosses.length * itemH;
+        // ===== COMPACT PANEL LAYOUT =====
+        int lineH = 12;
+        int headerH = 13;
+        int pad = 3;
+        int panelW = 145;
 
-        g.gameAA(0x000000);
-        g.gameAD(panelX, panelY, panelW, panelH);
+        // Calculate height: MapNgoai gets 2 lines, others get 1
+        int totalLines = 0;
+        for (int i = 0; i < bosses.length; i++) {
+            totalLines += (bosses[i].mapInfo.length() > 10) ? 2 : 1;
+        }
+        int panelH = pad + headerH + totalLines * lineH + pad;
 
-        g.gameAA(0xFFD700);
-        g.gameAD(panelX, panelY, panelW, 1);
-        g.gameAD(panelX, panelY + panelH - 1, panelW, 1);
-        g.gameAD(panelX, panelY, 1, panelH);
-        g.gameAD(panelX + panelW - 1, panelY, 1, panelH);
+        // Position: RIGHT side, below top bar
+        int panelX = GameCanvas.w - panelW - 2;
+        int panelY = 40;
 
-        mFont.tahoma_7b_yellow.gameAA(g, "=== L\u1ecaCH BOSS SAP XUAT HIEN ===", panelX + panelW / 2, panelY + 2, 2);
+        // ===== DRAW GAME-STYLE PANEL =====
+        Paint.gameAA(panelX, panelY, panelW, panelH, g);
 
-        int drawY = panelY + 13;
+        // ===== HEADER with clock =====
+        String clock = (curH < 10 ? "0" : "") + curH + ":"
+            + (curM < 10 ? "0" : "") + curM;
+        mFont.tahoma_7b_yellow.gameAA(g,
+            "BOSS " + clock,
+            panelX + panelW / 2, panelY + pad, 2);
+
+        // Separator
+        g.gameAA(0xD4A017);
+        g.gameAD(panelX + 3, panelY + pad + headerH - 2, panelW - 6, 1);
+
+        // ===== BOSS ROWS =====
+        int drawY = panelY + pad + headerH;
         for (int i = 0; i < bosses.length; i++) {
             BossData b = bosses[i];
-            String text = b.name + " (" + b.mapInfo + "): ";
-            mFont nameFont = mFont.tahoma_7_white;
+            boolean isLongMap = b.mapInfo.length() > 10;
+
+            // Build countdown string
+            String timeStr;
+            mFont font;
 
             if (b.isLive) {
-                text += "\u0110ANG CO BOSS!";
-                nameFont = mFont.tahoma_7_red;
+                timeStr = "DANG CO!";
+                font = mFont.tahoma_7b_red;
             } else {
                 int totalSec = b.secondsLeft;
-                int minsLeft = totalSec / 60;
-                int hoursLeft = minsLeft / 60;
-                minsLeft = minsLeft % 60;
+                int mLeft = totalSec / 60;
+                int hLeft = mLeft / 60;
+                mLeft = mLeft % 60;
 
-                String timeStr = b.nextHourStr + " (c\u00f2n ";
-                if (hoursLeft > 0) {
-                    timeStr += hoursLeft + "h" + (minsLeft < 10 ? "0" : "") + minsLeft + "m)";
+                StringBuffer tb = new StringBuffer();
+                tb.append(b.nextHourStr);
+                tb.append(" -");
+                if (hLeft > 0) {
+                    tb.append(hLeft);
+                    tb.append("h");
+                    if (mLeft < 10) tb.append("0");
+                    tb.append(mLeft);
                 } else {
-                    timeStr += minsLeft + "m)";
+                    tb.append(mLeft);
                 }
-                text += timeStr;
+                tb.append("p");
+                timeStr = tb.toString();
 
                 if (totalSec <= 300) {
-                    nameFont = mFont.tahoma_7_yellow;
+                    font = mFont.tahoma_7b_yellow;
+                } else if (totalSec <= 1800) {
+                    font = mFont.tahoma_7_green;
+                } else {
+                    font = mFont.tahoma_7_white;
                 }
             }
 
-            nameFont.gameAA(g, text, panelX + 3, drawY, 0);
-            drawY += itemH;
+            if (isLongMap) {
+                // MapNgoai: 2 lines
+                // Line 1: "MapNgoai 17h -2h30p"
+                font.gameAA(g, b.name + " " + timeStr, panelX + 4, drawY, 0);
+                drawY += lineH;
+                // Line 2: map info in grey
+                mFont.tahoma_7_grey.gameAA(g, b.mapInfo, panelX + 8, drawY, 0);
+                drawY += lineH;
+            } else {
+                // Normal: 1 line "Name(Map) 17h -2h30p"
+                font.gameAA(g, b.name + "(" + b.mapInfo + ") " + timeStr, panelX + 4, drawY, 0);
+                drawY += lineH;
+            }
         }
     }
 }

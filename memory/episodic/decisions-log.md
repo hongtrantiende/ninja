@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-07-29: Thêm lệnh `tspkb` — Tự Động Săn Boss 24/7
+- **Quyết định:** Tạo class `AutoSanBoss` (Runnable) chạy thread riêng, tự động theo dõi khung giờ spawn 4 loại boss (Server M3, Thế Giới M23, VDMQ M141-143, Map Ngoài theo level), chuyển map, quét 30 khu tìm boss, kích hoạt PkBoss đánh, xử lý chết.
+- **Thực thi:**
+  1. Tạo `src/AutoSanBoss.java` với state machine: IDLE→TRAVEL→SCAN→PKBOSS→DONE.
+  2. Tự detect level nhân vật (`Char.getMyChar().clevel`) để chọn nhóm map boss Map Ngoài phù hợp.
+  3. Đăng ký lệnh `tspkb` trong `src/Code.java` gọi `AutoSanBoss.toggle()`.
+  4. Biên dịch và đóng gói `Aeharuna.jar`.
+
+## 2026-07-29: Redesign TTB HUD — Sửa nền đen che game + thiết kế xấu
+- **Quyết định:** Thay nền đen fillRect bằng `Paint.gameAA()` native game panel, dời sang phải màn hình, compact 1 dòng/boss, sửa data chính xác 5 loại boss.
+
 ## 2026-07-29: Thêm lệnh chat `ttb` hiển thị Khung Overlay HUD Lịch Boss Trực Tiếp Trên Màn Hình
 - **Quyết định:** Chuyển đổi hiển thị từ Popup Dialog sang **Khung UI HUD Overlay vẽ trực tiếp trên màn hình game** (góc trên bên trái):
   - Tự động tính toán thời gian đếm ngược còn lại đến lần xuất hiện tiếp theo của từng loại Boss.
