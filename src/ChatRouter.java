@@ -24,19 +24,19 @@ public class ChatRouter {
             AutoSanBoss.toggleALL();
             return true;
         }
-        if (text.equals("tspkbsv")) {
+        if (text.equals("tspkbsv") || text.equals("sv")) {
             AutoSanBoss.toggleSV();
             return true;
         }
-        if (text.equals("tspkbtg")) {
+        if (text.equals("tspkbtg") || text.equals("tg")) {
             AutoSanBoss.toggleTG();
             return true;
         }
-        if (text.equals("tspkbvm")) {
+        if (text.equals("tspkbvm") || text.equals("vm")) {
             AutoSanBoss.toggleVM();
             return true;
         }
-        if (text.equals("tspkbmn")) {
+        if (text.equals("tspkbmn") || text.equals("mn")) {
             AutoSanBoss.toggleMN();
             return true;
         }

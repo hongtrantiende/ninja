@@ -2012,6 +2012,30 @@ implements Runnable {
                                     AutoSanBoss.toggle();
                                     return true;
                                 }
+                                if (var31.equals("tspkball") || var31.equals("all")) {
+                                    AutoSanBoss.toggleALL();
+                                    return true;
+                                }
+                                if (var31.equals("tspkbsv") || var31.equals("sv")) {
+                                    AutoSanBoss.toggleSV();
+                                    return true;
+                                }
+                                if (var31.equals("tspkbtg") || var31.equals("tg")) {
+                                    AutoSanBoss.toggleTG();
+                                    return true;
+                                }
+                                if (var31.equals("tspkbvm") || var31.equals("vm")) {
+                                    AutoSanBoss.toggleVM();
+                                    return true;
+                                }
+                                if (var31.equals("tspkbmn") || var31.equals("mn")) {
+                                    AutoSanBoss.toggleMN();
+                                    return true;
+                                }
+                                if (var31.equals("nhat")) {
+                                    AutoPickup.toggle();
+                                    return true;
+                                }
                                 if (var31.equals("sell")) {
                                     GameScr.gameAC("Auto Sell");
                                     Code.gameAR();
