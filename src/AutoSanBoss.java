@@ -245,8 +245,8 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Tu dong moi tat ca ban be trong danh sach ban be (vFriend) vao nhom.
-     * Neu vFriend rong -> gui packet 83 (Service.gI().gameAT()) xin server load danh sach ban be.
+     * Tu dong moi tat ca ban be / thanh vien nhom vao nhom.
+     * Su dung Service.gI().gameAF(name) (Packet 79 - Party Invite chuan Ninja School).
      */
     public static void autoInviteFriends() {
         try {
@@ -255,52 +255,44 @@ public class AutoSanBoss implements Runnable {
                 try {
                     Service.gI().gameAT(); // Packet 83: Request friend list
                 } catch (Exception e) {}
-                sleep(1000); // Cho 1s de server phan hoi va load vFriend
+                sleep(800); // Cho 800ms de server phan hoi va load vFriend
             }
 
             int invitedCount = 0;
+            String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
 
-            // 1. Moi cac ban be trong vFriend
-            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
-                for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                    if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3) {
-                        boolean alreadyInParty = false;
-                        for (int p = 0; p < GameScr.vParty.size(); p++) {
-                            Party partyMember = (Party) GameScr.vParty.elementAt(p);
-                            if (partyMember != null && partyMember.name != null && partyMember.name.equals(f.friendName)) {
-                                alreadyInParty = true;
-                                break;
-                            }
-                        }
-                        if (!alreadyInParty) {
-                            Service.gI().gameAH(f.friendName);
-                            invitedCount++;
-                            sleep(250);
-                        }
+            // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI)
+            if (Code.gameAI != null && Code.gameAI.size() > 0) {
+                for (int i = 0; i < Code.gameAI.size(); i++) {
+                    String name = (String) Code.gameAI.elementAt(i);
+                    if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
+                        Service.gI().gameAF(name); // Packet 79 - Party Invite
+                        invitedCount++;
+                        sleep(250);
                     }
                 }
             }
 
-            // 2. Neu ban be trong, thu moi nguoi choi tren map hien tai (vCharInMap)
-            if (invitedCount == 0 && GameScr.vCharInMap != null) {
-                String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
+            // 2. Moi cac ban be trong vFriend
+            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
+                for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                    if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3 && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
+                        Service.gI().gameAF(f.friendName); // Packet 79 - Party Invite
+                        invitedCount++;
+                        sleep(250);
+                    }
+                }
+            }
+
+            // 3. Moi nguoi choi dang dung tren map (GameScr.vCharInMap)
+            if (GameScr.vCharInMap != null && GameScr.vCharInMap.size() > 0) {
                 for (int i = 0; i < GameScr.vCharInMap.size(); i++) {
                     Char c = (Char) GameScr.vCharInMap.elementAt(i);
-                    if (c != null && c.cName != null && c.cName.length() > 0 && !c.cName.equals(myName)) {
-                        boolean alreadyInParty = false;
-                        for (int p = 0; p < GameScr.vParty.size(); p++) {
-                            Party partyMember = (Party) GameScr.vParty.elementAt(p);
-                            if (partyMember != null && partyMember.name != null && partyMember.name.equals(c.cName)) {
-                                alreadyInParty = true;
-                                break;
-                            }
-                        }
-                        if (!alreadyInParty) {
-                            Service.gI().gameAH(c.cName);
-                            invitedCount++;
-                            sleep(250);
-                        }
+                    if (c != null && c.cName != null && c.cName.length() > 0 && !c.cName.equals(myName) && !isAlreadyInParty(c.cName)) {
+                        Service.gI().gameAF(c.cName); // Packet 79 - Party Invite
+                        invitedCount++;
+                        sleep(250);
                     }
                 }
             }
@@ -308,9 +300,23 @@ public class AutoSanBoss implements Runnable {
             if (invitedCount > 0) {
                 GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
             } else {
-                GameScr.gameAC("TSB: Kh\u00f4ng c\u00f3 b\u1ea1n b\u00e8 ho\u1eb7c ng\u01b0\u1eddi ch\u01a1i m\u1edbi \u0111\u1ec3 m\u1eddi!");
+                GameScr.gameAC("TSB: Kh\u00f4ng th\u1ea5y b\u1ea1n b\u00e8/ng\u01b0\u1eddi ch\u01a1i m\u1edbi \u0111\u1ec3 m\u1eddi!");
             }
         } catch (Exception e) {}
+    }
+
+    private static boolean isAlreadyInParty(String name) {
+        try {
+            if (GameScr.vParty != null) {
+                for (int p = 0; p < GameScr.vParty.size(); p++) {
+                    Party partyMember = (Party) GameScr.vParty.elementAt(p);
+                    if (partyMember != null && partyMember.name != null && partyMember.name.equals(name)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return false;
     }
 
     /**
