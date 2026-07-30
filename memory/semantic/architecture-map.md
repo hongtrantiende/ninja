@@ -90,7 +90,8 @@
 - **Lệnh:** `tspkb` → `AutoSanBoss.toggle()`
 - **Flow:** Quét 4 loại boss → cho mỗi map: `Code.gameAA(new PkBoss(mapID))` → PkBoss tự quét + đánh → chờ xong → map tiếp. Xong 1 lượt quết → nghỉ 10 giây (`sleepSeconds(10)`) → lặp lại cho đến hết 40 phút.
 - **Party mode:** Auto-detect nhóm. Gửi `pkm` khi bật (members bật PkBoss). Gửi `pkm + pkk` khi tìm thấy boss. Gửi `pke` khi tắt. Tự động mời lại danh sách bạn bè (`autoInviteFriends()`) khi mất mạng vô lại hoặc party bị trống.
-- **Lệnh thủ công mới:** `moinhom` / `mnb` — Tự động mời tất cả bạn bè trong `vFriend` vào nhóm.
+- **Lệnh tách đồ lẻ:** `tach <số lượng>` / `tl <số lượng>` — Tách vật phẩm xếp chồng trong Tủ đồ / Hành trang thành từng món lẻ (số lượng 1) liên tục đúng số lần yêu cầu (ví dụ: `tach 30`).
+- **Lệnh thủ công khác:** `moinhom` / `mnb` — Tự động mời tất cả bạn bè trong `vFriend` vào nhóm.
 - **Force-boss:** `toggleSV/TG/VM/MN/ALL()` — `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`, `tspkball` (hoặc `all` - quét 17 map liên tục 24/24).
 - **Auto-reconnect:** `isDisconnected()` + `waitForReconnect(120s)` → restart PkBoss sau reconnect.
 - **grabAllItems():** Nhặt tất cả đồ rơi 30ms/item khi boss chết.
