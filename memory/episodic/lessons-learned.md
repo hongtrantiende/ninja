@@ -111,9 +111,20 @@
 ### v11b: Nhặt đồ nhanh khi boss chết (grabAllItems)
 - Thêm method `grabAllItems()` vào AutoSanBoss
 - Gửi `Service.gI().gameAQ(itemMapID)` cho TẤT CẢ item trên đất chỉ 30ms/item
-- Nhanh gấp ~5x so với auto pickup mặc định (150ms/item)
+- Nhanh gấp ~5x so với auto pickup mặc định (1 item/tick, 50ms)
 - Gọi tự động khi PkBoss kết thúc (boss chết)
 - **Status:** ✅ Implemented (chưa test thực tế)
+
+### v12: AutoPickup — Nhặt đồ nhanh cho ts/tsn/ak
+- **Tạo class:** `src/AutoPickup.java` — thread riêng nhặt TẤT CẢ item 30ms/item liên tục
+- **Lệnh mới:** `nhat` → toggle AutoPickup on/off (qua ChatRouter)
+- **Tự động hook:** Khi user gõ `ts`/`tsn`/`ak`:
+  - ChatRouter intercept → gọi `Code.gameAF(text)` gốc trước (xử lý bật/tắt auto bình thường)
+  - Sau đó check `Code.gameAB != null` → bật AutoPickup / `null` → tắt AutoPickup
+- **An toàn:** `text.equals("ts")` chỉ match exact "ts", không match "ts 1 2 3" (lệnh nhóm có tham số)
+- **Game gốc:** `Code.gameAQ` nhặt 1 item/tick (chọn gần nhất, 50ms delay). AutoPickup nhặt TẤT CẢ item song song.
+- **Status:** ✅ Implemented (chưa test thực tế)
+
 
 
 ---

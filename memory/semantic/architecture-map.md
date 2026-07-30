@@ -116,8 +116,18 @@
 ### ChatRouter (src/ChatRouter.java) — ⭐ KEY PATTERN
 - Wrapper thay thế `Code.gameAF(String)` trong GameScr call site.
 - **checkAll(String):** Check lệnh mở rộng TRƯỚC → fallback Code.gameAF() SAU.
-- Lệnh mở rộng: `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`.
+- Lệnh mở rộng: `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`, `nhat`.
+- **Intercept pattern:** `ts`/`tsn`/`ak` → gọi Code.gameAF gốc → auto bật/tắt AutoPickup.
 - **Thêm lệnh mới:** Chỉ cần thêm `if (text.equals("xxx"))` trong `checkAll()`.
+
+### AutoPickup (src/AutoPickup.java)
+- Implements `Runnable`, chạy thread riêng.
+- **toggle():** Bật/tắt nhặt đồ nhanh, lệnh `nhat`.
+- **start()/stop():** Gọi từ code (không hiện thông báo).
+- **grabOnce():** Nhặt 1 lần tất cả item (dùng bởi AutoSanBoss).
+- **Config:** `PICK_DELAY_MS=30`, `SCAN_DELAY_MS=200`, `ROUNDS_PER_SCAN=3`.
+- Gửi `Service.gI().gameAQ(item.itemMapID)` cho mỗi item.
+
 
 ### Code (src/Code.java)
 - Source chứa: field declarations, `gameAA(Auto)`, `gameAC()`, party chat receiver (dòng 2510+), run() thread.

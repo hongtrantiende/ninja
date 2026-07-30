@@ -1,20 +1,25 @@
 /**
- * ChatRouter - Xu ly cac lenh chat mo rong (tspkbsv, tspkbtg, tspkbvm, tspkbmn)
+ * ChatRouter - Xu ly cac lenh chat mo rong.
  * 
  * Thay the Code.gameAF(String) trong GameScr:
  * GameScr goi ChatRouter.checkAll(text) thay vi Code.gameAF(text)
- * checkAll goi Code.gameAF truoc, neu ko match thi check lenh mo rong.
+ * checkAll check lenh mo rong TRUOC, roi fallback Code.gameAF goc.
+ * 
+ * Lenh mo rong:
+ * - tspkbsv/tg/vm/mn: Force san boss
+ * - nhat: Toggle nhat do nhanh (AutoPickup)
+ * - ts/tsn/ak: Intercept de tu dong bat nhat do khi bat auto
  */
 public class ChatRouter {
     
     /**
-     * Thay the Code.gameAF(String) - goi gameAF goc + check lenh mo rong.
+     * Thay the Code.gameAF(String) - check lenh mo rong TRUOC, fallback goc SAU.
      * CUNG SIGNATURE: (Ljava/lang/String;)Z
      */
     public static boolean checkAll(String text) {
         if (text == null) return false;
         
-        // Check lenh mo rong TRUOC
+        // === FORCE BOSS COMMANDS ===
         if (text.equals("tspkbsv")) {
             AutoSanBoss.toggleSV();
             return true;
@@ -30,6 +35,34 @@ public class ChatRouter {
         if (text.equals("tspkbmn")) {
             AutoSanBoss.toggleMN();
             return true;
+        }
+        
+        // === NHAT DO NHANH ===
+        if (text.equals("nhat")) {
+            AutoPickup.toggle();
+            return true;
+        }
+        
+        // === INTERCEPT ts/tsn/ak: bat nhat do tu dong ===
+        if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
+            // Goi Code.gameAF goc de xu ly ts/tsn/ak binh thuong
+            boolean handled = Code.gameAF(text);
+            if (handled) {
+                // Kiem tra: neu auto DANG chay (gameAB != null) -> bat nhat do
+                // Neu auto KHONG chay (gameAB == null) -> tat nhat do
+                if (Code.gameAB != null) {
+                    if (!AutoPickup.isRunning) {
+                        AutoPickup.start();
+                        GameScr.gameAC("Auto nh\u1eb7t nhanh ON!");
+                    }
+                } else {
+                    if (AutoPickup.isRunning) {
+                        AutoPickup.stop();
+                        GameScr.gameAC("Auto nh\u1eb7t nhanh OFF!");
+                    }
+                }
+            }
+            return handled;
         }
         
         // Fallback: goi Code.gameAF goc
