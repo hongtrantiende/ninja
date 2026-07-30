@@ -89,6 +89,33 @@
   - Khi tắt → gửi `pke` → members tắt PkBoss.
 - **Status:** ✅ FIXED (chưa test thực tế)
 
+### v11: Bytecode Patching — INSERT/APPEND đều FAIL, chỉ REPLACEMENT an toàn
+- **Bug:** JAR không khởi chạy được sau khi patch `Code.class` thêm 4 lệnh chat mới.
+- **3 lần thất bại:**
+  1. **INSERT giữa method (patch_boss_commands.py v1):** Chèn 64 bytes bytecode giữa gameAF. Fix được ifeq branch offset nhưng QUÊN fix StackMapTable + Exception table → JVM verifier crash.
+  2. **INSERT giữa method (patch_boss_commands.py v2):** Fix cả StackMapTable + Exception table + branch offsets. Nhưng QUÊN fix LineNumberTable + các goto/branch instructions KHÁC trong method trỏ đến PC sau insert point → vẫn crash.
+  3. **APPEND cuối method:** Thay `iconst_1; ireturn` ở cuối gameAF bằng call ChatRouter. Nhưng PC 9065 LÀ branch target (có StackMapTable entry) → thay đổi code tại đó vẫn crash.
+- **Giải pháp THÀNH CÔNG — Methodref Replacement:**
+  - **KHÔNG patch Code.class** (quá phức tạp, 9067 bytes bytecode, 334 StackMapTable entries)
+  - Patch **GameScr.class** thay thế: tìm `invokestatic Code.gameAF(String)Z` → đổi sang `invokestatic ChatRouter.checkAll(String)Z`
+  - Chỉ thay **2 bytes** (methodref index) + thêm CP entries
+  - `ChatRouter.checkAll()` gọi `Code.gameAF()` gốc + check 4 lệnh mở rộng
+  - **KHÔNG thay đổi bytecode structure** → không StackMapTable/Exception/LineNumber issues
+- **Quy tắc VÀNG khi thêm lệnh chat mới:**
+  1. **KHÔNG BAO GIỜ** insert/append bytecode vào method lớn (>1000 bytes code_length)
+  2. **Luôn dùng Methodref Replacement:** Tìm call site → thay methodref → wrapper class gọi method gốc + logic mới
+  3. File patcher: `build/patch_gamescr.py` (mẫu chuẩn)
+  4. Wrapper class: `src/ChatRouter.java` (gọi Code.gameAF gốc + check lệnh mới)
+- **Status:** ✅ THÀNH CÔNG — Game chạy, 4 lệnh mới hoạt động
+
+### v11b: Nhặt đồ nhanh khi boss chết (grabAllItems)
+- Thêm method `grabAllItems()` vào AutoSanBoss
+- Gửi `Service.gI().gameAQ(itemMapID)` cho TẤT CẢ item trên đất chỉ 30ms/item
+- Nhanh gấp ~5x so với auto pickup mặc định (150ms/item)
+- Gọi tự động khi PkBoss kết thúc (boss chết)
+- **Status:** ✅ Implemented (chưa test thực tế)
+
+
 ---
 
 ## 🚧 CÁC VẤN ĐỀ CÒN TỒN TẠI (Cần test phiên sau)

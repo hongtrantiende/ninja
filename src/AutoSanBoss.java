@@ -14,6 +14,7 @@ import java.util.Calendar;
 public class AutoSanBoss implements Runnable {
     public static boolean isRunning = false;
     public static boolean isPartyMode = false;
+    private static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
     private static Thread thread;
 
     // 4 loai boss (khong tim Lang Co)
@@ -54,6 +55,7 @@ public class AutoSanBoss implements Runnable {
     private static SanBossHolder dummyAuto;
     private static final int BOSS_ALIVE_DURATION = 2400; // Boss ton tai 40 phut
     private static final int MAX_ZONES = 30;
+    private static final int RECONNECT_TIMEOUT = 120; // Cho toi da 2 phut de reconnect
 
     // Trang thai hien tai
     private int currentBossType = -1;
@@ -61,20 +63,58 @@ public class AutoSanBoss implements Runnable {
     private int lastDeathMapID = -1;
     private int lastDeathZoneID = -1;
 
+    /**
+     * tspkb - Toggle san boss tu dong theo lich
+     */
     public static void toggle() {
-        // Tu dong detect nhom: neu la nhom truong va co thanh vien -> bat party mode
         boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty);
+        toggleInternal(hasParty, -1);
+    }
+
+    /**
+     * tspkbsv - San boss Server (M3) ngay lap tuc
+     */
+    public static void toggleSV() {
+        boolean hasParty = GameScr.vParty.size() > 1;
+        toggleInternal(hasParty, TYPE_SERVER);
+    }
+
+    /**
+     * tspkbtg - San boss TheGioi (M23) ngay lap tuc
+     */
+    public static void toggleTG() {
+        boolean hasParty = GameScr.vParty.size() > 1;
+        toggleInternal(hasParty, TYPE_THEGIOI);
+    }
+
+    /**
+     * tspkbvm - San boss VDMQ (M141-143) ngay lap tuc
+     */
+    public static void toggleVM() {
+        boolean hasParty = GameScr.vParty.size() > 1;
+        toggleInternal(hasParty, TYPE_VDMQ);
+    }
+
+    /**
+     * tspkbmn - San boss MapNgoai (12 maps) ngay lap tuc
+     */
+    public static void toggleMN() {
+        boolean hasParty = GameScr.vParty.size() > 1;
+        toggleInternal(hasParty, TYPE_MAPNGOAI);
     }
 
     public static void toggleParty() {
-        toggleInternal(true);
+        toggleInternal(true, -1);
     }
 
-    private static void toggleInternal(boolean partyMode) {
+    /**
+     * @param forcedType -1 = auto schedule, 0-3 = force boss type
+     */
+    private static void toggleInternal(boolean partyMode, int forcedType) {
         if (isRunning) {
             isRunning = false;
             isPartyMode = false;
+            forcedBossType = -1;
             if (Code.gameAB == dummyAuto) {
                 Code.gameAB = null;
             }
@@ -87,19 +127,26 @@ public class AutoSanBoss implements Runnable {
         } else {
             isRunning = true;
             isPartyMode = partyMode;
+            forcedBossType = forcedType;
             dummyAuto = new SanBossHolder();
             Code.gameAB = dummyAuto;
             AutoSanBoss instance = new AutoSanBoss();
             thread = new Thread(instance);
             thread.start();
-            if (partyMode) {
-                // Gui pkm ngay cho nhom de members bat PkBoss + hien "Tat Auto"
-                try {
-                    Service.gI().gameAK("pkm " + TileMap.mapID);
-                } catch (Exception e) {}
+            // Thong bao
+            String modeName = partyMode ? " NH\u00d3M" : "";
+            if (forcedType >= 0) {
+                GameScr.gameAC("S\u0103n " + BOSS_NAMES[forcedType] + modeName + " ngay!");
+            } else if (partyMode) {
                 GameScr.gameAC("B\u1eadt S\u0103n Boss NH\u00d3M!");
             } else {
                 GameScr.gameAC("B\u1eadt T\u1ef1 S\u0103n Boss!");
+            }
+            // Gui pkm cho nhom
+            if (partyMode) {
+                try {
+                    Service.gI().gameAK("pkm " + TileMap.mapID);
+                } catch (Exception e) {}
             }
         }
     }
@@ -140,17 +187,69 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * Kiem tra mat ket noi: Char chua load hoac session chua san sang
+     */
+    private boolean isDisconnected() {
+        try {
+            Char c = Char.getMyChar();
+            if (c == null || c.cName == null) return true;
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /**
+     * Cho game tu reconnect (Char.ReConnect xu ly).
+     * Tra ve true neu reconnect thanh cong, false neu timeout.
+     */
+    private boolean waitForReconnect(int maxWaitSec) {
+        GameScr.gameAC("TSB: M\u1ea5t k\u1ebft n\u1ed1i! Ch\u1edd \u0111\u0103ng nh\u1eadp l\u1ea1i...");
+        for (int i = 0; i < maxWaitSec && isRunning; i++) {
+            sleep(1000);
+            if (!isDisconnected()) {
+                // Reconnect thanh cong, doi game load xong
+                sleep(5000);
+                // Khoi phuc dummyAuto de menu hien "Tat Auto"
+                if (dummyAuto == null) {
+                    dummyAuto = new SanBossHolder();
+                }
+                Code.gameAB = dummyAuto;
+                GameScr.gameAC("TSB: \u0110\u00e3 k\u1ebft n\u1ed1i l\u1ea1i! Ti\u1ebfp t\u1ee5c s\u0103n boss...");
+                // Gui lai pkm cho nhom neu dang party mode
+                if (isPartyMode) {
+                    try {
+                        if (GameScr.vParty.size() > 1) {
+                            Service.gI().gameAK("pkm " + TileMap.mapID);
+                        }
+                    } catch (Exception e) {}
+                }
+                return true;
+            }
+        }
+        GameScr.gameAC("TSB: Kh\u00f4ng th\u1ec3 k\u1ebft n\u1ed1i l\u1ea1i. D\u1eebng.");
+        return false;
+    }
+
+    /**
      * Hoi sinh nhanh: dong dialog, gui lenh hoi sinh, retry toi da 5 lan
      */
     private void respawnFast() {
         for (int retry = 0; retry < 5 && isRunning; retry++) {
-            GameCanvas.endDlg();
-            sleep(30);
-            GameScr.gameAB(5, 0, 0);
-            sleep(30);
-            Service.gI().gameAF();
-            sleep(100);
-            if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+            // Kiem tra disconnect truoc khi respawn
+            if (isDisconnected()) return;
+            try {
+                GameCanvas.endDlg();
+                sleep(30);
+                GameScr.gameAB(5, 0, 0);
+                sleep(30);
+                Service.gI().gameAF();
+                sleep(100);
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                    return;
+                }
+            } catch (Exception e) {
+                // Co the disconnect trong luc respawn
                 return;
             }
             sleep(200);
@@ -224,6 +323,35 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * Nhat nhanh TAT CA do roi tren dat.
+     * Gui Service.gameAQ(itemMapID) lien tuc voi delay nho (30ms)
+     * thay vi doi 1 item/tick nhu Code.run() mac dinh.
+     */
+    private void grabAllItems() {
+        try {
+            int totalItems = GameScr.vItemMap.size();
+            if (totalItems == 0) return;
+            GameScr.gameAC("TSB: Cu\u1ed5m " + totalItems + " \u0111\u1ed3!");
+            // Lap nhieu vong de nhat het (item moi co the roi tiep)
+            for (int round = 0; round < 5 && isRunning; round++) {
+                int picked = 0;
+                for (int i = 0; i < GameScr.vItemMap.size() && isRunning; i++) {
+                    try {
+                        ItemMap item = (ItemMap)GameScr.vItemMap.elementAt(i);
+                        Service.gI().gameAQ(item.itemMapID);
+                        picked++;
+                        sleep(30);
+                    } catch (Exception e) {
+                        // Item co the da bi nhat roi
+                    }
+                }
+                if (picked == 0) break;
+                sleep(200); // Cho server xu ly
+            }
+        } catch (Exception e) {}
+    }
+
+    /**
      * Doi cho den khi chuyen map xong
      */
     private boolean waitForMap(int targetMapID, long timeoutMs) {
@@ -263,28 +391,62 @@ public class AutoSanBoss implements Runnable {
         GameScr.gameAC("TSB: PK M" + mapID);
 
         // Leader start PkBoss solo - quet khu, tim boss
-        Code.gameAA(new PkBoss(mapID));
+        try {
+            Code.gameAA(new PkBoss(mapID));
+        } catch (Exception e) {
+            if (isDisconnected()) {
+                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                Code.gameAA(new PkBoss(mapID));
+            } else {
+                return false;
+            }
+        }
 
         long startTime = System.currentTimeMillis();
         boolean sentPartyCmd = false;
 
         while (checkStillRunning() && Code.gameAB instanceof PkBoss) {
-            // Chi khi tim thay boss -> gui lenh nhom 1 lan duy nhat
-            if (!sentPartyCmd && hasBossOnCurrentMap()) {
-                sentPartyCmd = true;
-                GameScr.gameAC("TSB: Boss! Goi nhom M" + mapID + " K" + TileMap.zoneID);
-                sendPartyCommand("pkm " + mapID);
-                sleep(500);
-                sendPartyCommand("pkk " + TileMap.zoneID);
-            }
-
-            // Respawn nhanh neu chet
-            if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
-                GameScr.gameAC("TSB: Chet! Hoi sinh...");
-                respawnFast();
-
-                if (isRunning && !(Code.gameAB instanceof PkBoss)) {
+            try {
+                // Detect disconnect trong khi PkBoss dang chay
+                if (isDisconnected()) {
+                    GameScr.gameAC("TSB: M\u1ea5t k\u1ebft n\u1ed1i khi PK M" + mapID + "!");
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    // Restart PkBoss sau reconnect
+                    sentPartyCmd = false;
+                    startTime = System.currentTimeMillis();
                     Code.gameAA(new PkBoss(mapID));
+                    continue;
+                }
+
+                // Chi khi tim thay boss -> gui lenh nhom 1 lan duy nhat
+                if (!sentPartyCmd && hasBossOnCurrentMap()) {
+                    sentPartyCmd = true;
+                    GameScr.gameAC("TSB: Boss! Goi nhom M" + mapID + " K" + TileMap.zoneID);
+                    sendPartyCommand("pkm " + mapID);
+                    sleep(500);
+                    sendPartyCommand("pkk " + TileMap.zoneID);
+                }
+
+                // Respawn nhanh neu chet
+                if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                    GameScr.gameAC("TSB: Chet! Hoi sinh...");
+                    respawnFast();
+                    // Kiem tra disconnect sau khi chet
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    }
+                    if (isRunning && !(Code.gameAB instanceof PkBoss)) {
+                        Code.gameAA(new PkBoss(mapID));
+                    }
+                }
+            } catch (Exception e) {
+                // Exception co the do disconnect
+                if (isDisconnected()) {
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    sentPartyCmd = false;
+                    startTime = System.currentTimeMillis();
+                    Code.gameAA(new PkBoss(mapID));
+                    continue;
                 }
             }
             sleep(200);
@@ -297,6 +459,8 @@ public class AutoSanBoss implements Runnable {
         boolean fought = elapsed > 5000;
         if (fought) {
             GameScr.gameAC("TSB: Xong M" + mapID + " (" + (elapsed / 1000) + "s)");
+            // Boss da chet -> nhat nhanh do roi
+            grabAllItems();
         }
         return fought;
     }
@@ -306,39 +470,66 @@ public class AutoSanBoss implements Runnable {
 
         while (checkStillRunning()) {
             try {
-                restoreDummyAuto();
-
-                // Quet TAT CA loai boss dang active
-                boolean huntedAny = false;
-
-                for (int bossType = 0; bossType < 4 && checkStillRunning(); bossType++) {
-                    if (!isBossActive(bossType)) continue;
-
-                    huntedAny = true;
-                    currentBossType = bossType;
-                    int[] maps = getMapsForBoss(bossType);
-                    GameScr.gameAC("TSB: " + BOSS_NAMES[bossType] + " dang spawn!");
-
-                    // Quet tung map, PkBoss tu xu ly moi thu
-                    for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
-                        if (!isBossActive(bossType)) break;
-                        pkBossOnMap(maps[mi]);
-                    }
-
-                    if (checkStillRunning()) {
-                        GameScr.gameAC("TSB: Xong " + BOSS_NAMES[bossType] + ", kiem tra boss khac...");
-                    }
+                // Kiem tra disconnect dau moi vong lap
+                if (isDisconnected()) {
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
                 }
 
-                // Khong co boss nao -> doi 30s
-                if (!huntedAny && checkStillRunning()) {
-                    for (int w = 0; w < 30 && checkStillRunning(); w++) {
-                        sleep(1000);
+                restoreDummyAuto();
+
+                if (forcedBossType >= 0) {
+                    // === CHE DO FORCE: San 1 loai boss cu the, khong check gio ===
+                    huntBossType(forcedBossType);
+
+                    // Sau khi quet xong 1 round, doi 10s roi quet lai
+                    if (checkStillRunning()) {
+                        GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", quet lai sau 10s...");
+                        for (int w = 0; w < 10 && checkStillRunning(); w++) {
+                            sleep(1000);
+                            if (isDisconnected()) {
+                                if (!waitForReconnect(RECONNECT_TIMEOUT)) {
+                                    isRunning = false;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // === CHE DO TU DONG: Quet theo lich spawn ===
+                    boolean huntedAny = false;
+
+                    for (int bossType = 0; bossType < 4 && checkStillRunning(); bossType++) {
+                        if (!isBossActive(bossType)) continue;
+
+                        huntedAny = true;
+                        huntBossType(bossType);
+
+                        if (checkStillRunning()) {
+                            GameScr.gameAC("TSB: Xong " + BOSS_NAMES[bossType] + ", kiem tra boss khac...");
+                        }
+                    }
+
+                    // Khong co boss nao -> doi 30s
+                    if (!huntedAny && checkStillRunning()) {
+                        for (int w = 0; w < 30 && checkStillRunning(); w++) {
+                            sleep(1000);
+                            if (isDisconnected()) {
+                                if (!waitForReconnect(RECONNECT_TIMEOUT)) {
+                                    isRunning = false;
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
 
             } catch (Exception e) {
-                sleep(5000);
+                // Exception co the do disconnect
+                if (isDisconnected()) {
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
+                } else {
+                    sleep(5000);
+                }
             }
         }
 
@@ -347,8 +538,24 @@ public class AutoSanBoss implements Runnable {
             Code.gameAB = null;
         }
         dummyAuto = null;
+        forcedBossType = -1;
         isRunning = false;
         GameScr.gameAC("TSB: Da dung.");
+    }
+
+    /**
+     * San 1 loai boss cu the: quet tung map trong danh sach
+     */
+    private void huntBossType(int bossType) {
+        currentBossType = bossType;
+        int[] maps = getMapsForBoss(bossType);
+        GameScr.gameAC("TSB: San " + BOSS_NAMES[bossType] + " (" + maps.length + " maps)");
+
+        for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
+            // Neu mode tu dong (forcedBossType == -1), check gio
+            if (forcedBossType < 0 && !isBossActive(bossType)) break;
+            pkBossOnMap(maps[mi]);
+        }
     }
 
     private static void sleep(long ms) {

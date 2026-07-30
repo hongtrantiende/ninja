@@ -6,10 +6,11 @@
 - **`gameAB`** (`Auto`): Field chính quyết định auto đang chạy. Nếu != null → menu hiện "Tắt Auto".
 - **`gameAA(Auto)`**: Push auto vào stack (`gameAB = auto`).
 - **`gameAC()`**: Pop auto stack (`gameAB = gameAB.reAB`).
-- **`gameAF(String)`**: Handler lệnh chat từ user (compiled, không có trong source).
+- **`gameAF(String)`**: Handler lệnh chat từ user. Gọi từ GameScr → **ChatRouter.checkAll** → Code.gameAF (wrapped).
 - **`gameAH`** (`String`): Tên nhóm trưởng.
 - **`gameCC`** (`TanSat`): Instance TanSat singleton.
 - Chat handler nằm HOÀN TOÀN trong compiled Code.class. Code.java source chỉ chứa run(), party receiver, field declarations.
+- **⚠️ KHÔNG PATCH Code.class bytecode trực tiếp** — dùng Methodref Replacement qua GameScr (xem ChatRouter).
 
 ### Auto (Auto.class) — Abstract base
 - **`gameAK()`**: Abstract method — game loop gọi liên tục. BẮT BUỘC override.
@@ -45,7 +46,12 @@
 - **`gameAC(String)`**: Hiển thị chat message trên màn hình.
 - **`vParty`** (`MyVector`): Danh sách thành viên nhóm.
 - **`vMob`** (`MyVector`): Danh sách mob trên map hiện tại.
+- **`vItemMap`** (`MyVector`): Danh sách ItemMap (đồ rơi trên đất).
 - **`gameAB(int, int, int)`**: Mở menu (respawn dialog, etc).
+- **Chat call site (PATCHED):** `invokestatic ChatRouter.checkAll(String)Z` thay cho `Code.gameAF(String)Z` tại PC 46.
+
+### ItemMap (ItemMap.class)
+- **`itemMapID`** (`int`): ID item trên map, dùng cho `Service.gI().gameAQ(itemMapID)` để nhặt.
 
 ### Char (Char.class)
 - **`getMyChar()`**: Singleton nhân vật chính.
@@ -84,6 +90,9 @@
 - **Lệnh:** `tspkb` → `AutoSanBoss.toggle()`
 - **Flow:** Quét 4 loại boss → cho mỗi map: `Code.gameAA(new PkBoss(mapID))` → PkBoss tự quét + đánh → chờ xong → map tiếp.
 - **Party mode:** Auto-detect nhóm. Gửi `pkm` khi bật (members bật PkBoss). Gửi `pkm + pkk` khi tìm thấy boss. Gửi `pke` khi tắt.
+- **Force-boss:** `toggleSV/TG/VM/MN()` — săn boss cụ thể ngay lập tức.
+- **Auto-reconnect:** `isDisconnected()` + `waitForReconnect(120s)` → restart PkBoss sau reconnect.
+- **grabAllItems():** Nhặt tất cả đồ rơi 30ms/item khi boss chết.
 - **Boss data:**
   - Server: M3, giờ 12/18/20/22
   - TheGioi: M23, giờ 12/23
@@ -104,24 +113,35 @@
 ### InfoMe (src/InfoMe.java)
 - Hook `ThongTinBoss.paint(g)` vào game render loop.
 
+### ChatRouter (src/ChatRouter.java) — ⭐ KEY PATTERN
+- Wrapper thay thế `Code.gameAF(String)` trong GameScr call site.
+- **checkAll(String):** Check lệnh mở rộng TRƯỚC → fallback Code.gameAF() SAU.
+- Lệnh mở rộng: `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`.
+- **Thêm lệnh mới:** Chỉ cần thêm `if (text.equals("xxx"))` trong `checkAll()`.
+
 ### Code (src/Code.java)
 - Source chứa: field declarations, `gameAA(Auto)`, `gameAC()`, party chat receiver (dòng 2510+), run() thread.
 - Chat handler lệnh user (`tspkb`, `tsn`, etc.) nằm trong COMPILED class, không trong source.
+- **⚠️ KHÔNG BAO GIỜ patch bytecode Code.class** — dùng ChatRouter pattern.
 
-## Build Pipeline (PowerShell)
+## Build Pipeline V1 (PowerShell)
 ```powershell
-# 1. Tạo stubs
-New-Item -ItemType Directory -Force -Path 'stubs/javax/microedition/lcdui'
-# ... tạo Image.java, CommandListener.java, Form.java stubs
+# 1. Unpack original JAR
+Remove-Item -Recurse -Force 'build/unpacked' -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force 'build/unpacked' | Out-Null
+python -c "import zipfile,io; z=zipfile.ZipFile(io.BytesIO(open('build/Aeharuna_orig.jar','rb').read())); z.extractall('build/unpacked')"
 
-# 2. Compile
-javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/File1.java src/File2.java
+# 2. Create stubs + Compile
+# ... tạo stubs javax.microedition ...
+javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/AutoSanBoss.java src/SanBossHolder.java src/ThongTinBoss.java src/ShortcutHandler.java
+javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/ChatRouter.java
 
-# 3. Clean stubs
-Remove-Item -Recurse -Force "build/unpacked/javax"
-Remove-Item -Recurse -Force "stubs"
+# 3. Patch GameScr (methodref replacement — SAFE)
+python build/patch_gamescr.py build/unpacked/GameScr.class build/unpacked/GameScr.class
 
-# 4. Pack JAR (PHẢI dùng cfm, KHÔNG dùng wildcard *)
+# 4. Clean + Pack JAR
+Remove-Item -Recurse -Force 'build/unpacked/javax' -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force 'stubs' -ErrorAction SilentlyContinue
 Set-Location 'build/unpacked'
 jar cfm '../../Aeharuna.jar' 'META-INF/MANIFEST.MF' *.class *.txt *.png font map x1
 ```
