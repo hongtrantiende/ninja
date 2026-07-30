@@ -151,11 +151,12 @@ public class AutoSanBoss implements Runnable {
             } else {
                 GameScr.gameAC("B\u1eadt T\u1ef1 S\u0103n Boss!");
             }
-            // Gui pkm cho nhom
+            // Gui pkm va moi ban be vao nhom
             if (partyMode) {
                 try {
                     Service.gI().gameAK("pkm " + TileMap.mapID);
                 } catch (Exception e) {}
+                autoInviteFriends();
             }
         }
     }
@@ -230,6 +231,9 @@ public class AutoSanBoss implements Runnable {
                     try {
                         if (GameScr.vParty.size() > 1) {
                             Service.gI().gameAK("pkm " + TileMap.mapID);
+                        } else {
+                            // Party bi gia'i ta'n do disconnect -> tu dong moi lai ban be trong vFriend
+                            autoInviteFriends();
                         }
                     } catch (Exception e) {}
                 }
@@ -238,6 +242,40 @@ public class AutoSanBoss implements Runnable {
         }
         GameScr.gameAC("TSB: Kh\u00f4ng th\u1ec3 k\u1ebft n\u1ed1i l\u1ea1i. D\u1eebng.");
         return false;
+    }
+
+    /**
+     * Tu dong moi tat ca ban be trong danh sach ban be (vFriend) vao nhom
+     */
+    public static void autoInviteFriends() {
+        try {
+            if (GameScr.vFriend == null || GameScr.vFriend.size() == 0) {
+                GameScr.gameAC("TSB: Danh s\u00e1ch b\u1ea1n b\u00e8 tr\u1ed1ng!");
+                return;
+            }
+            int invitedCount = 0;
+            for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3) {
+                    boolean alreadyInParty = false;
+                    for (int p = 0; p < GameScr.vParty.size(); p++) {
+                        Party partyMember = (Party) GameScr.vParty.elementAt(p);
+                        if (partyMember != null && partyMember.name != null && partyMember.name.equals(f.friendName)) {
+                            alreadyInParty = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyInParty) {
+                        Service.gI().gameAH(f.friendName);
+                        invitedCount++;
+                        sleep(250);
+                    }
+                }
+            }
+            if (invitedCount > 0) {
+                GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " b\u1ea1n b\u00e8 v\u00e0o nh\u00f3m!");
+            }
+        } catch (Exception e) {}
     }
 
     /**
@@ -497,6 +535,11 @@ public class AutoSanBoss implements Runnable {
                 }
 
                 restoreDummyAuto();
+
+                // Tu dong moi lai ban be vao nhom neu dang o che do nhom va chua co nhom
+                if (isPartyMode && GameScr.vParty.size() <= 1) {
+                    autoInviteFriends();
+                }
 
                 if (forcedBossType == TYPE_ALL) {
                     // === CHE DO FORCE ALL: San TAT CA 4 loai boss 24/24 ===

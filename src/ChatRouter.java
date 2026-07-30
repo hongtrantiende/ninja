@@ -46,6 +46,10 @@ public class ChatRouter {
             AutoPickup.toggle();
             return true;
         }
+        if (text.equals("moinhom") || text.equals("mnb")) {
+            AutoSanBoss.autoInviteFriends();
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat nhat do tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {

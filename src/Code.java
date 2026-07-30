@@ -2036,6 +2036,10 @@ implements Runnable {
                                     AutoPickup.toggle();
                                     return true;
                                 }
+                                if (var31.equals("moinhom") || var31.equals("mnb")) {
+                                    AutoSanBoss.autoInviteFriends();
+                                    return true;
+                                }
                                 if (var31.equals("sell")) {
                                     GameScr.gameAC("Auto Sell");
                                     Code.gameAR();
