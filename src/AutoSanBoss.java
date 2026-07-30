@@ -23,8 +23,9 @@ public class AutoSanBoss implements Runnable {
     private static final int TYPE_THEGIOI = 1;
     private static final int TYPE_VDMQ = 2;
     private static final int TYPE_MAPNGOAI = 3;
+    private static final int TYPE_ALL = 4;
 
-    private static final String[] BOSS_NAMES = {"Server", "TheGioi", "VDMQ", "MapNgoai"};
+    private static final String[] BOSS_NAMES = {"Server", "TheGioi", "VDMQ", "MapNgoai", "T\u1ea5t C\u1ea3"};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
@@ -101,6 +102,14 @@ public class AutoSanBoss implements Runnable {
     public static void toggleMN() {
         boolean hasParty = GameScr.vParty.size() > 1;
         toggleInternal(hasParty, TYPE_MAPNGOAI);
+    }
+
+    /**
+     * tspkball - San TAT CA boss (17 maps) 24/24 nguyen ngay
+     */
+    public static void toggleALL() {
+        boolean hasParty = GameScr.vParty.size() > 1;
+        toggleInternal(hasParty, TYPE_ALL);
     }
 
     public static void toggleParty() {
@@ -489,8 +498,18 @@ public class AutoSanBoss implements Runnable {
 
                 restoreDummyAuto();
 
-                if (forcedBossType >= 0) {
-                    // === CHE DO FORCE: San 1 loai boss cu the, khong check gio ===
+                if (forcedBossType == TYPE_ALL) {
+                    // === CHE DO FORCE ALL: San TAT CA 4 loai boss 24/24 ===
+                    for (int b = 0; b < 4 && checkStillRunning(); b++) {
+                        huntBossType(b);
+                    }
+
+                    if (checkStillRunning()) {
+                        GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t ALL map, qu\u00e9t l\u1ea1i sau 10s...");
+                        sleepSeconds(10);
+                    }
+                } else if (forcedBossType >= 0) {
+                    // === CHE DO FORCE 1 LOAI: San 1 loai boss cu the, khong check gio ===
                     huntBossType(forcedBossType);
 
                     // Sau khi quet xong 1 round, doi 10s roi quet lai

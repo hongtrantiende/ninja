@@ -20,6 +20,10 @@ public class ChatRouter {
         if (text == null) return false;
         
         // === FORCE BOSS COMMANDS ===
+        if (text.equals("tspkball") || text.equals("all")) {
+            AutoSanBoss.toggleALL();
+            return true;
+        }
         if (text.equals("tspkbsv")) {
             AutoSanBoss.toggleSV();
             return true;
