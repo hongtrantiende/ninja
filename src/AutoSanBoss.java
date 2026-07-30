@@ -245,35 +245,70 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Tu dong moi tat ca ban be trong danh sach ban be (vFriend) vao nhom
+     * Tu dong moi tat ca ban be trong danh sach ban be (vFriend) vao nhom.
+     * Neu vFriend rong -> gui packet 83 (Service.gI().gameAT()) xin server load danh sach ban be.
      */
     public static void autoInviteFriends() {
         try {
+            // Xin server load danh sach ban be neu vFriend chua co du lieu
             if (GameScr.vFriend == null || GameScr.vFriend.size() == 0) {
-                GameScr.gameAC("TSB: Danh s\u00e1ch b\u1ea1n b\u00e8 tr\u1ed1ng!");
-                return;
+                try {
+                    Service.gI().gameAT(); // Packet 83: Request friend list
+                } catch (Exception e) {}
+                sleep(1000); // Cho 1s de server phan hoi va load vFriend
             }
+
             int invitedCount = 0;
-            for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3) {
-                    boolean alreadyInParty = false;
-                    for (int p = 0; p < GameScr.vParty.size(); p++) {
-                        Party partyMember = (Party) GameScr.vParty.elementAt(p);
-                        if (partyMember != null && partyMember.name != null && partyMember.name.equals(f.friendName)) {
-                            alreadyInParty = true;
-                            break;
+
+            // 1. Moi cac ban be trong vFriend
+            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
+                for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                    if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3) {
+                        boolean alreadyInParty = false;
+                        for (int p = 0; p < GameScr.vParty.size(); p++) {
+                            Party partyMember = (Party) GameScr.vParty.elementAt(p);
+                            if (partyMember != null && partyMember.name != null && partyMember.name.equals(f.friendName)) {
+                                alreadyInParty = true;
+                                break;
+                            }
                         }
-                    }
-                    if (!alreadyInParty) {
-                        Service.gI().gameAH(f.friendName);
-                        invitedCount++;
-                        sleep(250);
+                        if (!alreadyInParty) {
+                            Service.gI().gameAH(f.friendName);
+                            invitedCount++;
+                            sleep(250);
+                        }
                     }
                 }
             }
+
+            // 2. Neu ban be trong, thu moi nguoi choi tren map hien tai (vCharInMap)
+            if (invitedCount == 0 && GameScr.vCharInMap != null) {
+                String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
+                for (int i = 0; i < GameScr.vCharInMap.size(); i++) {
+                    Char c = (Char) GameScr.vCharInMap.elementAt(i);
+                    if (c != null && c.cName != null && c.cName.length() > 0 && !c.cName.equals(myName)) {
+                        boolean alreadyInParty = false;
+                        for (int p = 0; p < GameScr.vParty.size(); p++) {
+                            Party partyMember = (Party) GameScr.vParty.elementAt(p);
+                            if (partyMember != null && partyMember.name != null && partyMember.name.equals(c.cName)) {
+                                alreadyInParty = true;
+                                break;
+                            }
+                        }
+                        if (!alreadyInParty) {
+                            Service.gI().gameAH(c.cName);
+                            invitedCount++;
+                            sleep(250);
+                        }
+                    }
+                }
+            }
+
             if (invitedCount > 0) {
-                GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " b\u1ea1n b\u00e8 v\u00e0o nh\u00f3m!");
+                GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
+            } else {
+                GameScr.gameAC("TSB: Kh\u00f4ng c\u00f3 b\u1ea1n b\u00e8 ho\u1eb7c ng\u01b0\u1eddi ch\u01a1i m\u1edbi \u0111\u1ec3 m\u1eddi!");
             }
         } catch (Exception e) {}
     }
