@@ -320,6 +320,74 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * Tach do le tu Tu do (arrItemBox) hoac Hanh trang (arrItemBag).
+     * Tach thanh tung mon le (so luong 1) cho den 'count' lan.
+     */
+    public static void tachDoLe(final int count) {
+        if (count <= 0) return;
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Char myChar = Char.getMyChar();
+                    if (myChar == null) return;
+
+                    Item item = null;
+                    int indexUI = -1;
+
+                    // 1. Kiem tra item dang duoc chon tai gameBM trong Tu do hoac Hanh trang
+                    if (myChar.arrItemBox != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBox.length && myChar.arrItemBox[GameScr.gameBM] != null) {
+                        item = myChar.arrItemBox[GameScr.gameBM];
+                        indexUI = item.indexUI;
+                    } else if (myChar.arrItemBag != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBag.length && myChar.arrItemBag[GameScr.gameBM] != null) {
+                        item = myChar.arrItemBag[GameScr.gameBM];
+                        indexUI = item.indexUI;
+                    }
+
+                    // 2. Fallback: tim item dau tien trong Tu do
+                    if (item == null && myChar.arrItemBox != null) {
+                        for (int i = 0; i < myChar.arrItemBox.length; i++) {
+                            if (myChar.arrItemBox[i] != null) {
+                                item = myChar.arrItemBox[i];
+                                indexUI = item.indexUI;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 3. Fallback: tim item dau tien trong Hanh trang
+                    if (item == null && myChar.arrItemBag != null) {
+                        for (int i = 0; i < myChar.arrItemBag.length; i++) {
+                            if (myChar.arrItemBag[i] != null) {
+                                item = myChar.arrItemBag[i];
+                                indexUI = item.indexUI;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (item == null) {
+                        GameScr.gameAC("TSB: H\u00e3y ch\u1ecdn v\u1eadt ph\u1ea9m trong T\u1ee7 \u0111\u1ed3 ho\u1eb7c H\u00e0nh trang \u0111\u1ec3 t\u00e1ch!");
+                        return;
+                    }
+
+                    String itemName = item.template != null ? item.template.name : "v\u1eadt ph\u1ea9m";
+                    GameScr.gameAC("TSB: \u0110ang t\u00e1ch l\u1ebb " + count + " m\u00f3n " + itemName + "...");
+
+                    for (int i = 0; i < count; i++) {
+                        // Gui packet 107 (Service.gI().gameAO(indexUI)) de tach le 1 mon
+                        Service.gI().gameAO(indexUI);
+                        sleep(120); // Delay 120ms giua cac lan tach
+                    }
+
+                    GameScr.gameAC("TSB: \u0110\u00e3 t\u00e1ch xong " + count + " m\u00f3n l\u1ebb " + itemName + "!");
+                } catch (Exception e) {
+                    GameScr.gameAC("TSB: L\u1ed7i khi t\u00e1ch \u0111\u1ed3!");
+                }
+            }
+        }).start();
+    }
+
+    /**
      * Hoi sinh nhanh: dong dialog, gui lenh hoi sinh, retry toi da 5 lan
      */
     private void respawnFast() {

@@ -50,6 +50,17 @@ public class ChatRouter {
             AutoSanBoss.autoInviteFriends();
             return true;
         }
+        if (text.startsWith("tach") || text.startsWith("tl")) {
+            String[] parts = text.split(" ");
+            int count = 30;
+            if (parts.length > 1) {
+                try {
+                    count = Integer.parseInt(parts[1]);
+                } catch (Exception e) {}
+            }
+            AutoSanBoss.tachDoLe(count);
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat nhat do tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {

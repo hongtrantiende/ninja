@@ -2040,6 +2040,17 @@ implements Runnable {
                                     AutoSanBoss.autoInviteFriends();
                                     return true;
                                 }
+                                if (var31.startsWith("tach") || var31.startsWith("tl")) {
+                                    String[] parts = Code.gameAC(var0, " ");
+                                    int count = 30;
+                                    if (parts.length > 1) {
+                                        try {
+                                            count = Integer.parseInt(parts[1]);
+                                        } catch (Exception e) {}
+                                    }
+                                    AutoSanBoss.tachDoLe(count);
+                                    return true;
+                                }
                                 if (var31.equals("sell")) {
                                     GameScr.gameAC("Auto Sell");
                                     Code.gameAR();
