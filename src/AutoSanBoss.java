@@ -465,6 +465,18 @@ public class AutoSanBoss implements Runnable {
         return fought;
     }
 
+    private void sleepSeconds(int seconds) {
+        for (int w = 0; w < seconds && checkStillRunning(); w++) {
+            sleep(1000);
+            if (isDisconnected()) {
+                if (!waitForReconnect(RECONNECT_TIMEOUT)) {
+                    isRunning = false;
+                }
+                break;
+            }
+        }
+    }
+
     public void run() {
         sleep(2000);
 
@@ -483,16 +495,8 @@ public class AutoSanBoss implements Runnable {
 
                     // Sau khi quet xong 1 round, doi 10s roi quet lai
                     if (checkStillRunning()) {
-                        GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", quet lai sau 10s...");
-                        for (int w = 0; w < 10 && checkStillRunning(); w++) {
-                            sleep(1000);
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) {
-                                    isRunning = false;
-                                }
-                                break;
-                            }
-                        }
+                        GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", qu\u00e9t l\u1ea1i sau 10s...");
+                        sleepSeconds(10);
                     }
                 } else {
                     // === CHE DO TU DONG: Quet theo lich spawn ===
@@ -503,23 +507,14 @@ public class AutoSanBoss implements Runnable {
 
                         huntedAny = true;
                         huntBossType(bossType);
-
-                        if (checkStillRunning()) {
-                            GameScr.gameAC("TSB: Xong " + BOSS_NAMES[bossType] + ", kiem tra boss khac...");
-                        }
                     }
 
-                    // Khong co boss nao -> doi 30s
-                    if (!huntedAny && checkStillRunning()) {
-                        for (int w = 0; w < 30 && checkStillRunning(); w++) {
-                            sleep(1000);
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) {
-                                    isRunning = false;
-                                }
-                                break;
-                            }
-                        }
+                    if (huntedAny && checkStillRunning()) {
+                        GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t, qu\u00e9t l\u1ea1i sau 10s...");
+                        sleepSeconds(10);
+                    } else if (!huntedAny && checkStillRunning()) {
+                        // Khong co boss nao -> doi 30s
+                        sleepSeconds(30);
                     }
                 }
 

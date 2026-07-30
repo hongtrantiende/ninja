@@ -88,7 +88,7 @@
 ### AutoSanBoss (src/AutoSanBoss.java)
 - Implements `Runnable`, chạy thread riêng.
 - **Lệnh:** `tspkb` → `AutoSanBoss.toggle()`
-- **Flow:** Quét 4 loại boss → cho mỗi map: `Code.gameAA(new PkBoss(mapID))` → PkBoss tự quét + đánh → chờ xong → map tiếp.
+- **Flow:** Quét 4 loại boss → cho mỗi map: `Code.gameAA(new PkBoss(mapID))` → PkBoss tự quét + đánh → chờ xong → map tiếp. Xong 1 lượt quết → nghỉ 10 giây (`sleepSeconds(10)`) → lặp lại cho đến hết 40 phút.
 - **Party mode:** Auto-detect nhóm. Gửi `pkm` khi bật (members bật PkBoss). Gửi `pkm + pkk` khi tìm thấy boss. Gửi `pke` khi tắt.
 - **Force-boss:** `toggleSV/TG/VM/MN()` — săn boss cụ thể ngay lập tức.
 - **Auto-reconnect:** `isDisconnected()` + `waitForReconnect(120s)` → restart PkBoss sau reconnect.
