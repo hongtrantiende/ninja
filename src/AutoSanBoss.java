@@ -17,7 +17,7 @@ public class AutoSanBoss implements Runnable {
     private static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
     private static Thread thread;
 
-    // 4 loai boss (khong tim Lang Co)
+    // 4 loai boss theo lich server
     // Moi boss co: ten, int[] mapIDs, int[] hours
     private static final int TYPE_SERVER = 0;
     private static final int TYPE_THEGIOI = 1;
@@ -29,27 +29,27 @@ public class AutoSanBoss implements Runnable {
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
-        {3},               // Server
-        {23},              // TheGioi
+        {63},              // Server
+        {65},              // TheGioi
         {141, 142, 143},   // VDMQ
-        {}                 // MapNgoai - dynamic based on level
+        {}                 // MapNgoai
     };
 
     // Map IDs cua MapNgoai theo level
     private static final int[][] MAPNGOAI_BY_LEVEL = {
         {14, 15, 16},      // Lv45
         {44, 67, 70},      // Lv55
-        {24, 41, 45},      // Lv65
-        {18, 36, 54}       // Lv75
+        {21, 41, 45},      // Lv65
+        {18, 46, 54}       // Lv75
     };
     private static final int[] MAPNGOAI_LEVELS = {45, 55, 65, 75};
 
     // Khung gio spawn (gio)
     private static final int[][] BOSS_HOURS = {
-        {12, 18, 20, 22},   // Server
-        {12, 23},            // TheGioi
-        {9, 15, 17, 21},    // VDMQ
-        {6, 11, 17, 22}     // MapNgoai
+        {12, 18, 20, 22},                    // Server
+        {11, 17, 19, 21},                    // TheGioi
+        {6, 13, 19, 23},                     // VDMQ
+        {1, 4, 7, 10, 13, 16, 19, 22}        // MapNgoai
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -119,6 +119,13 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(true, -1);
     }
 
+    /** Bat che do thanh vien khi nhan tin hieu tu truong nhom. */
+    public static void startPartyMember() {
+        if (!isRunning) {
+            toggleInternal(true, -1);
+        }
+    }
+
     /**
      * @param forcedType -1 = auto schedule, 0-3 = force boss type
      */
@@ -171,6 +178,8 @@ public class AutoSanBoss implements Runnable {
                 
                 if (isLeader) {
                     autoInviteFriends();
+                    // Tin hieu khoi dong holder tren thanh vien, khong chuyen map.
+                    try { Service.gI().gameAK("pkm -1"); } catch (Exception e) {}
                 }
             }
         }
@@ -500,11 +509,11 @@ public class AutoSanBoss implements Runnable {
      */
     private int[] getMapNgoaiMaps() {
         // Boss MapNgoai spawn tren TAT CA 12 map, khong phan biet level
-        return new int[] {14, 15, 16, 44, 67, 70, 24, 41, 45, 18, 36, 54};
+        return new int[] {14, 15, 16, 44, 67, 70, 21, 41, 45, 18, 46, 54};
     }
 
     /**
-     * Kiem tra boss co dang trong khung gio spawn khong (15 phut sau gio spawn)
+     * Kiem tra boss co dang trong khung gio spawn khong (40 phut sau gio spawn)
      */
     private boolean isBossActive(int bossType) {
         Calendar cal = Calendar.getInstance();
@@ -529,7 +538,7 @@ public class AutoSanBoss implements Runnable {
      * Tra ve -1 neu khong co boss nao
      */
     private int findActiveBoss() {
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < TYPE_ALL; i++) {
             if (isBossActive(i)) {
                 return i;
             }
@@ -759,7 +768,7 @@ public class AutoSanBoss implements Runnable {
 
                 if (forcedBossType == TYPE_ALL) {
                     // === CHE DO FORCE ALL: San TAT CA 4 loai boss 24/24 ===
-                    for (int b = 0; b < 4 && checkStillRunning(); b++) {
+                    for (int b = 0; b < TYPE_ALL && checkStillRunning(); b++) {
                         huntBossType(b);
                     }
 
@@ -780,7 +789,7 @@ public class AutoSanBoss implements Runnable {
                     // === CHE DO TU DONG: Quet theo lich spawn ===
                     boolean huntedAny = false;
 
-                    for (int bossType = 0; bossType < 4 && checkStillRunning(); bossType++) {
+                    for (int bossType = 0; bossType < TYPE_ALL && checkStillRunning(); bossType++) {
                         if (!isBossActive(bossType)) continue;
 
                         huntedAny = true;

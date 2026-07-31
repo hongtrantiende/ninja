@@ -27,7 +27,7 @@ public class ThongTinBoss {
                 int spawnSec = h * 3600;
 
                 int diffFromSpawn = currentSecOfDay - spawnSec;
-                if (diffFromSpawn >= 0 && diffFromSpawn < 900) {
+                if (diffFromSpawn >= 0 && diffFromSpawn < 2400) {
                     isLive = true;
                     secondsLeft = -1;
                     nextHourStr = (h < 10 ? "0" + h : "" + h) + "h";
@@ -48,11 +48,10 @@ public class ThongTinBoss {
     }
 
     private static BossData[] bosses = new BossData[] {
-        new BossData("Server", "M3", new int[] {12, 18, 20, 22}),
-        new BossData("TheGioi", "M23", new int[] {12, 23}),
-        new BossData("LangCo", "M135", new int[] {7, 12, 18, 23}),
-        new BossData("VDMQ", "M141-143", new int[] {9, 15, 17, 21}),
-        new BossData("MapNgoai", "45:M14 55:M44 65:M24 75:M18", new int[] {6, 11, 17, 22})
+        new BossData("Server", "M63", new int[] {12, 18, 20, 22}),
+        new BossData("TheGioi", "M65", new int[] {11, 17, 19, 21}),
+        new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}),
+        new BossData("MapNgoai", "M14-16/44,67,70/21,41,45/18,46,54", new int[] {1, 4, 7, 10, 13, 16, 19, 22})
     };
 
     public static void toggle() {

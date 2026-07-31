@@ -11,7 +11,29 @@
  * - ts/tsn/ak: Intercept de tu dong bat nhat do khi bat auto
  */
 public class ChatRouter {
-    
+
+    /** Hook cho nut Tat Auto trong menu GameScr. */
+    public static void stopCurrentAuto() {
+        if (AutoSanBoss.isRunning) {
+            AutoSanBoss.stop();
+        }
+        Code.gameAF();
+    }
+
+    /** Nhan pkm tu truong nhom; map -1 chi bat trang thai Auto San Boss. */
+    public static void startPartyBoss(Auto auto) {
+        AutoSanBoss.startPartyMember();
+        if (auto != null && auto.mapID != -1) {
+            Code.gameAA(auto);
+        }
+    }
+
+    /** Nhan pke tu truong nhom; pop PkBoss roi tat holder/thread thanh vien. */
+    public static void stopPartyBoss() {
+        Code.gameAC();
+        AutoSanBoss.stop();
+    }
+
     /**
      * Thay the Code.gameAF(String) - check lenh mo rong TRUOC, fallback goc SAU.
      * CUNG SIGNATURE: (Ljava/lang/String;)Z
