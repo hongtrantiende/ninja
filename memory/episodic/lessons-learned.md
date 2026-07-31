@@ -129,7 +129,13 @@
 - **Game gốc:** `Code.gameAQ` nhặt 1 item/tick (chọn gần nhất, 50ms delay). AutoPickup nhặt TẤT CẢ item song song.
 - **Status:** ✅ Implemented (chưa test thực tế)
 
-
+### v13: patch_service.py — ifeq offset sai gây game đơ khi login
+- **Bug:** Ấn "Chơi tiếp" game bị đơ (freeze) hoàn toàn, không vào được.
+- **Root cause:** `scripts/patch_service.py` chèn 9 bytes bytecode vào đầu `Service.gameAA(short, String)` với `ifeq` offset +5 (sai, đúng phải là +4). Khi `SplitPatcher.checkSplit()` trả `false` (luôn luôn), `ifeq` nhảy tới PC 10 (`astore_3`) thay vì PC 9 (`aconst_null`) → bỏ qua `aconst_null` → stack trống khi `astore_3` cần pop → **VerifyError / crash**.
+- **Tại sao nghiêm trọng:** `Service.gameAA(short, String)` = Packet 92, được gọi ngay trong quá trình login → game đơ ngay khi ấn "Chơi tiếp".
+- **Fix:** Thay `Service.class` bị patch bằng bản gốc (từ JAR cũ). `SplitPatcher.checkSplit` vốn đã `return false` nên hook này vô dụng.
+- **Quy tắc VÀNG bổ sung:** **KHÔNG BAO GIỜ INSERT bytecode vào method bất kỳ** — kể cả chèn đầu method. Dù fix Exception table đúng, offset `ifeq`/`goto` chỉ sai 1 byte cũng crash. Luôn dùng **Methodref Replacement** (thay 2 bytes index trong constant pool).
+- **Status:** ✅ FIXED
 
 ---
 

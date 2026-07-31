@@ -2,3 +2,5 @@
 *.log
 build/
 stubs/
+
+Aeharuna_*.jar
