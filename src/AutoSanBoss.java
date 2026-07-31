@@ -64,52 +64,55 @@ public class AutoSanBoss implements Runnable {
     private int lastDeathMapID = -1;
     private int lastDeathZoneID = -1;
 
+    private static boolean checkHasPartyOrFriends() {
+        try {
+            if (GameScr.vParty != null && GameScr.vParty.size() > 1) return true;
+            if (Code.gameAI != null && Code.gameAI.size() > 0) return true;
+            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) return true;
+        } catch (Exception e) {}
+        return false;
+    }
+
     /**
      * tspkb - Toggle san boss tu dong theo lich
      */
     public static void toggle() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, -1);
+        toggleInternal(checkHasPartyOrFriends(), -1);
     }
 
     /**
      * tspkbsv - San boss Server (M3) ngay lap tuc
      */
     public static void toggleSV() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, TYPE_SERVER);
+        toggleInternal(checkHasPartyOrFriends(), TYPE_SERVER);
     }
 
     /**
      * tspkbtg - San boss TheGioi (M23) ngay lap tuc
      */
     public static void toggleTG() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, TYPE_THEGIOI);
+        toggleInternal(checkHasPartyOrFriends(), TYPE_THEGIOI);
     }
 
     /**
      * tspkbvm - San boss VDMQ (M141-143) ngay lap tuc
      */
     public static void toggleVM() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, TYPE_VDMQ);
+        toggleInternal(checkHasPartyOrFriends(), TYPE_VDMQ);
     }
 
     /**
      * tspkbmn - San boss MapNgoai (12 maps) ngay lap tuc
      */
     public static void toggleMN() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, TYPE_MAPNGOAI);
+        toggleInternal(checkHasPartyOrFriends(), TYPE_MAPNGOAI);
     }
 
     /**
      * tspkball - San TAT CA boss (17 maps) 24/24 nguyen ngay
      */
     public static void toggleALL() {
-        boolean hasParty = GameScr.vParty.size() > 1;
-        toggleInternal(hasParty, TYPE_ALL);
+        toggleInternal(checkHasPartyOrFriends(), TYPE_ALL);
     }
 
     public static void toggleParty() {
@@ -274,7 +277,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Tu dong moi danh sach thanh vien (Code.gameAI) vao nhom.
+     * Tu dong moi danh sach thanh vien (Code.gameAI) va ban be (GameScr.vFriend) vao nhom.
      * Su dung Service.gI().gameAF(name) (Packet 79 - Party Invite chuan Ninja School).
      */
     public static void autoInviteFriends() {
@@ -291,6 +294,21 @@ public class AutoSanBoss implements Runnable {
                         invitedCount++;
                         sleep(250);
                     }
+                }
+            }
+
+            // 2. Moi danh sach ban be trong GameScr.vFriend
+            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
+                for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                    try {
+                        Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                        if (f != null && f.friendName != null && f.friendName.length() > 0
+                                && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
+                            Service.gI().gameAF(f.friendName); // Packet 79 - Party Invite
+                            invitedCount++;
+                            sleep(250);
+                        }
+                    } catch (Exception ex) {}
                 }
             }
 

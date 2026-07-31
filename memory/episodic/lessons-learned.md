@@ -147,6 +147,13 @@
   2. Giảm thời gian chờ của thành viên từ `5s` xuống `2s` để quét khôi phục menu liên tục.
 - **Status:** ✅ FIXED
 
+### v15: AutoSanBoss — Sửa logic tự động mời Nhóm & Bạn bè khi Trưởng nhóm gõ tspkb
+- **Bug:** Khi Trưởng nhóm chưa có nhóm (`vParty.size() <= 1`) và gõ `tspkb`, game coi như chạy Solo (`hasParty = false`) nên KHÔNG mời nhóm. Ngoài ra `autoInviteFriends()` trước đây chỉ quét danh sách nhóm `Code.gameAI`, chưa quét danh sách Bạn Bè `GameScr.vFriend`.
+- **Fix:**
+  1. Thêm `checkHasPartyOrFriends()`: Nếu đã ở trong nhóm HOẶC có tên nhóm đã lưu (`Code.gameAI`) HOẶC có Bạn Bè (`GameScr.vFriend`) -> Bật chế độ săn boss nhóm (`isPartyMode = true`).
+  2. Nâng cấp `autoInviteFriends()`: Quét cả danh sách nhóm `Code.gameAI` VÀ các bạn bè trong `GameScr.vFriend` để gửi lời mời vào nhóm.
+- **Status:** ✅ FIXED
+
 ---
 
 ## 🚧 CÁC VẤN ĐỀ CÒN TỒN TẠI (Cần test phiên sau)
