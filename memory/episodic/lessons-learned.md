@@ -137,6 +137,16 @@
 - **Quy tắc VÀNG bổ sung:** **KHÔNG BAO GIỜ INSERT bytecode vào method bất kỳ** — kể cả chèn đầu method. Dù fix Exception table đúng, offset `ifeq`/`goto` chỉ sai 1 byte cũng crash. Luôn dùng **Methodref Replacement** (thay 2 bytes index trong constant pool).
 - **Status:** ✅ FIXED
 
+### v14: AutoSanBoss — Phục hồi menu "Tắt Auto" cho thành viên nhóm khi theo Trưởng nhóm
+- **Bug:** Khi thành viên ở trong nhóm và theo trưởng nhóm săn boss, menu "Tắt Auto" bị mất (do `Code.gameAB` bị set thành `null` hoặc bị ghi đè bởi auto khác).
+- **Root cause:** 
+  1. `restoreDummyAuto()` trước đây chỉ khôi phục khi `Code.gameAB == null`, nên nếu `gameAB` bị ghi đè bởi object auto tạm khác (không phải `PkBoss`) thì không tự restore lại được.
+  2. Chu kỳ chờ của thành viên nhóm (`sleepSeconds(5)`) quá dài làm chậm việc phát hiện và phục hồi menu.
+- **Fix:** 
+  1. Cập nhật `restoreDummyAuto()` trong `AutoSanBoss.java`: Tự động khôi phục `SanBossHolder` ngay khi `Code.gameAB` bị `null` HOẶC bị ghi đè bởi auto khác (chỉ chừa lại `PkBoss` vốn thuộc luồng săn boss).
+  2. Giảm thời gian chờ của thành viên từ `5s` xuống `2s` để quét khôi phục menu liên tục.
+- **Status:** ✅ FIXED
+
 ---
 
 ## 🚧 CÁC VẤN ĐỀ CÒN TỒN TẠI (Cần test phiên sau)

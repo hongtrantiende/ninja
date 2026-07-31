@@ -208,10 +208,19 @@ public class AutoSanBoss implements Runnable {
 
     /**
      * Dam bao SanBossHolder luon ton tai de giu menu "Tat Auto".
-     * Chi phuc hoi khi gameAB bi null (de khong ghi de PkBoss dang chay).
+     * Phuc hoi khi gameAB bi null HOAC bi ghi de boi auto khac (khong phai PkBoss).
+     * PkBoss duoc giu nguyen vi no la phan cua flow san boss nhom.
      */
     private void restoreDummyAuto() {
-        if (isRunning && dummyAuto != null && Code.gameAB == null) {
+        if (!isRunning || dummyAuto == null) return;
+        Auto current = Code.gameAB;
+        if (current == null) {
+            // gameAB bi null (bi pe, hoac auto khac tat)
+            Code.gameAB = dummyAuto;
+        } else if (current != dummyAuto && !(current instanceof PkBoss)) {
+            // gameAB bi ghi de boi auto khac (khong phai PkBoss)
+            // Giu lai reAB chain: dummyAuto.reAB = current (de pop dung)
+            dummyAuto.reAB = current;
             Code.gameAB = dummyAuto;
         }
     }
@@ -725,7 +734,8 @@ public class AutoSanBoss implements Runnable {
 
                 if (isMember) {
                     // La thanh vien, khong tu quet map, chi giu menu de doi lenh pkm tu truong nhom
-                    sleepSeconds(5);
+                    // Sleep 2s (thay vi 5s) de restoreDummyAuto chay thuong xuyen hon
+                    sleepSeconds(2);
                     continue;
                 }
 
