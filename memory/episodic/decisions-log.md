@@ -95,3 +95,11 @@
 ## 2026-07-28: Mod tốc độ hồi chiêu skill về 10ms cho tất cả phái và kỹ năng
 
 ## 2026-07-27: Mod lệnh chat `gaoda` cho Aeharuna.jar
+- **[2026-07-31] Thay đổi nút Tách lẻ**:
+  - Vấn đề: Mod Tách lẻ cũ can thiệp vào `Service.gameAA` (Packet 92 và 13) làm hiển thị menu hỏi Tách lẻ / Tách đôi sau khi nhập số lượng, gây bất tiện và làm thay đổi flow của game.
+  - Quyết định: 
+    - Vô hiệu hóa hook cũ trong `SplitPatcher` (return false).
+    - Sử dụng `Methodref Replacement` (script `patch_gamescr_menu.py`) để thay thế tất cả lời gọi `Menu.gameAA(MyVector)` trong `GameScr.class` thành `SplitPatcher.hookMenu(Menu, MyVector)`.
+    - `hookMenu` quét qua `MyVector`, nếu thấy `cmd.idAction == 110244` (ID của nút Tách gốc) thì chèn thêm nút `Tách lẻ` (idAction 99999) ngay sau đó.
+    - Xử lý tách lẻ sử dụng `Service.gI().gameAK(GameScr.gameBM, 1)` (Packet -85) gọi liên tục trong 1 Thread (ngủ 150ms).
+  - Ưu điểm: Menu hiện trực quan ngay trong Hành trang. Nút Tách gốc hoạt động bình thường như chưa từng bị mod. Không ảnh hưởng các luồng xử lý khác.

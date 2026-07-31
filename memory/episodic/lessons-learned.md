@@ -174,3 +174,6 @@
 3. Xem chat nhóm có bị spam pkm/pkk từ PkBoss nội bộ không
 4. Test chết + hồi sinh + quay lại boss
 5. Nếu PkBoss nội bộ gửi party commands gây rối → cần giải pháp mới
+- **[2026-07-31] Chèn Nút Vào Menu (Hook Menu.gameAA)**: 
+  Không nên vá `GameScr.class` bằng cách `insert/append bytecode` vì class này quá lớn (sẽ làm hỏng ExceptionTable, StackMapTable, LineNumberTable nếu không fix offset toàn diện). 
+  Thay vào đó, dùng `Methodref Replacement`: Đổi lệnh `invokevirtual Menu.gameAA` thành `invokestatic SplitPatcher.hookMenu(Menu, MyVector)`. Trong hàm `hookMenu`, có thể dễ dàng sửa đổi `MyVector` (như thêm bớt `Command`) trước khi gọi tiếp `Menu.gameAA(MyVector)`. Phương pháp này vô cùng an toàn và dễ triển khai trên Java ME.

@@ -4,6 +4,15 @@ def pack_jar(output_name="Aeharuna.jar"):
     build_dir = "/root/ninja/build/unpacked"
     output_path = os.path.join("/root/ninja", output_name)
     
+    # 1. Patch GameScr.class bang patch_gamescr_menu.py
+    gamescr_class = os.path.join(build_dir, "GameScr.class")
+    if os.path.exists(gamescr_class):
+        try:
+            import patch_gamescr_menu
+            patch_gamescr_menu.patch_gamescr(gamescr_class)
+        except Exception as e:
+            print(f"⚠️ Lỗi khi patch GameScr.class: {e}")
+
     print(f"⚙️ Đang đóng gói file JAR: {output_path}...")
     if os.path.exists(output_path):
         os.remove(output_path)
