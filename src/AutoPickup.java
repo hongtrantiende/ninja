@@ -60,6 +60,15 @@ public class AutoPickup implements Runnable {
                 for (int i = 0; i < GameScr.vItemMap.size(); i++) {
                     try {
                         ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                        Char myChar = Char.getMyChar();
+                        if (myChar != null) {
+                            int dx = Math.abs(myChar.cx - item.xEnd);
+                            int dy = Math.abs(myChar.cy - item.yEnd);
+                            if (dx > 30 || dy > 30) {
+                                Char.gameAC(item.xEnd, item.yEnd);
+                                try { Thread.sleep(50); } catch (Exception e) {}
+                            }
+                        }
                         Service.gI().gameAQ(item.itemMapID);
                         picked++;
                         try { Thread.sleep(PICK_DELAY_MS); } catch (Exception e) {}

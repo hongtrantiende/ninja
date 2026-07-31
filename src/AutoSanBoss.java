@@ -153,11 +153,36 @@ public class AutoSanBoss implements Runnable {
             }
             // Gui pkm va moi ban be vao nhom
             if (partyMode) {
+                boolean isLeader = false;
                 try {
-                    Service.gI().gameAK("pkm " + TileMap.mapID);
+                    Char myChar = Char.getMyChar();
+                    if (GameScr.vParty.size() > 0) {
+                        Party first = (Party) GameScr.vParty.firstElement();
+                        if (first != null && myChar != null && first.charId == myChar.charID) {
+                            isLeader = true;
+                        }
+                    } else {
+                        isLeader = true; // Chua co nhom -> Tu moi
+                    }
                 } catch (Exception e) {}
-                autoInviteFriends();
+                
+                if (isLeader) {
+                    autoInviteFriends();
+                }
             }
+        }
+    }
+
+    public static void stop() {
+        if (isRunning) {
+            isRunning = false;
+            isPartyMode = false;
+            forcedBossType = -1;
+            if (Code.gameAB == dummyAuto) {
+                Code.gameAB = null;
+            }
+            dummyAuto = null;
+            // Khong can gui pke vi thao tac nay co the la tat ca nhan
         }
     }
 
@@ -178,20 +203,15 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean checkStillRunning() {
         if (!isRunning) return false;
-        if (Code.gameAB == null && dummyAuto != null) {
-            // User da tat tu menu
-            isRunning = false;
-            dummyAuto = null;
-            return false;
-        }
         return true;
     }
 
     /**
-     * Dat lai Code.gameAB = dummyAuto de menu luon hien "Tat Auto"
+     * Dam bao SanBossHolder luon ton tai de giu menu "Tat Auto".
+     * Chi phuc hoi khi gameAB bi null (de khong ghi de PkBoss dang chay).
      */
     private void restoreDummyAuto() {
-        if (isRunning && dummyAuto != null && !(Code.gameAB instanceof SanBossHolder)) {
+        if (isRunning && dummyAuto != null && Code.gameAB == null) {
             Code.gameAB = dummyAuto;
         }
     }
@@ -245,19 +265,11 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Tu dong moi tat ca ban be / thanh vien nhom vao nhom.
+     * Tu dong moi danh sach thanh vien (Code.gameAI) vao nhom.
      * Su dung Service.gI().gameAF(name) (Packet 79 - Party Invite chuan Ninja School).
      */
     public static void autoInviteFriends() {
         try {
-            // Xin server load danh sach ban be neu vFriend chua co du lieu
-            if (GameScr.vFriend == null || GameScr.vFriend.size() == 0) {
-                try {
-                    Service.gI().gameAT(); // Packet 83: Request friend list
-                } catch (Exception e) {}
-                sleep(800); // Cho 800ms de server phan hoi va load vFriend
-            }
-
             int invitedCount = 0;
             String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
 
@@ -273,34 +285,8 @@ public class AutoSanBoss implements Runnable {
                 }
             }
 
-            // 2. Moi cac ban be trong vFriend
-            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
-                for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                    if (f != null && f.friendName != null && f.friendName.length() > 0 && f.type != 3 && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
-                        Service.gI().gameAF(f.friendName); // Packet 79 - Party Invite
-                        invitedCount++;
-                        sleep(250);
-                    }
-                }
-            }
-
-            // 3. Moi nguoi choi dang dung tren map (GameScr.vCharInMap)
-            if (GameScr.vCharInMap != null && GameScr.vCharInMap.size() > 0) {
-                for (int i = 0; i < GameScr.vCharInMap.size(); i++) {
-                    Char c = (Char) GameScr.vCharInMap.elementAt(i);
-                    if (c != null && c.cName != null && c.cName.length() > 0 && !c.cName.equals(myName) && !isAlreadyInParty(c.cName)) {
-                        Service.gI().gameAF(c.cName); // Packet 79 - Party Invite
-                        invitedCount++;
-                        sleep(250);
-                    }
-                }
-            }
-
             if (invitedCount > 0) {
                 GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
-            } else {
-                GameScr.gameAC("TSB: Kh\u00f4ng th\u1ea5y b\u1ea1n b\u00e8/ng\u01b0\u1eddi ch\u01a1i m\u1edbi \u0111\u1ec3 m\u1eddi!");
             }
         } catch (Exception e) {}
     }
@@ -323,6 +309,66 @@ public class AutoSanBoss implements Runnable {
      * Tach do le tu Tu do (arrItemBox) hoac Hanh trang (arrItemBag).
      * Tach thanh tung mon le (so luong 1) cho den 'count' lan.
      */
+    public static void tachDoLeById(final int itemId, final int count) {
+        if (count <= 0) return;
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Char myChar = Char.getMyChar();
+                    if (myChar == null) return;
+
+                    Item item = null;
+                    int tUI = 3;
+                    int idxUI = -1;
+
+                    // 1. Tim trong Hanh trang
+                    if (myChar.arrItemBag != null) {
+                        for (int i = 0; i < myChar.arrItemBag.length; i++) {
+                            if (myChar.arrItemBag[i] != null && myChar.arrItemBag[i].template != null && myChar.arrItemBag[i].template.id == itemId) {
+                                item = myChar.arrItemBag[i];
+                                tUI = 3;
+                                idxUI = item.indexUI;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 2. Tim trong Tu do
+                    if (item == null && myChar.arrItemBox != null) {
+                        for (int i = 0; i < myChar.arrItemBox.length; i++) {
+                            if (myChar.arrItemBox[i] != null && myChar.arrItemBox[i].template != null && myChar.arrItemBox[i].template.id == itemId) {
+                                item = myChar.arrItemBox[i];
+                                tUI = 4;
+                                idxUI = item.indexUI;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (item == null || idxUI < 0) {
+                        GameScr.gameAC("TSB: Kh\u00f4ng t\u00ecm th\u1ea5y v\u1eadt ph\u1ea9m c\u00f3 ID " + itemId + "!");
+                        return;
+                    }
+
+                    final int typeUI = tUI;
+                    final int indexUI = idxUI;
+
+                    String itemName = item.template.name;
+                    GameScr.gameAC("TSB: \u0110ang t\u00e1ch l\u1ebb " + count + " m\u00f3n " + itemName + "...");
+
+                    for (int i = 0; i < count; i++) {
+                        Service.gI().gameAA(typeUI, indexUI, 1);
+                        Thread.sleep(150);
+                    }
+
+                    GameScr.gameAC("TSB: \u0110\u00e3 t\u00e1ch xong " + count + " m\u00f3n l\u1ebb " + itemName + "!");
+                } catch (Exception e) {
+                    GameScr.gameAC("TSB: L\u1ed7i khi t\u00e1ch \u0111\u1ed3!");
+                }
+            }
+        }).start();
+    }
+
     public static void tachDoLe(final int count) {
         if (count <= 0) return;
         new Thread(new Runnable() {
@@ -332,26 +378,20 @@ public class AutoSanBoss implements Runnable {
                     if (myChar == null) return;
 
                     Item item = null;
-                    int indexUI = -1;
+                    int tUI = 3;
+                    int idxUI = -1;
 
-                    // 1. Kiem tra item dang duoc chon tai gameBM trong Tu do hoac Hanh trang
-                    if (myChar.arrItemBox != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBox.length && myChar.arrItemBox[GameScr.gameBM] != null) {
-                        item = myChar.arrItemBox[GameScr.gameBM];
-                        indexUI = item.indexUI;
-                    } else if (myChar.arrItemBag != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBag.length && myChar.arrItemBag[GameScr.gameBM] != null) {
+                    // 1. Uu tien chon tu Hanh trang (Bag = 3)
+                    if (myChar.arrItemBag != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBag.length && myChar.arrItemBag[GameScr.gameBM] != null) {
                         item = myChar.arrItemBag[GameScr.gameBM];
-                        indexUI = item.indexUI;
-                    }
-
-                    // 2. Fallback: tim item dau tien trong Tu do
-                    if (item == null && myChar.arrItemBox != null) {
-                        for (int i = 0; i < myChar.arrItemBox.length; i++) {
-                            if (myChar.arrItemBox[i] != null) {
-                                item = myChar.arrItemBox[i];
-                                indexUI = item.indexUI;
-                                break;
-                            }
-                        }
+                        tUI = 3;
+                        idxUI = item.indexUI;
+                    } 
+                    // 2. Kiem tra trong Tu do (Box = 4) neu dang chon
+                    else if (myChar.arrItemBox != null && GameScr.gameBM >= 0 && GameScr.gameBM < myChar.arrItemBox.length && myChar.arrItemBox[GameScr.gameBM] != null) {
+                        item = myChar.arrItemBox[GameScr.gameBM];
+                        tUI = 4;
+                        idxUI = item.indexUI;
                     }
 
                     // 3. Fallback: tim item dau tien trong Hanh trang
@@ -359,24 +399,39 @@ public class AutoSanBoss implements Runnable {
                         for (int i = 0; i < myChar.arrItemBag.length; i++) {
                             if (myChar.arrItemBag[i] != null) {
                                 item = myChar.arrItemBag[i];
-                                indexUI = item.indexUI;
+                                tUI = 3;
+                                idxUI = item.indexUI;
                                 break;
                             }
                         }
                     }
 
-                    if (item == null) {
+                    // 4. Fallback: tim item dau tien trong Tu do
+                    if (item == null && myChar.arrItemBox != null) {
+                        for (int i = 0; i < myChar.arrItemBox.length; i++) {
+                            if (myChar.arrItemBox[i] != null) {
+                                item = myChar.arrItemBox[i];
+                                tUI = 4;
+                                idxUI = item.indexUI;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (idxUI < 0) {
                         GameScr.gameAC("TSB: H\u00e3y ch\u1ecdn v\u1eadt ph\u1ea9m trong T\u1ee7 \u0111\u1ed3 ho\u1eb7c H\u00e0nh trang \u0111\u1ec3 t\u00e1ch!");
                         return;
                     }
+
+                    final int typeUI = tUI;
+                    final int indexUI = idxUI;
 
                     String itemName = item.template != null ? item.template.name : "v\u1eadt ph\u1ea9m";
                     GameScr.gameAC("TSB: \u0110ang t\u00e1ch l\u1ebb " + count + " m\u00f3n " + itemName + "...");
 
                     for (int i = 0; i < count; i++) {
-                        // Gui packet 107 (Service.gI().gameAO(indexUI)) de tach le 1 mon
-                        Service.gI().gameAO(indexUI);
-                        sleep(120); // Delay 120ms giua cac lan tach
+                        Service.gI().gameAA(typeUI, indexUI, 1);
+                        sleep(150); // Delay 150ms giua cac lan tach 1 mon
                     }
 
                     GameScr.gameAC("TSB: \u0110\u00e3 t\u00e1ch xong " + count + " m\u00f3n l\u1ebb " + itemName + "!");
@@ -494,6 +549,15 @@ public class AutoSanBoss implements Runnable {
                 for (int i = 0; i < GameScr.vItemMap.size() && isRunning; i++) {
                     try {
                         ItemMap item = (ItemMap)GameScr.vItemMap.elementAt(i);
+                        Char myChar = Char.getMyChar();
+                        if (myChar != null) {
+                            int dx = Math.abs(myChar.cx - item.xEnd);
+                            int dy = Math.abs(myChar.cy - item.yEnd);
+                            if (dx > 30 || dy > 30) {
+                                Char.gameAC(item.xEnd, item.yEnd);
+                                sleep(50);
+                            }
+                        }
                         Service.gI().gameAQ(item.itemMapID);
                         picked++;
                         sleep(30);
@@ -624,6 +688,8 @@ public class AutoSanBoss implements Runnable {
     private void sleepSeconds(int seconds) {
         for (int w = 0; w < seconds && checkStillRunning(); w++) {
             sleep(1000);
+            restoreDummyAuto();
+
             if (isDisconnected()) {
                 if (!waitForReconnect(RECONNECT_TIMEOUT)) {
                     isRunning = false;
@@ -645,9 +711,22 @@ public class AutoSanBoss implements Runnable {
 
                 restoreDummyAuto();
 
-                // Tu dong moi lai ban be vao nhom neu dang o che do nhom va chua co nhom
-                if (isPartyMode && GameScr.vParty.size() <= 1) {
-                    autoInviteFriends();
+                // Kiem tra xem co phai la thanh vien nhom (khong phai truong nhom) hay khong
+                boolean isMember = false;
+                try {
+                    Char myChar = Char.getMyChar();
+                    if (myChar != null && GameScr.vParty.size() > 1) {
+                        Party first = (Party) GameScr.vParty.firstElement();
+                        if (first != null && first.charId != myChar.charID) {
+                            isMember = true;
+                        }
+                    }
+                } catch (Exception e) {}
+
+                if (isMember) {
+                    // La thanh vien, khong tu quet map, chi giu menu de doi lenh pkm tu truong nhom
+                    sleepSeconds(5);
+                    continue;
                 }
 
                 if (forcedBossType == TYPE_ALL) {

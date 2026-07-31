@@ -280,6 +280,13 @@ implements Runnable {
 
     public static void gameAF() {
         LockGame.gameBK();
+        if (gameAB != null) {
+            try {
+                if (gameAB.toString().equals("Auto San Boss")) {
+                    AutoSanBoss.stop();
+                }
+            } catch (Exception e) {}
+        }
         gameAB = null;
     }
 
@@ -2002,6 +2009,20 @@ implements Runnable {
                                 }
                                 if (var31.equals("tb")) {
                                     new Thread(new TimBoss()).start();
+                                    return true;
+                                }
+                                if (var31.startsWith("tl ")) {
+                                    try {
+                                        String[] parts = var31.trim().split(" ");
+                                        if (parts.length == 3) { // tl <itemId> <count>
+                                            int itemId = Integer.parseInt(parts[1]);
+                                            int count = Integer.parseInt(parts[2]);
+                                            AutoSanBoss.tachDoLeById(itemId, count);
+                                        } else if (parts.length == 2) { // tl <count>
+                                            int count = Integer.parseInt(parts[1]);
+                                            AutoSanBoss.tachDoLe(count);
+                                        }
+                                    } catch (Exception e) {}
                                     return true;
                                 }
                                 if (var31.equals("ttb")) {

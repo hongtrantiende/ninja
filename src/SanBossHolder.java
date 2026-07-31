@@ -15,4 +15,8 @@ public final class SanBossHolder extends Auto {
     public void gameAK() {
         // Abstract method required by Auto - khong lam gi
     }
+
+    public String toString() {
+        return "Auto San Boss";
+    }
 }
