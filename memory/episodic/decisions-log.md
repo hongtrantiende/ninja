@@ -120,4 +120,10 @@
 - **Quyết định:** Cập nhật ID map chính xác cho Boss Server (M63), Thế Giới (M65), MapNgoài (M21, M46) và các khung giờ spawn tương ứng. Thêm `startPartyMember()` trong `AutoSanBoss`, hook `stopCurrentAuto()`, `startPartyBoss()`, `stopPartyBoss()` trong `ChatRouter` và cập nhật `ThongTinBoss`.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/ThongTinBoss.java`, `Aeharuna.jar`
 
+## 2026-07-31: Thêm Menu Tiện Ích UI "Nam Mod" Trong Menu 3 Gạch
+- **Quyết định:** Thêm `src/NamMod.java` và inject vào Menu 3 gạch qua `SplitPatcher.injectNamMod()`.
+- **Lý do:** Giúp người dùng dễ dàng bật/tắt các tính năng Săn Boss, Lịch Boss, Nhặt Nhanh, Mời Nhóm, Tách Lẻ... trực quan bằng giao diện Menu UI in-game mà không cần nhớ các lệnh chat thủ công.
+- **Files:** `src/NamMod.java`, `src/SplitPatcher.java`, `Aeharuna.jar`
+
+
 

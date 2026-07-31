@@ -128,6 +128,11 @@
 - **start()/stop():** Gọi từ code (không hiện thông báo).
 - **grabOnce():** Nhặt 1 lần tất cả item (dùng bởi AutoSanBoss).
 - **Config:** `PICK_DELAY_MS=30`, `SCAN_DELAY_MS=200`, `ROUNDS_PER_SCAN=3`.
+
+### NamMod (src/NamMod.java)
+- Class tạo Menu Tiện Ích riêng ("Nam Mod") mở từ nút Menu 3 gạch chính (`injectNamMod` trong `SplitPatcher`).
+- Chứa các tính năng: Toggle Săn Boss, Lịch Boss, các chế độ săn Săn Server/Thế Giới/VDMQ/MapNgoài/Tất cả, Nhặt nhanh, Mời nhóm, Tách đồ lẻ.
+
 - Gửi `Service.gI().gameAQ(item.itemMapID)` cho mỗi item.
 
 

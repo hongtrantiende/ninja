@@ -20,6 +20,7 @@ public class SplitPatcher {
 
     public static void hookMenu(Menu menu, MyVector var1) {
         if (var1 != null) {
+            injectNamMod(var1);
             for (int i = 0; i < var1.size(); i++) {
                 Command cmd = (Command) var1.elementAt(i);
                 // Nút "Tách" gốc trong GameScr có idAction = 110244
@@ -48,6 +49,28 @@ public class SplitPatcher {
         menu.gameAA(var1);
     }
 
+    private static void injectNamMod(MyVector items) {
+        boolean isMainMenu = false;
+        boolean alreadyAdded = false;
+        int insertAt = items.size();
+        for (int i = 0; i < items.size(); i++) {
+            Command cmd = (Command)items.elementAt(i);
+            if (cmd == null) continue;
+            if (cmd.idAction == 120001) alreadyAdded = true;
+            if (cmd.idAction == 11000805) {
+                isMainMenu = true;
+                insertAt = i + 1;
+            }
+        }
+        if (isMainMenu && !alreadyAdded) {
+            Command namMod = new Command("Nam Mod", new IActionListener() {
+                public void perform(int id, Object parameter) {
+                    NamMod.open();
+                }
+            }, 120001, null);
+            items.insertElementAt(namMod, insertAt);
+        }
+    }
     public static void doTachLeDirect(final int count) {
         if (count <= 0) return;
         final int index = GameScr.gameBM; // Lấy vị trí món đồ đang chọn trong Hành trang
