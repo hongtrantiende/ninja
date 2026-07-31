@@ -103,3 +103,16 @@
     - `hookMenu` quét qua `MyVector`, nếu thấy `cmd.idAction == 110244` (ID của nút Tách gốc) thì chèn thêm nút `Tách lẻ` (idAction 99999) ngay sau đó.
     - Xử lý tách lẻ sử dụng `Service.gI().gameAK(GameScr.gameBM, 1)` (Packet -85) gọi liên tục trong 1 Thread (ngủ 150ms).
   - Ưu điểm: Menu hiện trực quan ngay trong Hành trang. Nút Tách gốc hoạt động bình thường như chưa từng bị mod. Không ảnh hưởng các luồng xử lý khác.
+
+## 2026-07-31: Sửa Lỗi Patch `Service.class` Gây Đơ Game Khi Bấm "Chơi Tiếp" (Login Freeze)
+- **Quyết định:** Revert `Service.class` về phiên bản nguyên bản chưa patch.
+- **Lý do:** Script `patch_service.py` trước đây chèn 9 bytes bytecode thủ công có offset branch `ifeq` sai 1 byte (+5 thay vì +4) làm hỏng JVM stack balance khi login (Packet 92), gây ra lỗi freeze khi ấn "Chơi tiếp". Hook `SplitPatcher.checkSplit()` vốn trả về `false` nên việc loại bỏ hook này không gây mất bất kỳ tính năng nào.
+
+## 2026-07-31: Phục Hồi Menu "Tắt Auto" Cho Thành Viên Nhóm Trong `AutoSanBoss`
+- **Quyết định:** Nâng cấp `restoreDummyAuto()` trong `AutoSanBoss.java`: Tự động khôi phục `SanBossHolder` ngay khi `Code.gameAB` bị `null` HOẶC bị ghi đè bởi auto khác (trừ `PkBoss`), và giảm chu kỳ kiểm tra của thành viên xuống 2 giây.
+- **Lý do:** Khi thành viên đi theo trưởng nhóm săn boss, `Code.gameAB` có thể bị reset hoặc ghi đè khiến menu "Tắt Auto" biến mất.
+
+## 2026-07-31: Tự Động Quét & Mời Bạn Bè (`GameScr.vFriend`) Khi Gõ `tspkb`
+- **Quyết định:** Thêm `checkHasPartyOrFriends()` kiểm tra cả `vParty`, `Code.gameAI` và `GameScr.vFriend`. Nâng cấp `autoInviteFriends()` quét và gửi lời mời nhóm đến tất cả bạn bè online trong `GameScr.vFriend`.
+- **Lý do:** Trưởng nhóm đứng 1 mình khi bật `tspkb` không tự động mời bạn bè nếu `vParty.size() <= 1` và danh sách `Code.gameAI` trống. Nâng cấp giúp tự động lập nhóm với Bạn Bè ngay lập tức.
+
