@@ -116,3 +116,8 @@
 - **Quyết định:** Thêm `checkHasPartyOrFriends()` kiểm tra cả `vParty`, `Code.gameAI` và `GameScr.vFriend`. Nâng cấp `autoInviteFriends()` quét và gửi lời mời nhóm đến tất cả bạn bè online trong `GameScr.vFriend`.
 - **Lý do:** Trưởng nhóm đứng 1 mình khi bật `tspkb` không tự động mời bạn bè nếu `vParty.size() <= 1` và danh sách `Code.gameAI` trống. Nâng cấp giúp tự động lập nhóm với Bạn Bè ngay lập tức.
 
+## 2026-07-31: Cập Nhật Map, Khung Giờ Boss & Xử Lý Member Trong AutoSanBoss
+- **Quyết định:** Cập nhật ID map chính xác cho Boss Server (M63), Thế Giới (M65), MapNgoài (M21, M46) và các khung giờ spawn tương ứng. Thêm `startPartyMember()` trong `AutoSanBoss`, hook `stopCurrentAuto()`, `startPartyBoss()`, `stopPartyBoss()` trong `ChatRouter` và cập nhật `ThongTinBoss`.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/ThongTinBoss.java`, `Aeharuna.jar`
+
+
