@@ -14,7 +14,7 @@ import java.util.Calendar;
 public class AutoSanBoss implements Runnable {
     public static boolean isRunning = false;
     public static boolean isPartyMode = false;
-    private static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
+    public static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
     private static Thread thread;
 
     // 4 loai boss theo lich server
@@ -46,10 +46,10 @@ public class AutoSanBoss implements Runnable {
 
     // Khung gio spawn (gio)
     private static final int[][] BOSS_HOURS = {
-        {12, 18, 20, 22},                    // Server
-        {11, 17, 19, 21},                    // TheGioi
-        {6, 13, 19, 23},                     // VDMQ
-        {1, 4, 7, 10, 13, 16, 19, 22}        // MapNgoai
+        {10, 15, 20},                            // Server (moi)
+        {5, 10, 15},                             // TheGioi (moi)
+        {6, 13, 19, 23},                         // VDMQ
+        {1, 4, 7, 10, 13, 16, 19, 22}            // MapNgoai
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -139,7 +139,7 @@ public class AutoSanBoss implements Runnable {
             }
             dummyAuto = null;
             // Gui lenh tat cho nhom
-            if (GameScr.vParty.size() > 1) {
+            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
                 try { Service.gI().gameAK("pke"); } catch (Exception e) {}
             }
             GameScr.gameAC("T\u1eaft T\u1ef1 S\u0103n Boss!");
@@ -570,41 +570,11 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Nhat nhanh TAT CA do roi tren dat.
-     * Gui Service.gameAQ(itemMapID) lien tuc voi delay nho (30ms)
-     * thay vi doi 1 item/tick nhu Code.run() mac dinh.
+     * Nhat nhanh tat ca item tren dat sau khi boss chet.
+     * Dung AutoPickup vacuum mode (blast + tele).
      */
     private void grabAllItems() {
-        try {
-            int totalItems = GameScr.vItemMap.size();
-            if (totalItems == 0) return;
-            GameScr.gameAC("TSB: Cu\u1ed5m " + totalItems + " \u0111\u1ed3!");
-            // Lap nhieu vong de nhat het (item moi co the roi tiep)
-            for (int round = 0; round < 5 && isRunning; round++) {
-                int picked = 0;
-                for (int i = 0; i < GameScr.vItemMap.size() && isRunning; i++) {
-                    try {
-                        ItemMap item = (ItemMap)GameScr.vItemMap.elementAt(i);
-                        Char myChar = Char.getMyChar();
-                        if (myChar != null) {
-                            int dx = Math.abs(myChar.cx - item.xEnd);
-                            int dy = Math.abs(myChar.cy - item.yEnd);
-                            if (dx > 30 || dy > 30) {
-                                Char.gameAC(item.xEnd, item.yEnd);
-                                sleep(50);
-                            }
-                        }
-                        Service.gI().gameAQ(item.itemMapID);
-                        picked++;
-                        sleep(30);
-                    } catch (Exception e) {
-                        // Item co the da bi nhat roi
-                    }
-                }
-                if (picked == 0) break;
-                sleep(200); // Cho server xu ly
-            }
-        } catch (Exception e) {}
+        AutoPickup.grabOnce();
     }
 
     /**

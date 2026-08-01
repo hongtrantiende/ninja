@@ -1,100 +1,129 @@
 /**
- * AutoPickup - Nhat do nhanh lien tuc.
- * Khi bat: chay thread rieng, lien tuc quet vItemMap va nhat TAT CA item 30ms/item.
- * Nhanh gap ~5x so voi Code.gameAQ mac dinh (1 item/tick, 50ms).
- * 
- * Su dung: goi tu ChatRouter khi user chat lenh "nhat" (toggle on/off).
- * Cung duoc goi tu ts/tsn/ak khi bat nhung Auto nay.
+ * AutoPickup v3.1 — Background Vacuum (nhu ts) + Ghost Grab
+ *
+ * 2 che do:
+ * A. Thread nen (song song danh quai): chi blast gameAQ, KHONG di chuyen
+ *    → Nhat tat ca item trong tam server (~30-50px), nhan vat dung yen
+ *    → Quai van danh muot, khong giat
+ *
+ * B. grabOnce (sau boss chet): ghost move den item xa roi nhat
+ *    → Pham vi toan map, nhat sach 100%
+ *
+ * Lenh: "nhat" toggle on/off.
+ * Cung tu bat khi ts/tsn/ak active.
  */
 public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
-    
-    // Cau hinh
-    private static final int PICK_DELAY_MS = 30;     // Delay giua moi item
-    private static final int SCAN_DELAY_MS = 200;     // Delay giua moi vong quet
-    private static final int ROUNDS_PER_SCAN = 3;     // So vong nhat moi lan quet
-    
+
+    // === CONFIG ===
+    private static final int PICK_DELAY_MS = 3;        // 3ms giua moi lenh nhat
+    private static final int SCAN_INTERVAL_MS = 200;    // 200ms giua moi vong quet
+    private static final int BURST_ROUNDS = 3;          // 3 vong burst
+    private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
+
     /**
-     * Toggle nhat do nhanh on/off.
-     * Goi tu ChatRouter khi user chat "nhat".
+     * Toggle hut VP on/off.
      */
     public static void toggle() {
         if (isRunning) {
             stop();
-            GameScr.gameAC("T\u1eaft nh\u1eb7t nhanh!");
+            GameScr.gameAC("T\u1eaft h\u00FAt VP!");
         } else {
             start();
-            GameScr.gameAC("B\u1eadt nh\u1eb7t nhanh!");
+            GameScr.gameAC("B\u1eadt h\u00FAt VP!");
         }
     }
-    
-    /**
-     * Bat nhat do nhanh (goi tu code, khong hien thong bao).
-     */
+
     public static void start() {
         if (isRunning) return;
         isRunning = true;
+        Code.gameAQ = true;
         thread = new Thread(new AutoPickup());
         thread.start();
     }
-    
-    /**
-     * Tat nhat do nhanh.
-     */
+
     public static void stop() {
         isRunning = false;
         thread = null;
     }
-    
+
     /**
-     * Nhat nhanh 1 lan (khong can bat thread).
-     * Goi khi boss chet, mob chet xong, etc.
+     * Hut toan bo VP 1 lan (dung cho AutoSanBoss sau boss chet).
+     * CO ghost move — pham vi toan map, nhat sach.
+     * Chi goi khi KHONG dang danh quai.
      */
     public static void grabOnce() {
         try {
-            int total = GameScr.vItemMap.size();
-            if (total == 0) return;
-            for (int round = 0; round < ROUNDS_PER_SCAN && total > 0; round++) {
-                int picked = 0;
-                for (int i = 0; i < GameScr.vItemMap.size(); i++) {
-                    try {
-                        ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
-                        Char myChar = Char.getMyChar();
-                        if (myChar != null) {
-                            int dx = Math.abs(myChar.cx - item.xEnd);
-                            int dy = Math.abs(myChar.cy - item.yEnd);
-                            if (dx > 30 || dy > 30) {
-                                Char.gameAC(item.xEnd, item.yEnd);
-                                try { Thread.sleep(50); } catch (Exception e) {}
-                            }
-                        }
-                        Service.gI().gameAQ(item.itemMapID);
-                        picked++;
-                        try { Thread.sleep(PICK_DELAY_MS); } catch (Exception e) {}
-                    } catch (Exception e) {}
-                }
-                if (picked == 0) break;
-                try { Thread.sleep(SCAN_DELAY_MS); } catch (Exception e) {}
-                total = GameScr.vItemMap.size();
+            Char myChar = Char.getMyChar();
+            if (myChar == null) return;
+            int initSize = GameScr.vItemMap.size();
+            if (initSize == 0) return;
+
+            Code.gameAQ = true;
+
+            for (int pass = 0; pass < BURST_ROUNDS + 2; pass++) {
+                if (GameScr.vItemMap.size() == 0) break;
+                blastPickupSmart();
+                try { Thread.sleep(100); } catch (Exception e) {}
+            }
+
+            int picked = initSize - GameScr.vItemMap.size();
+            if (picked > 0) {
+                GameScr.gameAC("H\u00FAt " + picked + "/" + initSize + " VP!");
             }
         } catch (Exception e) {}
     }
-    
+
+    /**
+     * Blast + Ghost Move nhe — gui packet vi tri den item,
+     * nhat, roi KHONG cap nhat cx/cy client.
+     * Nhan vat VAN DUNG YEN tren man hinh, server tu accept.
+     */
+    private static void blastPickupSmart() {
+        Char myChar = Char.getMyChar();
+        if (myChar == null) return;
+        int origCx = myChar.cx;
+        int origCy = myChar.cy;
+
+        int size = GameScr.vItemMap.size();
+        for (int i = 0; i < size; i++) {
+            try {
+                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                int dx = Math.abs(origCx - item.xEnd);
+                int dy = Math.abs(origCy - item.yEnd);
+
+                if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
+                    // Ghost: chi gui packet vi tri, KHONG doi cx/cy
+                    Char.gameAC(item.xEnd, item.yEnd);
+                }
+
+                Service.gI().gameAQ(item.itemMapID);
+            } catch (Exception e) {}
+        }
+
+        // Gui packet quay ve vi tri goc
+        Char.gameAC(origCx, origCy);
+        // Dam bao client giu nguyen vi tri — khong giat
+        myChar.cx = origCx;
+        myChar.cy = origCy;
+    }
+
+    /**
+     * Thread chinh — chay nen SONG SONG voi danh quai.
+     * Dung ghost move nhe de hut VP xa, giu nguyen vi tri client.
+     */
     public void run() {
-        // Cho game load xong
-        try { Thread.sleep(1000); } catch (Exception e) {}
-        
+        try { Thread.sleep(300); } catch (Exception e) {}
+
         while (isRunning) {
             try {
-                // Chi nhat khi co item tren dat
                 if (GameScr.vItemMap.size() > 0) {
-                    grabOnce();
+                    blastPickupSmart();
                 }
             } catch (Exception e) {}
-            
-            // Cho truoc khi quet lai
-            try { Thread.sleep(SCAN_DELAY_MS); } catch (Exception e) {}
+
+            try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
         }
     }
 }

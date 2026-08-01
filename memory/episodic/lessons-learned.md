@@ -189,6 +189,37 @@
 - **Giải pháp tiềm năng:** Check `vParty.size()` liên tục trong run() loop, không chỉ lúc toggle.
 - **Priority:** LOW
 
+### v16: AutoPickup v2 — Vacuum Mode (Hút VP tốc độ cao)
+- **Bug v1:** Nhặt từng cái (30ms/item), chỉ 3 vòng, walk chậm (`Char.gameAC` = đi bộ), items boss rơi xa ~200px range chỉ nhặt ~10 cái ở chân, không có thông báo.
+- **Root cause:**
+  1. Server validate khoảng cách pickup (~100px). Items xa bị reject im lặng.
+  2. `Char.gameAC(x,y)` = đi bộ (slow walk), 50ms chờ không đủ thời gian đến nơi.
+  3. Game gốc có "nhặt xa" (`Code.gameAQ` / lệnh `cnhat`) nhặt 1 item/tick trong 100px nhưng AutoPickup v1 không bật flag này.
+- **Fix v2 — Vacuum Mode:**
+  1. **Blast**: Gửi `Service.gI().gameAQ(itemMapID)` cho TẤT CẢ item cùng lúc (5ms/item thay 30ms).
+  2. **Auto-tele**: Nếu sau blast vẫn còn item (server reject do xa) → teleport đến item gần nhất (`myChar.cx/cy` + `Char.gameAC` cho server sync) → blast lại.
+  3. **Song song**: Bật `Code.gameAQ = true` để game gốc nhặt xa hỗ trợ đồng thời.
+  4. **15 vòng** thay 3, scan delay 50ms thay 200ms.
+  5. **Feedback**: Hiện "Hút X/Y VP!" sau khi xong.
+  6. **Return**: Về vị trí ban đầu sau khi hút xong.
+- **Tốc độ ước tính**: 200 items × 5ms = 1s blast + tele, tổng ~3-5s thay vì 30s+ cũ.
+- **Status:** ✅ Built (chưa test thực tế)
+
+### v17: MultiSkillAttack v2 — Auto Buff + Cooldown + Elemental Intelligence
+- **Phân tích:** Reverse engineer bytecode `Auto.class` (dứa mod) vs `MultiSkillAttack.java` (nam mod).
+- **Phát hiện 4 thiếu sót nam mod:**
+  1. Không check cooldown → gửi skill chưa hết CD → server reject
+  2. Không auto buff (bỏ skill type 2) → không tự bật khiên/đốt quái
+  3. Không check nguyên tố → đốt mob đang cháy = lãng phí mana
+  4. Buff dùng sai packet (`gameAA` thay `gameAR`)
+- **Fix v2:**
+  - **P1 (Cooldown):** `isSkillReady(s)` check `elapsed >= coolDown - 300ms`. Set `paintCanNotUseSkill=true` khi chưa hết CD.
+  - **P2 (Auto Buff):** `autoBuff()` duyệt `vSkillFight`, check `type==2`, check Effect đã active (`isBuffActive`), gọi `gameAR()` thay `gameAA()`.
+  - **P3 (Elemental):** `checkElementalConditions()`: skip fire skill (id 7,16) nếu `mob.isFire`, skip ice (25,34) nếu `!mob.isIce`, skip wind (43) nếu `!mob.isWind`. Type 3 chỉ dùng khi boss hoặc mob HP > 50%.
+  - **P4 (Smart Buff):** `checkBuffConditions()`: id 31 chỉ khi `!KhienMana`, id 15 chỉ khi `DotQuai && HP < aHpValue%`, id 6 chỉ khi `isHuman`.
+- **API quan trọng:** `Service.gameAR()` = buff self packet, `Service.gameAG(int)` = select skill, `Service.gameAA(MyVector,MyVector,int)` = attack packet.
+- **Status:** ✅ Built (chưa test thực tế)
+
 ---
 
 ## 📋 TODO Phiên Sau
@@ -200,3 +231,47 @@
 - **[2026-07-31] Chèn Nút Vào Menu (Hook Menu.gameAA)**: 
   Không nên vá `GameScr.class` bằng cách `insert/append bytecode` vì class này quá lớn (sẽ làm hỏng ExceptionTable, StackMapTable, LineNumberTable nếu không fix offset toàn diện). 
   Thay vào đó, dùng `Methodref Replacement`: Đổi lệnh `invokevirtual Menu.gameAA` thành `invokestatic SplitPatcher.hookMenu(Menu, MyVector)`. Trong hàm `hookMenu`, có thể dễ dàng sửa đổi `MyVector` (như thêm bớt `Command`) trước khi gọi tiếp `Menu.gameAA(MyVector)`. Phương pháp này vô cùng an toàn và dễ triển khai trên Java ME.
+- **[2026-08-01] BẮT BUỘC: Chạy `patch_gamescr_menu.py` sau mỗi lần unpack JAR**:
+  Khi unpack `Aeharuna.jar` vào `build/unpacked/`, GameScr.class CHƯA CÓ hook `SplitPatcher.hookMenu`. **PHẢI** chạy:
+  ```powershell
+  $env:PYTHONIOENCODING="utf-8"; python scripts/patch_gamescr_menu.py build/unpacked/GameScr.class
+  ```
+  TRƯỚC KHI đóng gói JAR. Nếu quên → NamMod sẽ KHÔNG hiện trong menu 3 gạch.
+  Script thay 82 lời gọi `invokevirtual Menu.gameAA(MyVector)` → `invokestatic SplitPatcher.hookMenu(Menu, MyVector)`.
+  Script tự detect nếu đã patch (check `hookMenu` in data) → chạy lại an toàn.
+- **[2026-08-01] AutoSanBoss.toggleInternal() NPE khi tắt**:
+  `GameScr.vParty.size()` gây NullPointerException khi không có nhóm → không tắt được boss từ menu.
+  **Fix:** Thêm `GameScr.vParty != null &&` trước `.size()`.
+- **[2026-08-01] Code.java: Hook pkm/pke → ChatRouter cho party member**:
+  Code gốc dứa mod khi nhận `pkm` tạo `PkBoss` trực tiếp (`Code.gameAA(new PkBoss(...))`) mà KHÔNG gọi `AutoSanBoss.startPartyMember()`.
+  → Thành viên nhóm không có icon "PK Boss" nhấp nháy.
+  **Fix:** Sửa `Code.java`:
+  - `pkm`: `ChatRouter.startPartyBoss(pBoss)` — wrapper gọi cả `AutoSanBoss.startPartyMember()` + `Code.gameAA(auto)`
+  - `pke`: `ChatRouter.stopPartyBoss()` — wrapper gọi cả `Code.gameAC()` + `AutoSanBoss.stop()`
+  **LƯU Ý:** Code.java là file decompiled lớn (2722 dòng), compile bằng `javac -source 8 -target 8`.
+
+### v18: AutoPickup v3.1 — Ghost Move Nhặt Xa (Kỹ Thuật Quan Trọng)
+- **Vấn đề:** Server check khoảng cách khi nhặt item (`gameAQ`). Nếu nhân vật xa item > ~30-50px → server reject "Khoảng cách quá xa".
+- **Kỹ thuật Ghost Move:**
+  ```java
+  // 1. Lưu vị trí gốc
+  int origCx = myChar.cx, origCy = myChar.cy;
+  
+  // 2. Với MỖI item xa:
+  Char.gameAC(item.xEnd, item.yEnd);  // Gửi PACKET vị trí đến item (server nghĩ ta ở đó)
+  Service.gI().gameAQ(item.itemMapID); // Gửi nhặt (server accept vì "gần")
+  
+  // 3. Cuối vòng: quay về
+  Char.gameAC(origCx, origCy);  // Server sync lại vị trí thật
+  myChar.cx = origCx;            // GIỮ NGUYÊN cx/cy client → không giật màn hình
+  myChar.cy = origCy;
+  ```
+- **Tại sao không giật khi đánh quái:**
+  - `Char.gameAC(x,y)` chỉ gửi **packet mạng** (movement request), KHÔNG thay đổi vị trí vẽ trên client.
+  - `myChar.cx/cy` quyết định nơi nhân vật hiển thị → giữ nguyên = nhân vật đứng yên.
+  - Thread AutoPickup chạy **riêng biệt** với game loop → không block render/attack.
+  - Cuối vòng gửi `gameAC(origCx, origCy)` → server biết vị trí thật.
+- **Phạm vi:** TOÀN MAP — không giới hạn khoảng cách.
+- **GHOST_RANGE:** 50px — item gần hơn nhặt trực tiếp, xa hơn mới ghost move.
+- **API:** `Char.gameAC(int x, int y)` = static method gửi walk/move packet.
+- **Status:** ✅ Built + tested (server accept nhặt xa)

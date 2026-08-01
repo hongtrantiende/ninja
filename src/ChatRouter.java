@@ -92,15 +92,11 @@ public class ChatRouter {
                 // Kiem tra: neu auto DANG chay (gameAB != null) -> bat nhat do
                 // Neu auto KHONG chay (gameAB == null) -> tat nhat do
                 if (Code.gameAB != null) {
-                    if (!AutoPickup.isRunning) {
                         AutoPickup.start();
-                        GameScr.gameAC("Auto nh\u1eb7t nhanh ON!");
-                    }
+                        GameScr.gameAC("H\u00FAt VP ON!");
                 } else {
-                    if (AutoPickup.isRunning) {
                         AutoPickup.stop();
-                        GameScr.gameAC("Auto nh\u1eb7t nhanh OFF!");
-                    }
+                        GameScr.gameAC("H\u00FAt VP OFF!");
                 }
             }
             return handled;

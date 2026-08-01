@@ -122,12 +122,15 @@
 - **Intercept pattern:** `ts`/`tsn`/`ak` → gọi Code.gameAF gốc → auto bật/tắt AutoPickup.
 - **Thêm lệnh mới:** Chỉ cần thêm `if (text.equals("xxx"))` trong `checkAll()`.
 
-### AutoPickup (src/AutoPickup.java)
+### AutoPickup (src/AutoPickup.java) — v2 Vacuum Mode
 - Implements `Runnable`, chạy thread riêng.
-- **toggle():** Bật/tắt nhặt đồ nhanh, lệnh `nhat`.
-- **start()/stop():** Gọi từ code (không hiện thông báo).
-- **grabOnce():** Nhặt 1 lần tất cả item (dùng bởi AutoSanBoss).
-- **Config:** `PICK_DELAY_MS=30`, `SCAN_DELAY_MS=200`, `ROUNDS_PER_SCAN=3`.
+- **toggle():** Bật/tắt hút VP, lệnh `nhat`. Hiện "Bật/Tắt hút VP!".
+- **start()/stop():** Gọi từ code. `start()` cũng bật `Code.gameAQ = true` (nhặt xa gốc).
+- **grabOnce():** Hút toàn bộ VP 1 lần. Blast → Tele → Blast → Repeat (15 vòng).
+- **blastPickup():** Gửi `Service.gI().gameAQ(itemMapID)` cho TẤT CẢ item, 5ms/item.
+- **teleToNearestItem():** Tele đến item gần nhất (`Char.gameAC` + set `cx/cy`), 25ms settle.
+- **Config:** `PICK_DELAY_MS=5`, `MOVE_DELAY_MS=25`, `SCAN_DELAY_MS=50`, `MAX_PASSES=15`.
+- **Feedback:** Hiện "Hút X/Y VP!" sau khi xong, về vị trí ban đầu.
 
 ### NamMod (src/NamMod.java)
 - Class tạo Menu Tiện Ích riêng ("Nam Mod") mở từ nút Menu 3 gạch chính (`injectNamMod` trong `SplitPatcher`).

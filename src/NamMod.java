@@ -7,7 +7,7 @@ public final class NamMod implements IActionListener {
     private static final int BOSS_VDMQ = 120105;
     private static final int BOSS_MAP_NGOAI = 120106;
     private static final int BOSS_ALL = 120107;
-    private static final int NHAT_NHANH = 120108;
+    private static final int HUT_VP = 120108;
     private static final int MOI_NHOM = 120109;
     private static final int TACH_LE = 120110;
     private static final int THONG_TIN = 120111;
@@ -19,17 +19,25 @@ public final class NamMod implements IActionListener {
 
     public static void open() {
         MyVector items = new MyVector();
-        items.addElement(command("Săn Boss: " + onOff(AutoSanBoss.isRunning), AUTO_BOSS));
-        items.addElement(command("Lịch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
-        items.addElement(command("Săn Server", BOSS_SERVER));
-        items.addElement(command("Săn Thế Giới", BOSS_THE_GIOI));
-        items.addElement(command("Săn VDMQ", BOSS_VDMQ));
-        items.addElement(command("Săn Map Ngoài", BOSS_MAP_NGOAI));
-        items.addElement(command("Săn Tất Cả", BOSS_ALL));
-        items.addElement(command("Nhặt nhanh: " + onOff(AutoPickup.isRunning), NHAT_NHANH));
-        items.addElement(command("Mời nhóm", MOI_NHOM));
-        items.addElement(command("Tách đồ lẻ", TACH_LE));
-        items.addElement(command("Thông tin Nam Mod", THONG_TIN));
+
+        // === S\u0103n Boss ===
+        items.addElement(command("S\u0103n Boss: " + onOff(AutoSanBoss.isRunning), AUTO_BOSS));
+        items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
+
+        // Trang thai tung loai boss - hien ON neu dang chay loai do
+        items.addElement(command("S\u0103n Server: " + bossStatus(0), BOSS_SERVER));
+        items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(1), BOSS_THE_GIOI));
+        items.addElement(command("S\u0103n VDMQ: " + bossStatus(2), BOSS_VDMQ));
+        items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(3), BOSS_MAP_NGOAI));
+        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(4), BOSS_ALL));
+
+        // === H\u00FAt VP ===
+        items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
+
+        // === Ti\u1ec7n \u00edch ===
+        items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
+        items.addElement(command("T\u00e1ch \u0111\u1ed3 l\u1ebb", TACH_LE));
+        items.addElement(command("Th\u00f4ng tin Nam Mod", THONG_TIN));
         GameCanvas.menu.gameAA(items);
     }
 
@@ -39,6 +47,20 @@ public final class NamMod implements IActionListener {
 
     private static String onOff(boolean enabled) {
         return enabled ? "ON" : "OFF";
+    }
+
+    /**
+     * Trang thai loai boss: ON neu dang chay va forcedBossType trung.
+     * -1 = auto schedule (hien ON khi isRunning + forcedBossType == -1).
+     */
+    private static String bossStatus(int type) {
+        if (!AutoSanBoss.isRunning) return "OFF";
+        int forced = AutoSanBoss.forcedBossType;
+        // Type 4 = Tat Ca (TYPE_ALL)
+        if (type == 4) return (forced == 4) ? "ON" : "OFF";
+        // Auto schedule (-1) hien ON cho nut Sán Boss chinh
+        if (forced == -1) return "Auto";
+        return (forced == type) ? "ON" : "OFF";
     }
 
     public void perform(int id, Object parameter) {
@@ -64,7 +86,7 @@ public final class NamMod implements IActionListener {
             case BOSS_ALL:
                 AutoSanBoss.toggleALL();
                 return;
-            case NHAT_NHANH:
+            case HUT_VP:
                 AutoPickup.toggle();
                 return;
             case MOI_NHOM:
@@ -74,21 +96,32 @@ public final class NamMod implements IActionListener {
                 openSplitInput();
                 return;
             case THONG_TIN:
-                GameScr.gameAC("Nam Mod - Săn Boss, Lịch Boss, Nhặt nhanh, Tách lẻ");
+                showModInfo();
                 return;
             default:
                 return;
         }
     }
 
+    private static void showModInfo() {
+        String info = "Nam Mod v2";
+        if (AutoSanBoss.isRunning) {
+            int f = AutoSanBoss.forcedBossType;
+            info += " | Boss:" + (f == -1 ? "Auto" : f == 4 ? "ALL" : "F" + f);
+        }
+        if (AutoPickup.isRunning) info += " | H\u00FAtVP:ON";
+        if (ThongTinBoss.isEnable) info += " | TTB:ON";
+        GameScr.gameAC(info);
+    }
+
     private static void openSplitInput() {
-        GameCanvas.inputDlg.gameAA("Nhập số lượng tách lẻ", new Command("Tách", new IActionListener() {
+        GameCanvas.inputDlg.gameAA("Nh\u1eadp s\u1ed1 l\u01b0\u1ee3ng t\u00e1ch l\u1ebb", new Command("T\u00e1ch", new IActionListener() {
             public void perform(int id, Object parameter) {
                 try {
                     int count = Integer.parseInt(GameCanvas.inputDlg.tfInput.gameAD().trim());
                     SplitPatcher.doTachLeDirect(count);
                 } catch (Exception e) {
-                    GameScr.gameAC("Nam Mod: Số lượng không hợp lệ!");
+                    GameScr.gameAC("Nam Mod: S\u1ed1 l\u01b0\u1ee3ng kh\u00f4ng h\u1ee3p l\u1ec7!");
                 }
                 GameCanvas.endDlg();
             }

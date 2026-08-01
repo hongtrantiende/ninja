@@ -2666,8 +2666,9 @@ implements Runnable {
                             return;
                         }
                         Auto var7 = gameAB instanceof PkBoss ? Code.gameAB.reAB : gameAB;
-                        Code.gameAA(new PkBoss(Integer.parseInt(var5[1])));
-                        Code.gameAB.reAB = var7;
+                        PkBoss pBoss = new PkBoss(Integer.parseInt(var5[1]));
+                        pBoss.reAB = var7;
+                        ChatRouter.startPartyBoss(pBoss);
                         return;
                     }
                     if (var5[0].equals("pkk")) {
@@ -2677,7 +2678,7 @@ implements Runnable {
                         }
                     } else if (var5[0].equals("pke")) {
                         if (gameAB instanceof PkBoss) {
-                            Code.gameAC();
+                            ChatRouter.stopPartyBoss();
                             return;
                         }
                     } else if (gameAB != null) {
