@@ -48,8 +48,8 @@ public class ThongTinBoss {
     }
 
     private static BossData[] bosses = new BossData[] {
-        new BossData("Server", "M63", new int[] {10, 15, 20}),
-        new BossData("TheGioi", "M65", new int[] {5, 10, 15}),
+        new BossData("Server", "M63", new int[] {12, 18, 20, 22}),
+        new BossData("TheGioi", "M65", new int[] {11, 17, 19, 21}),
         new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}),
         new BossData("MapNgoai", "M14-16/44,67,70/21,41,45/18,46,54", new int[] {1, 4, 7, 10, 13, 16, 19, 22})
     };
