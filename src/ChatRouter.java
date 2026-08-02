@@ -19,9 +19,6 @@ public class ChatRouter {
         if (AutoLevel.isRunning) {
             AutoLevel.stop();
         }
-        if (AutoVT55.isRunning) {
-            AutoVT55.stop();
-        }
         if (AutoSanBoss.isRunning) {
             AutoSanBoss.stop();
         }
@@ -133,8 +130,23 @@ public class ChatRouter {
         
         // === AUTO VT MAP 55 ===
         if (text.equals("avt55")) {
-            AutoVT55.toggle();
+            AutoVT55.setup();
             return true;
+        }
+        
+        // === INTERCEPT ts/tsn/ak: bat/tat nhat do tu dong ===
+        if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
+            boolean handled = Code.gameAF(text);
+            if (handled) {
+                if (Code.gameAB != null) {
+                    AutoPickup.start();
+                    GameScr.gameAC("H\u00FAt VP ON!");
+                } else {
+                    AutoPickup.stop();
+                    GameScr.gameAC("H\u00FAt VP OFF!");
+                }
+            }
+            return handled;
         }
         
         // Fallback: goi Code.gameAF goc
