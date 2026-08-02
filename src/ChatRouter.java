@@ -9,11 +9,16 @@
  * - tspkbsv/tg/vm/mn: Force san boss
  * - nhat: Toggle nhat do nhanh (AutoPickup)
  * - ts/tsn/ak: Intercept de tu dong bat nhat do khi bat auto
+ * - ts50/ts99: Auto Level (treo lv tu dong)
+ * - tslv: Tat Auto Level
  */
 public class ChatRouter {
 
     /** Hook cho nut Tat Auto trong menu GameScr. */
     public static void stopCurrentAuto() {
+        if (AutoLevel.isRunning) {
+            AutoLevel.stop();
+        }
         if (AutoSanBoss.isRunning) {
             AutoSanBoss.stop();
         }
@@ -84,19 +89,49 @@ public class ChatRouter {
             return true;
         }
         
+        // === AUTO LEVEL: ts + so (vd: ts50, ts99) ===
+        if (text.startsWith("ts") && text.length() > 2) {
+            String numPart = text.substring(2);
+            // Chi xu ly neu phan sau la SO NGUYEN (10-99)
+            boolean isNumber = true;
+            for (int i = 0; i < numPart.length(); i++) {
+                if (numPart.charAt(i) < '0' || numPart.charAt(i) > '9') {
+                    isNumber = false;
+                    break;
+                }
+            }
+            if (isNumber && numPart.length() > 0) {
+                try {
+                    int lvTarget = Integer.parseInt(numPart);
+                    if (lvTarget >= 10 && lvTarget <= 99) {
+                        AutoLevel.start(lvTarget);
+                        return true;
+                    }
+                } catch (Exception e) {}
+            }
+            // Khong phai so hoac ngoai range → fallthrough cho Code.gameAF xu ly
+            // (vd: tsa, tsx, tsn la lenh game goc)
+        }
+        if (text.equals("tslv")) {
+            if (AutoLevel.isRunning) {
+                AutoLevel.stop();
+            } else {
+                GameScr.gameAC("Auto Level ch\u01b0a b\u1eadt!");
+            }
+            return true;
+        }
+        
         // === INTERCEPT ts/tsn/ak: bat nhat do tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
             // Goi Code.gameAF goc de xu ly ts/tsn/ak binh thuong
             boolean handled = Code.gameAF(text);
             if (handled) {
-                // Kiem tra: neu auto DANG chay (gameAB != null) -> bat nhat do
-                // Neu auto KHONG chay (gameAB == null) -> tat nhat do
                 if (Code.gameAB != null) {
-                        AutoPickup.start();
-                        GameScr.gameAC("H\u00FAt VP ON!");
+                    AutoPickup.start();
+                    GameScr.gameAC("H\u00FAt VP ON!");
                 } else {
-                        AutoPickup.stop();
-                        GameScr.gameAC("H\u00FAt VP OFF!");
+                    AutoPickup.stop();
+                    GameScr.gameAC("H\u00FAt VP OFF!");
                 }
             }
             return handled;

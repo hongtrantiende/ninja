@@ -11,6 +11,7 @@ public final class NamMod implements IActionListener {
     private static final int MOI_NHOM = 120109;
     private static final int TACH_LE = 120110;
     private static final int THONG_TIN = 120111;
+    private static final int AUTO_LEVEL = 120113;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -33,6 +34,12 @@ public final class NamMod implements IActionListener {
 
         // === H\u00FAt VP ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
+
+        // === Auto Level ===
+        String lvStatus = AutoLevel.isRunning
+            ? "ON (Lv" + AutoLevel.targetLevel + ")"
+            : "OFF";
+        items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
         // === Ti\u1ec7n \u00edch ===
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
@@ -89,6 +96,13 @@ public final class NamMod implements IActionListener {
             case HUT_VP:
                 AutoPickup.toggle();
                 return;
+            case AUTO_LEVEL:
+                if (AutoLevel.isRunning) {
+                    AutoLevel.stop();
+                } else {
+                    openAutoLevelInput();
+                }
+                return;
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();
                 return;
@@ -111,6 +125,7 @@ public final class NamMod implements IActionListener {
         }
         if (AutoPickup.isRunning) info += " | H\u00FAtVP:ON";
         if (ThongTinBoss.isEnable) info += " | TTB:ON";
+        if (AutoLevel.isRunning) info += " | ALv:" + AutoLevel.targetLevel;
         GameScr.gameAC(info);
     }
 
@@ -127,5 +142,24 @@ public final class NamMod implements IActionListener {
             }
         }, 120112, null), 1);
         GameCanvas.inputDlg.tfInput.gameAA("3");
+    }
+
+    private static void openAutoLevelInput() {
+        GameCanvas.inputDlg.gameAA("Nh\u1eadp level m\u1ee5c ti\u00eau (10-99)", new Command("B\u1eaft \u0111\u1ea7u", new IActionListener() {
+            public void perform(int id, Object parameter) {
+                try {
+                    int lv = Integer.parseInt(GameCanvas.inputDlg.tfInput.gameAD().trim());
+                    if (lv >= 10 && lv <= 99) {
+                        AutoLevel.start(lv);
+                    } else {
+                        GameScr.gameAC("Level ph\u1ea3i t\u1eeb 10-99!");
+                    }
+                } catch (Exception e) {
+                    GameScr.gameAC("S\u1ed1 kh\u00f4ng h\u1ee3p l\u1ec7!");
+                }
+                GameCanvas.endDlg();
+            }
+        }, 120114, null), 1);
+        GameCanvas.inputDlg.tfInput.gameAA("99");
     }
 }
