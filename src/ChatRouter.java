@@ -133,6 +133,10 @@ public class ChatRouter {
             AutoVT55.setup();
             return true;
         }
+        if (text.equals("avt58")) {
+            AutoVT55.setup58();
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
