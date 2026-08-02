@@ -99,6 +99,10 @@ public class AutoPickup implements Runnable {
         for (int i = 0; i < size; i++) {
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+
+                // Bo qua trang bi (type 0-15)
+                if (item.template != null && item.template.gameAA()) continue;
+
                 int dx = Math.abs(origCx - item.xEnd);
                 int dy = Math.abs(origCy - item.yEnd);
 
