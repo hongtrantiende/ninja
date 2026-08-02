@@ -178,8 +178,8 @@ public class AutoLevel implements Runnable {
             // Bat TanSat tren map moi: templateId=-1 = tat ca quai
             Code.gameAA(-1, mapID);
 
-            // Bat them AutoPickup
-            AutoPickup.start();
+            // Bat che do nhat do game goc (khong ghost move)
+            Code.gameAQ = true;
         } catch (Exception e) {}
     }
 

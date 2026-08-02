@@ -76,9 +76,22 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Blast + Ghost Move nhe — gui packet vi tri den item,
-     * nhat, roi KHONG cap nhat cx/cy client.
-     * Nhan vat VAN DUNG YEN tren man hinh, server tu accept.
+     * Blast NHANH — chi gui gameAQ, KHONG ghost move.
+     * An toan, khong bi disconnect. Nhat item trong tam server (~30-50px).
+     */
+    private static void blastPickupFast() {
+        int size = GameScr.vItemMap.size();
+        for (int i = 0; i < size; i++) {
+            try {
+                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                Service.gI().gameAQ(item.itemMapID);
+            } catch (Exception e) {}
+        }
+    }
+
+    /**
+     * Blast + Ghost Move — CHI DUNG trong grabOnce() sau boss chet.
+     * KHONG dung trong thread nen (gay disconnect)!
      */
     private static void blastPickupSmart() {
         Char myChar = Char.getMyChar();
@@ -94,24 +107,22 @@ public class AutoPickup implements Runnable {
                 int dy = Math.abs(origCy - item.yEnd);
 
                 if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
-                    // Ghost: chi gui packet vi tri, KHONG doi cx/cy
                     Char.gameAC(item.xEnd, item.yEnd);
                 }
 
                 Service.gI().gameAQ(item.itemMapID);
+                try { Thread.sleep(PICK_DELAY_MS); } catch (Exception e2) {}
             } catch (Exception e) {}
         }
 
-        // Gui packet quay ve vi tri goc
         Char.gameAC(origCx, origCy);
-        // Dam bao client giu nguyen vi tri — khong giat
         myChar.cx = origCx;
         myChar.cy = origCy;
     }
 
     /**
      * Thread chinh — chay nen SONG SONG voi danh quai.
-     * Dung ghost move nhe de hut VP xa, giu nguyen vi tri client.
+     * Chi blast nhanh (KHONG ghost move) → an toan, khong disconnect.
      */
     public void run() {
         try { Thread.sleep(300); } catch (Exception e) {}
@@ -119,7 +130,7 @@ public class AutoPickup implements Runnable {
         while (isRunning) {
             try {
                 if (GameScr.vItemMap.size() > 0) {
-                    blastPickupSmart();
+                    blastPickupFast();
                 }
             } catch (Exception e) {}
 
