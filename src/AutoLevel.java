@@ -26,22 +26,24 @@ public class AutoLevel implements Runnable {
     // Cho den khi dat minLevel cua dong tiep theo thi chuyen map
     // ** CHINH SUA O DAY NEU SERVER KHAC **
     private static final int[][] LEVEL_MAP = {
-        {10, 1},    // Lv10+: Map 1 (Lang)
-        {18, 2},    // Lv18+: Map 2
-        {25, 3},    // Lv25+: Map 3
-        {30, 7},    // Lv30+: Map 7 (Dong Lanh)
-        {38, 14},   // Lv38+: Map 14 (Sa Mac)
-        {45, 15},   // Lv45+: Map 15
-        {50, 44},   // Lv50+: Map 44 (Bien Gioi)
-        {55, 67},   // Lv55+: Map 67 (Nui Phu Si)
-        {60, 21},   // Lv60+: Map 21 (Rung Duoc)
-        {65, 41},   // Lv65+: Map 41 (Dong Co)
-        {70, 18},   // Lv70+: Map 18 (Lang Soi)
-        {75, 46},   // Lv75+: Map 46 (Rung Thong)
-        {80, 54},   // Lv80+: Map 54 (Bai Nham Thach)
-        {85, 36},   // Lv85+: Map 36 (Vung Tuyet)
-        {90, 55},   // Lv90+: Map 55 (Hang Dong Tuyet)
-        {95, 56},   // Lv95+: Map 56 (Den Co)
+        {10, 3},    // Lv10+: Map 3 (Dong Hachi)
+        {15, 5},    // Lv15+: Map 5 (Rung truc Utra)
+        {20, 7},    // Lv20+: Map 7 (Rung Mishima)
+        {25, 8},    // Lv25+: Map 8 (Song Watamaro)
+        {30, 13},   // Lv30+: Map 13 (Rung go Kouji)
+        {35, 14},   // Lv35+: Map 14 (Rung Aokigahara)
+        {40, 16},   // Lv40+: Map 16 (Thung lung Taira)
+        {45, 21},   // Lv45+: Map 21 (Doi Fumimen)
+        {50, 33},   // Lv50+: Map 33 (Rung Moshio)
+        {55, 37},   // Lv55+: Map 37 (Nui Hashigoto)
+        {60, 41},   // Lv60+: Map 41 (Khu da do Akai)
+        {65, 45},   // Lv65+: Map 45 (Hang nui Kurai)
+        {70, 47},   // Lv70+: Map 47 (Hem nui Takana)
+        {75, 50},   // Lv75+: Map 50 (Rung Kanashii)
+        {80, 52},   // Lv80+: Map 52 (Rung Kappa)
+        {85, 67},   // Lv85+: Map 67 (Nui Ontake)
+        {90, 68},   // Lv90+: Map 68 (Nui Anzen)
+        {95, 70},   // Lv95+: Map 70 (Thung lung chet)
     };
 
     // === CONFIG ===
@@ -110,7 +112,27 @@ public class AutoLevel implements Runnable {
      * Lay ten map (de hien thong bao).
      */
     private static String getMapName(int mapID) {
-        return "M" + mapID;
+        switch (mapID) {
+            case 3: return "\u0110\u1ed3ng Hachi";
+            case 5: return "R\u1eebng Utra";
+            case 7: return "R\u1eebng Mishima";
+            case 8: return "S\u00f4ng Watamaro";
+            case 13: return "R\u1eebng Kouji";
+            case 14: return "R\u1eebng Aokigahara";
+            case 16: return "Thung l\u0169ng Taira";
+            case 21: return "\u0110\u1ed3i Fumimen";
+            case 33: return "R\u1eebng Moshio";
+            case 37: return "N\u00fai Hashigoto";
+            case 41: return "\u0110\u00e1 \u0111\u1ecf Akai";
+            case 45: return "Hang Kurai";
+            case 47: return "H\u1ebbm Takana";
+            case 50: return "R\u1eebng Kanashii";
+            case 52: return "R\u1eebng Kappa";
+            case 67: return "N\u00fai Ontake";
+            case 68: return "N\u00fai Anzen";
+            case 70: return "Thung l\u0169ng ch\u1ebft";
+            default: return "Map" + mapID;
+        }
     }
 
     /**
