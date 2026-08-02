@@ -89,10 +89,9 @@ public class ChatRouter {
             return true;
         }
         
-        // === AUTO LEVEL: ts + so (vd: ts50, ts99) ===
-        if (text.startsWith("ts") && text.length() > 2) {
-            String numPart = text.substring(2);
-            // Chi xu ly neu phan sau la SO NGUYEN (10-99)
+        // === AUTO LEVEL: tslv + so (vd: tslv50, tslv99) ===
+        if (text.startsWith("tslv") && text.length() > 4) {
+            String numPart = text.substring(4);
             boolean isNumber = true;
             for (int i = 0; i < numPart.length(); i++) {
                 if (numPart.charAt(i) < '0' || numPart.charAt(i) > '9') {
@@ -109,14 +108,12 @@ public class ChatRouter {
                     }
                 } catch (Exception e) {}
             }
-            // Khong phai so hoac ngoai range → fallthrough cho Code.gameAF xu ly
-            // (vd: tsa, tsx, tsn la lenh game goc)
         }
         if (text.equals("tslv")) {
             if (AutoLevel.isRunning) {
                 AutoLevel.stop();
             } else {
-                GameScr.gameAC("Auto Level ch\u01b0a b\u1eadt!");
+                GameScr.gameAC("Auto Level ch\u01b0a b\u1eadt! G\u00f5 tslv50 ho\u1eb7c tslv99");
             }
             return true;
         }

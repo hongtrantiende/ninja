@@ -1,6 +1,6 @@
 /**
  * AutoLevel — Tu dong treo level tu Lv10 den 99.
- * Lenh: ts50, ts80, ts99... (ts + level muc tieu)
+ * Lenh: tslv50, tslv80, tslv99... (tslv + level muc tieu). Tat: tslv
  *
  * Logic:
  * 1. Kiem tra level hien tai cua nhan vat
