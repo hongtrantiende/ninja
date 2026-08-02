@@ -89,6 +89,16 @@ public class ChatRouter {
             return true;
         }
         
+        // === MOB INFO: quet quai tren map hien tai ===
+        if (text.equals("mobinfo")) {
+            scanMobInfo();
+            return true;
+        }
+        if (text.equals("scanmap")) {
+            MapScanner.start();
+            return true;
+        }
+        
         // === AUTO LEVEL: tslv + so (vd: tslv50, tslv99) ===
         if (text.startsWith("tslv") && text.length() > 4) {
             String numPart = text.substring(4);
@@ -136,5 +146,42 @@ public class ChatRouter {
         
         // Fallback: goi Code.gameAF goc
         return Code.gameAF(text);
+    }
+
+    /**
+     * Quet tat ca quai tren map hien tai, hien thi ten + level + templateId.
+     * Goi bang lenh chat "mobinfo".
+     */
+    private static void scanMobInfo() {
+        try {
+            int mapID = TileMap.mapID;
+            int zoneID = TileMap.zoneID;
+            GameScr.gameAC("=== Map " + mapID + " Khu " + zoneID + " ===");
+            
+            int size = GameScr.vMob.size();
+            if (size == 0) {
+                GameScr.gameAC("Khong co quai tren map!");
+                return;
+            }
+            
+            // Dem so luong moi loai quai
+            String info = "";
+            int count = 0;
+            // Hien thi tung con (toi da 8 dong)
+            for (int i = 0; i < size && count < 8; i++) {
+                try {
+                    Mob mob = (Mob) GameScr.vMob.elementAt(i);
+                    if (mob == null) continue;
+                    String name = "?";
+                    try { name = mob.getTemplate().name; } catch (Exception e) {}
+                    info = name + " Lv" + mob.level + " (id:" + mob.templateId + ")";
+                    GameScr.gameAC(info);
+                    count++;
+                } catch (Exception e) {}
+            }
+            GameScr.gameAC("Tong: " + size + " quai");
+        } catch (Exception e) {
+            GameScr.gameAC("Loi quet mob: " + e.getMessage());
+        }
     }
 }
