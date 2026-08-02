@@ -16,7 +16,7 @@
  */
 public class AutoLevel implements Runnable {
     public static boolean isRunning = false;
-    public static int targetLevel = 99;
+    public static int targetLevel = 70;
     private static Thread thread;
     private static int lastKnownLevel = 0;
 
@@ -26,24 +26,18 @@ public class AutoLevel implements Runnable {
     // Cho den khi dat minLevel cua dong tiep theo thi chuyen map
     // ** CHINH SUA O DAY NEU SERVER KHAC **
     private static final int[][] LEVEL_MAP = {
-        {10, 3},    // Lv10+: Map 3 (Dong Hachi)
-        {15, 5},    // Lv15+: Map 5 (Rung truc Utra)
-        {20, 7},    // Lv20+: Map 7 (Rung Mishima)
-        {25, 8},    // Lv25+: Map 8 (Song Watamaro)
-        {30, 13},   // Lv30+: Map 13 (Rung go Kouji)
-        {35, 14},   // Lv35+: Map 14 (Rung Aokigahara)
-        {40, 16},   // Lv40+: Map 16 (Thung lung Taira)
-        {45, 21},   // Lv45+: Map 21 (Doi Fumimen)
-        {50, 33},   // Lv50+: Map 33 (Rung Moshio)
-        {55, 37},   // Lv55+: Map 37 (Nui Hashigoto)
-        {60, 41},   // Lv60+: Map 41 (Khu da do Akai)
-        {65, 45},   // Lv65+: Map 45 (Hang nui Kurai)
-        {70, 47},   // Lv70+: Map 47 (Hem nui Takana)
-        {75, 50},   // Lv75+: Map 50 (Rung Kanashii)
-        {80, 52},   // Lv80+: Map 52 (Rung Kappa)
-        {85, 67},   // Lv85+: Map 67 (Nui Ontake)
-        {90, 68},   // Lv90+: Map 68 (Nui Anzen)
-        {95, 70},   // Lv95+: Map 70 (Thung lung chet)
+        {10, 40},   // Lv10+: Map 40 (Canh dong Hiya)
+        {20, 12},   // Lv20+: Map 12 (Mieu Oboko)
+        {32, 14},   // Lv32+: Map 14 (Rung Aokigahara)
+        {42, 52},   // Lv42+: Map 52 (Rung Kappa)
+        {47, 62},   // Lv47+: Map 62 (Hang Chi)
+        {49, 44},   // Lv49+: Map 44 (Dinh Okama)
+        {51, 18},   // Lv51+: Map 18 (San den Orochi)
+        {54, 59},   // Lv54+: Map 59 (Mui Hone)
+        {55, 24},   // Lv55+: Map 24 (Dinh Ichidai)
+        {57, 53},   // Lv57+: Map 53 (Dong Tamatamo)
+        {60, 139},  // Lv60+: Map 139 (Quy Son)
+        {67, 140},  // Lv67+: Map 140 (Son Hai Vuc)
     };
 
     // === CONFIG ===
@@ -113,24 +107,18 @@ public class AutoLevel implements Runnable {
      */
     private static String getMapName(int mapID) {
         switch (mapID) {
-            case 3: return "\u0110\u1ed3ng Hachi";
-            case 5: return "R\u1eebng Utra";
-            case 7: return "R\u1eebng Mishima";
-            case 8: return "S\u00f4ng Watamaro";
-            case 13: return "R\u1eebng Kouji";
+            case 12: return "Mi\u1ebfu Oboko";
             case 14: return "R\u1eebng Aokigahara";
-            case 16: return "Thung l\u0169ng Taira";
-            case 21: return "\u0110\u1ed3i Fumimen";
-            case 33: return "R\u1eebng Moshio";
-            case 37: return "N\u00fai Hashigoto";
-            case 41: return "\u0110\u00e1 \u0111\u1ecf Akai";
-            case 45: return "Hang Kurai";
-            case 47: return "H\u1ebbm Takana";
-            case 50: return "R\u1eebng Kanashii";
+            case 18: return "S\u00e2n \u0111\u1ec1n Orochi";
+            case 24: return "\u0110\u1ec9nh Ichidai";
+            case 40: return "C\u00e1nh \u0111\u1ed3ng Hiya";
+            case 44: return "\u0110\u1ec9nh Okama";
             case 52: return "R\u1eebng Kappa";
-            case 67: return "N\u00fai Ontake";
-            case 68: return "N\u00fai Anzen";
-            case 70: return "Thung l\u0169ng ch\u1ebft";
+            case 53: return "\u0110\u1ed9ng Tamatamo";
+            case 59: return "M\u0169i Hone";
+            case 62: return "Hang Chi";
+            case 139: return "Qu\u1ef7 S\u01a1n";
+            case 140: return "S\u01a1n H\u1ea3i V\u1ef1c";
             default: return "Map" + mapID;
         }
     }
