@@ -16,7 +16,7 @@
  */
 public class AutoLevel implements Runnable {
     public static boolean isRunning = false;
-    public static int targetLevel = 70;
+    public static int targetLevel = 90;
     private static Thread thread;
     private static int lastKnownLevel = 0;
 
@@ -29,15 +29,17 @@ public class AutoLevel implements Runnable {
         {10, 40},   // Lv10+: Map 40 (Canh dong Hiya)
         {20, 12},   // Lv20+: Map 12 (Mieu Oboko)
         {32, 14},   // Lv32+: Map 14 (Rung Aokigahara)
-        {42, 52},   // Lv42+: Map 52 (Rung Kappa)
+        {42, 41},   // Lv42+: Map 41 (Khu da do Akai)
         {47, 62},   // Lv47+: Map 62 (Hang Chi)
         {49, 44},   // Lv49+: Map 44 (Dinh Okama)
         {51, 18},   // Lv51+: Map 18 (San den Orochi)
         {54, 59},   // Lv54+: Map 59 (Mui Hone)
         {55, 24},   // Lv55+: Map 24 (Dinh Ichidai)
-        {57, 53},   // Lv57+: Map 53 (Dong Tamatamo)
+        {58, 53},   // Lv58+: Map 53 (Dong Tamatamo)
         {60, 139},  // Lv60+: Map 139 (Quy Son)
         {67, 140},  // Lv67+: Map 140 (Son Hai Vuc)
+        {70, 54},   // Lv70+: Map 54 
+        {82, 55},   // Lv82+: Map 55 
     };
 
     // === CONFIG ===
@@ -153,7 +155,8 @@ public class AutoLevel implements Runnable {
 
     /**
      * Bat ts (TanSat) tren map chi dinh.
-     * Dung Code.gameAA(-1, mapID) giong lenh "tsa" (tan sat all).
+     * Game TanSat se TU DONG di chuyen nhan vat den map nay
+     * khi mapID != TileMap.mapID (Auto.gameAA navigation).
      */
     private void startTsOnMap(int mapID) {
         try {
@@ -163,10 +166,10 @@ public class AutoLevel implements Runnable {
                 sleep(500);
             }
 
-            // Bat TanSat tren map moi: templateId=-1 = tat ca quai
+            // Bat TanSat: truyen mapID muc tieu, game se tu di chuyen
             Code.gameAA(-1, mapID);
 
-            // Bat che do nhat do game goc (khong ghost move)
+            // Bat che do nhat do game goc
             Code.gameAQ = true;
         } catch (Exception e) {}
     }
@@ -199,6 +202,10 @@ public class AutoLevel implements Runnable {
         int currentTargetMap = findMapForLevel(charLevel);
         GameScr.gameAC("ALv: Farm t\u1ea1i " + getMapName(currentTargetMap));
         startTsOnMap(currentTargetMap);
+
+        // Bat tu dong cong ky nang
+        Char.CongKN = true;
+        GameScr.gameAC("ALv: Auto c\u1ed9ng KN ON!");
 
         // === MAIN LOOP ===
         while (isRunning) {
@@ -257,12 +264,15 @@ public class AutoLevel implements Runnable {
                 }
             }
 
-            // Kiem tra ts con chay khong (co the bi tat do nguoi khac)
+            // Kiem tra ts con chay khong
+            // Neu user tat ts tu menu, Code.gameAB = null
+            // Cho 2 giay roi check lai — neu van null thi user chu y tat → dung AutoLevel
             if (Code.gameAB == null && isRunning) {
                 sleep(2000);
                 if (Code.gameAB == null && isRunning) {
-                    // ts bi tat — restart
-                    startTsOnMap(currentTargetMap);
+                    GameScr.gameAC("ALv: Ts b\u1ecb t\u1eaft, d\u1eebng Auto Level!");
+                    isRunning = false;
+                    return;
                 }
             }
         }

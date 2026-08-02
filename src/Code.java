@@ -169,10 +169,10 @@ implements Runnable {
         timBG = false;
         gameBG = false;
         gameBH = 5;
-        gameBI = false;
-        gameBJ = 40;
-        gameBK = false;
-        gameBL = 40;
+        gameBI = true;
+        gameBJ = 10;
+        gameBK = true;
+        gameBL = 50;
         gameBM = false;
         gameBN = 100;
         gameBO = false;

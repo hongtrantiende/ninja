@@ -11,10 +11,8 @@
  */
 public class MultiSkillAttack {
 
-    // Delay gi\u1eefa m\u1ed7i skill (ms) - \u0111\u1ee7 \u0111\u1ec3 server kh\u00f4ng drop packet
-    private static final long SKILL_DELAY_MS = 40L;
-    // Th\u1eddi gian tr\u1eeb cooldown \u0111\u1ec3 d\u00f9ng s\u1edbm h\u01a1n 1 ch\u00FAt (gi\u1ed1ng d\u1ee9a mod: 300ms)
-    private static final long CD_BUFFER_MS = 300L;
+    private static final long SKILL_DELAY_MS = 10L;
+    private static final long CD_BUFFER_MS = 500L;
 
     /**
      * Entry point ch\u00ednh: g\u1eedi t\u1ea5t c\u1ea3 skill attack + buff.
@@ -104,7 +102,7 @@ public class MultiSkillAttack {
                     myChar.gameAB(GameScr.sks[s.template.id], 0);
                 }
 
-                try { Thread.sleep(100L); } catch (Exception ex) {}
+                try { Thread.sleep(30L); } catch (Exception ex) {}
             } catch (Exception e) {}
         }
     }
@@ -268,11 +266,16 @@ public class MultiSkillAttack {
         MyVector vTargets = new MyVector();
         if (GameScr.vMob == null) return vTargets;
 
-        int maxTargets = s.maxFight > 0 ? s.maxFight : 1;
-        int rangeX = s.dx > 0 ? s.dx + 30 : 120;
-        int rangeY = s.dy > 0 ? s.dy + 30 : 100;
+        int maxTargets = s.maxFight > 0 ? s.maxFight : 2;
+        int rangeX = s.dx > 0 ? s.dx + 50 : 150;
+        int rangeY = s.dy > 0 ? s.dy + 50 : 120;
 
+        // Tim quai trong tam, sap xep theo khoang cach (gan nhat truoc)
         int size = GameScr.vMob.size();
+        Mob[] candidates = new Mob[size];
+        int[] distances = new int[size];
+        int count = 0;
+
         for (int i = 0; i < size; i++) {
             try {
                 Mob mob = (Mob) GameScr.vMob.elementAt(i);
@@ -280,14 +283,29 @@ public class MultiSkillAttack {
                     int diffX = Math.abs(myChar.cx - mob.x);
                     int diffY = Math.abs(myChar.cy - mob.y);
                     if (diffX <= rangeX && diffY <= rangeY) {
-                        vTargets.addElement(mob);
-                        if (vTargets.size() >= maxTargets) {
-                            break;
-                        }
+                        candidates[count] = mob;
+                        distances[count] = diffX + diffY;
+                        count++;
                     }
                 }
             } catch (Exception e) {}
         }
+
+        // Sap xep theo khoang cach (bubble sort — so luong it nen OK)
+        for (int i = 0; i < count - 1; i++) {
+            for (int j = i + 1; j < count; j++) {
+                if (distances[j] < distances[i]) {
+                    int tmpD = distances[i]; distances[i] = distances[j]; distances[j] = tmpD;
+                    Mob tmpM = candidates[i]; candidates[i] = candidates[j]; candidates[j] = tmpM;
+                }
+            }
+        }
+
+        // Lay maxTargets con gan nhat
+        for (int i = 0; i < count && vTargets.size() < maxTargets; i++) {
+            vTargets.addElement(candidates[i]);
+        }
+
         return vTargets;
     }
 }

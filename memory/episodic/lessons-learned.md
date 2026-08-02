@@ -275,3 +275,6 @@
 - **GHOST_RANGE:** 50px â€” item gáº§n hÆ¡n nháº·t trá»±c tiáº¿p, xa hÆ¡n má»›i ghost move.
 - **API:** `Char.gameAC(int x, int y)` = static method gá»­i walk/move packet.
 - **Status:** âœ… Built + tested (server accept nháº·t xa)
+
+### Git / GitHub Rules
+- **Tuy?t d?i KHÔNG t? ý git commit ho?c git push** lên GitHub n?u ngu?i dùng chua ra l?nh rõ ràng.
