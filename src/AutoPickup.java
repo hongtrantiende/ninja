@@ -131,7 +131,7 @@ public class AutoPickup implements Runnable {
         while (isRunning) {
             try {
                 if (GameScr.vItemMap.size() > 0) {
-                    blastPickupSmart(THREAD_DELAY_MS);
+                    blastPickupSmart(0);
                 }
             } catch (Exception e) {}
 
