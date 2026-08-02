@@ -128,21 +128,8 @@ public class ChatRouter {
             return true;
         }
         
-        // === INTERCEPT ts/tsn/ak: bat nhat do tu dong ===
-        if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
-            // Goi Code.gameAF goc de xu ly ts/tsn/ak binh thuong
-            boolean handled = Code.gameAF(text);
-            if (handled) {
-                if (Code.gameAB != null) {
-                    AutoPickup.start();
-                    GameScr.gameAC("H\u00FAt VP ON!");
-                } else {
-                    AutoPickup.stop();
-                    GameScr.gameAC("H\u00FAt VP OFF!");
-                }
-            }
-            return handled;
-        }
+        // === ts/tsn/ak: de game xu ly binh thuong, KHONG can thiep ===
+        // User muon nhat do thi go "nhat" rieng
         
         // Fallback: goi Code.gameAF goc
         return Code.gameAF(text);
