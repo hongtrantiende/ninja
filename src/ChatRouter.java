@@ -19,6 +19,9 @@ public class ChatRouter {
         if (AutoLevel.isRunning) {
             AutoLevel.stop();
         }
+        if (AutoVT55.isRunning) {
+            AutoVT55.stop();
+        }
         if (AutoSanBoss.isRunning) {
             AutoSanBoss.stop();
         }
@@ -128,8 +131,11 @@ public class ChatRouter {
             return true;
         }
         
-        // === ts/tsn/ak: de game xu ly binh thuong, KHONG can thiep ===
-        // User muon nhat do thi go "nhat" rieng
+        // === AUTO VT MAP 55 ===
+        if (text.equals("avt55")) {
+            AutoVT55.toggle();
+            return true;
+        }
         
         // Fallback: goi Code.gameAF goc
         return Code.gameAF(text);
