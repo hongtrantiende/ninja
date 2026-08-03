@@ -277,4 +277,22 @@
 - **Status:** ✅ Built + tested (server accept nhặt xa)
 
 ### Git / GitHub Rules
-- **Tuy?t d?i KH�NG t? � git commit ho?c git push** l�n GitHub n?u ngu?i d�ng chua ra l?nh r� r�ng.
+- **Tuy?t d?i KH�NG t? � git commit ho?c git push** l�n GitHub n?u ngu?i d�ng chua ra l?nh r� r�ng.
+
+### v19: Phân biệt Luồng PkBoss (Đánh) vs Treo Boss (Đứng chờ)
+- **Vấn đề:** PkBoss mặc định có logic tự quét khu, tự tele tới boss và tự tấn công. Không thể dùng PkBoss làm scanner cho chế độ treo vì nó sẽ đánh boss trước khi can thiệp.
+- **Giải pháp Scanner thủ công:** Dùng PkBoss để di chuyển tới mapID target. Ngay khi TileMap.mapID == targetMap, dừng PkBoss bằng Code.gameAC(). Sau đó chạy vòng lặp zone 0..29 gọi Auto.gameAA(zone) với sleep(100ms) để đổi khu thủ công.
+- **Tránh False-Positive Mob Data:** Khi đổi khu nhanh (100ms), GameScr.vMob có thể chứa dữ liệu mob cũ từ khu trước. Bắt buộc phải sleep 300ms và double-check hasBossOnCurrentMap() trước khi xác nhận có boss.
+- **Giao thức Party pke không ngắt Thread:** Đội trưởng gửi pke để ngắt PkBoss của thành viên khi tới nơi. Bình thường pke gọi stopPartyBoss() -> AutoSanBoss.stop() làm tắt toàn bộ auto. Trong treoMode, stopPartyBoss() chỉ thực hiện Code.gameAC() + restoreDummyAuto() để pop PkBoss mà vẫn giữ thread thành viên sống tiếp tục đứng treo tại khu.
+### v20: Không Dùng Chung Một Tín Hiệu Cho Đánh Boss Và Treo Boss
+- **Bài học:** Một thread thành viên có thể tiếp tục sống sau `pke` trong Treo Boss. Vì vậy không được suy ra chế độ hiện tại chỉ từ `isRunning`; phải truyền mode rõ ràng từ leader.
+- **Quy tắc giao thức:**
+  - `pkm -1` = normal combat mode.
+  - `pkm -2` = treo/wait mode.
+  - `pkm -3` = full stop/cleanup.
+- **Quy tắc `pkk`:**
+  - Trong mode đánh: đặt `PkBoss.zoneID`, cho `PkBoss` tiếp tục tele/đánh.
+  - Trong mode treo: không giao zone cho `PkBoss`. Chờ tới đúng map, pop `PkBoss`, rồi gọi `Auto.gameAA(zone)` để đứng tại điểm vào khu.
+- **Chống giữ trạng thái cũ:** Trước mỗi lần gọi nhóm tới boss, leader phải gửi lại tín hiệu mode (`-1` hoặc `-2`), không chỉ gửi một lần lúc bật.
+- **Cleanup:** Khi tắt từ leader phải gửi `pkm -3` trước `pke`; chỉ gửi `pke` là chưa đủ vì trong Treo Boss `pke` cố ý giữ thread thành viên sống.
+- **Kết quả đã xác nhận:** `tspkb` cho cả leader và thành viên đánh; `tstreo/treo` cho cả nhóm đứng chờ, không tele vào boss.

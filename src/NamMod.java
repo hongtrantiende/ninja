@@ -12,6 +12,11 @@ public final class NamMod implements IActionListener {
     private static final int TACH_LE = 120110;
     private static final int THONG_TIN = 120111;
     private static final int AUTO_LEVEL = 120113;
+    private static final int TREO_ALL = 120115;
+    private static final int TREO_SV = 120116;
+    private static final int TREO_TG = 120117;
+    private static final int TREO_VM = 120118;
+    private static final int TREO_MN = 120119;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -31,6 +36,13 @@ public final class NamMod implements IActionListener {
         items.addElement(command("S\u0103n VDMQ: " + bossStatus(2), BOSS_VDMQ));
         items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(3), BOSS_MAP_NGOAI));
         items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(4), BOSS_ALL));
+
+        // === Treo Boss (t\u00ecm boss, kh\u00f4ng \u0111\u00e1nh) ===
+        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(4), TREO_ALL));
+        items.addElement(command("Treo Server: " + treoStatus(0), TREO_SV));
+        items.addElement(command("Treo Th\u1ebf Gi\u1edbi: " + treoStatus(1), TREO_TG));
+        items.addElement(command("Treo VDMQ: " + treoStatus(2), TREO_VM));
+        items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(3), TREO_MN));
 
         // === H\u00FAt VP ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
@@ -67,6 +79,13 @@ public final class NamMod implements IActionListener {
         if (type == 4) return (forced == 4) ? "ON" : "OFF";
         // Auto schedule (-1) hien ON cho nut Sán Boss chinh
         if (forced == -1) return "Auto";
+        return (forced == type) ? "ON" : "OFF";
+    }
+
+    private static String treoStatus(int type) {
+        if (!AutoSanBoss.isRunning || !AutoSanBoss.treoMode) return "OFF";
+        int forced = AutoSanBoss.forcedBossType;
+        if (type == 4) return (forced == 4) ? "ON" : "OFF";
         return (forced == type) ? "ON" : "OFF";
     }
 
@@ -111,6 +130,21 @@ public final class NamMod implements IActionListener {
                 return;
             case THONG_TIN:
                 showModInfo();
+                return;
+            case TREO_ALL:
+                AutoSanBoss.toggleTreo();
+                return;
+            case TREO_SV:
+                AutoSanBoss.toggleTreoSV();
+                return;
+            case TREO_TG:
+                AutoSanBoss.toggleTreoTG();
+                return;
+            case TREO_VM:
+                AutoSanBoss.toggleTreoVM();
+                return;
+            case TREO_MN:
+                AutoSanBoss.toggleTreoMN();
                 return;
             default:
                 return;

@@ -27,16 +27,32 @@ public class ChatRouter {
 
     /** Nhan pkm tu truong nhom; map -1 chi bat trang thai Auto San Boss. */
     public static void startPartyBoss(Auto auto) {
+        if (auto != null && auto.mapID == -3) {
+            AutoSanBoss.stopPartyMemberFully();
+            return;
+        }
+        if (auto != null && auto.mapID == -2) {
+            AutoSanBoss.startPartyMemberTreo();
+            return;
+        }
+        if (auto != null && auto.mapID == -1) {
+            AutoSanBoss.startPartyMemberNormal();
+            return;
+        }
         AutoSanBoss.startPartyMember();
-        if (auto != null && auto.mapID != -1) {
+        if (auto != null) {
             Code.gameAA(auto);
         }
     }
 
-    /** Nhan pke tu truong nhom; pop PkBoss roi tat holder/thread thanh vien. */
+    /** Nhan pkk: treo mode tu doi khu, mode thuong giao zone cho PkBoss. */
+    public static void setPartyBossZone(int zone) {
+        AutoSanBoss.setPartyBossZone(zone);
+    }
+
+    /** Nhan pke tu truong nhom; delegate xu ly cho AutoSanBoss. */
     public static void stopPartyBoss() {
-        Code.gameAC();
-        AutoSanBoss.stop();
+        AutoSanBoss.stopPartyBoss();
     }
 
     /**
@@ -65,6 +81,26 @@ public class ChatRouter {
         }
         if (text.equals("tspkbmn") || text.equals("mn")) {
             AutoSanBoss.toggleMN();
+            return true;
+        }
+        if (text.equals("tstreo") || text.equals("treo")) {
+            AutoSanBoss.toggleTreo();
+            return true;
+        }
+        if (text.equals("treosv")) {
+            AutoSanBoss.toggleTreoSV();
+            return true;
+        }
+        if (text.equals("treotg")) {
+            AutoSanBoss.toggleTreoTG();
+            return true;
+        }
+        if (text.equals("treovm")) {
+            AutoSanBoss.toggleTreoVM();
+            return true;
+        }
+        if (text.equals("treomn")) {
+            AutoSanBoss.toggleTreoMN();
             return true;
         }
         

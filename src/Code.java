@@ -2673,7 +2673,7 @@ implements Runnable {
                     }
                     if (var5[0].equals("pkk")) {
                         if (gameAB instanceof PkBoss || gameAB == gameCE) {
-                            Code.gameAB.zoneID = Integer.parseInt(var5[1]);
+                            ChatRouter.setPartyBossZone(Integer.parseInt(var5[1]));
                             return;
                         }
                     } else if (var5[0].equals("pke")) {

@@ -127,3 +127,20 @@
 
 
 
+
+## 2026-08-03: Thêm Chế Độ Treo Boss (tstreo/treo) & Tối Ưu Săn Boss (tspkb)
+- Thêm cờ treoMode trong AutoSanBoss, lệnh chat (tstreo, treo, treosv, treotg, treovm, treomn) và 5 nút menu UI trong NamMod.java.
+- Leader trong treoMode chỉ dùng PkBoss để di chuyển tới map, sau đó dừng PkBoss và tự quét khu K0->K29 bằng Auto.gameAA(zone) với delay 100ms/khu. Double check 300ms chống false-positive.
+- Leader phát hiện boss sẽ gửi pkm -> pkk -> chờ 3s -> pke. Sửa stopPartyBoss() trong treoMode không kill thread TV mà chỉ pop PkBoss để TV đứng yên tại khu boss.
+- Thêm lockBossFocus() liên tục ghim Char.mobFocus = bossMob trong tspkb để không bị nhảy target sang quái thường.
+- Tối ưu respawnFast() delay xuống 10-50ms (hồi sinh ~120ms) và restart PkBoss ngay lập tức khi sống lại.
+## 2026-08-03 — v20: Tách Tín Hiệu Chế Độ Nhóm Đánh/Treo/Dừng
+- **Vấn đề:** Sau khi thành viên từng chạy Treo Boss, `treoMode=true` có thể còn sống trong thread `AutoSanBoss`. Khi trưởng nhóm chuyển sang `tspkb`, thành viên vẫn xử lý `pkk` theo luồng treo nên không đánh boss.
+- **Quyết định:** Dùng ba tín hiệu nội bộ riêng trước khi gửi map boss:
+  - `pkm -1`: ép thành viên về chế độ **ĐÁNH** (`startPartyMemberNormal()`), xóa `treoMode` cũ.
+  - `pkm -2`: ép thành viên vào chế độ **TREO** (`startPartyMemberTreo()`).
+  - `pkm -3`: dừng hoàn toàn Auto Săn/Treo Boss của thành viên (`stopPartyMemberFully()`).
+- **Luồng `tspkb`:** Leader gửi `pkm -1` → `pkm <map>` → `pkk <zone>`; cả leader và thành viên dùng `PkBoss` để tele tới boss và cùng đánh.
+- **Luồng `tstreo/treo`:** Leader gửi `pkm -2` → `pkm <map>` → `pkk <zone>` → `pke`. Thành viên chỉ dùng `PkBoss` để tới map; khi nhận `pkk`, pop `PkBoss`, gọi `Auto.gameAA(zone)` và đứng tại điểm vào khu, không tele tới boss/không đánh.
+- **Khi tắt:** Leader gửi `pkm -3` rồi `pke` để thành viên không giữ thread/holder cũ.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/Code.java`, `Aeharuna.jar`
