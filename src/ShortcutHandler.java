@@ -1,20 +1,37 @@
-/**
- * ShortcutHandler - Xử lý shortcut phím backtick (`) toggle Auto Tàn Sát
- * Được gọi từ MotherCanvas.keyPressed() sau khi xử lý phím gốc.
- */
-public class ShortcutHandler {
+/** Xu ly softkey R Java ME va shortcut desktop. */
+public final class ShortcutHandler {
+    private ShortcutHandler() {}
+
+    public static void handleKey(GameGraphics graphics, int keycode) {
+        boolean inGame = GameCanvas.currentScreen == GameScr.instance;
+        boolean chatClosed = !ChatTextField.gameAA().isShow;
+        boolean rightSoftKey = keycode == -7 || keycode == -22;
+        if (inGame && chatClosed && rightSoftKey && hasAnyAuto()) {
+            ChatRouter.stopCurrentAuto();
+            return;
+        }
+        if (inGame && chatClosed && keycode == 96) {
+            checkKey(keycode);
+            return;
+        }
+        graphics.gameAA(keycode);
+    }
+
+    private static boolean hasAnyAuto() {
+        return Code.gameAB != null || AutoBossEvent.isEnabled || AutoSanBoss.isRunning
+            || AutoPickup.isRunning || AutoLevel.isRunning;
+    }
 
     public static void checkKey(int keycode) {
-        if (keycode == 96) { // backtick `
-            // Reset gameBR để ngăn chat mở
+        if (GameCanvas.currentScreen != GameScr.instance || ChatTextField.gameAA().isShow) return;
+        if (keycode == 96) {
             GameCanvas.gameBR = 0;
-            // Toggle tàn sát
             if (Code.gameAB instanceof TanSat) {
-                GameScr.gameAC("T\u1eaft T\u00e0n S\u00e1t");
-                Code.gameAF(); // stop auto
+                ChatRouter.stopCurrentAuto();
             } else {
-                GameScr.gameAC("B\u1eadt T\u00e0n S\u00e1t All");
                 Code.gameAA(-1, (int)TileMap.mapID);
+                AutoPickup.start();
+                GameScr.gameAC("Bat Tan Sat + Hut VP");
             }
         }
     }

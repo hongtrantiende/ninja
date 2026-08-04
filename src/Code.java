@@ -59,8 +59,8 @@ implements Runnable {
     public static MyVector gameBB;
     public static long gameBC;
     public static long gameBD;
-    public static boolean gameBE;
-    public static boolean timBG;
+    public static boolean gameBE = true;
+    public static boolean timBG = true;
     public static boolean gameBG;
     public static int gameBH;
     public static boolean gameBI;
@@ -109,7 +109,7 @@ implements Runnable {
         gameAN = -1;
         gameAO = -1;
         gameAP = -1;
-        gameAQ = false;
+        gameAQ = true;
         gameAR = false;
         gameAT = new MyVector();
         gameAU = new MyVector();
@@ -165,8 +165,8 @@ implements Runnable {
         }
         gameBC = 0L;
         gameBD = 0L;
-        gameBE = false;
-        timBG = false;
+        gameBE = true;
+        timBG = true;
         gameBG = false;
         gameBH = 5;
         gameBI = true;
@@ -178,6 +178,27 @@ implements Runnable {
         gameBO = false;
         gameCR = false;
         HoiSinhLuong = false;
+        Char.speedGame = 20;
+        Char.DungHp = true;
+        Char.aHpValue = 20;
+        Char.DungMp = true;
+        Char.aMpValue = 20;
+        Char.DungFood = true;
+        Char.CapFood = 50;
+        Char.DungHoTro = true;
+        Char.KhienMana = true;
+        Char.DotQuai = true;
+        Char.DungPhanThan = true;
+        Char.NhatYen = true;
+        Char.NhatVpNV = false;
+        Char.NhatVpSk = true;
+        Char.NhatAll = true;
+        Char.NhatSvc = true;
+        Char.ReMap = true;
+        Char.TsMapTrong = false;
+        Char.AutoMuaFood = true;
+        Char.DieHetMp = true;
+        Char.ReConnect = true;
         gameBU = 10;
         gameBV = 15;
         gameBW = -1;
@@ -225,6 +246,7 @@ implements Runnable {
     public static void gameAA(Auto var0) {
         var0.reAB = gameAB;
         gameAB = var0;
+        AutoPickup.start();
     }
 
     public static void gameAC() {

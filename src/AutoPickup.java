@@ -31,12 +31,32 @@ public class AutoPickup implements Runnable {
         }
     }
 
+    static {
+        start();
+    }
+
     public static void start() {
         if (isRunning) return;
         isRunning = true;
         Code.gameAQ = true;
         thread = new Thread(new AutoPickup());
         thread.start();
+    }
+
+    public static void syncAfterAutoCommand() {
+        new Thread(new Runnable() {
+            public void run() {
+                for (int i = 0; i < 120; i++) {
+                    if (Code.gameAB instanceof TanSat) {
+                        boolean wasOff = !isRunning;
+                        start();
+                        if (wasOff) GameScr.gameAC("H\u00FAt VP ON theo TS!");
+                        return;
+                    }
+                    try { Thread.sleep(250L); } catch (Exception e) {}
+                }
+            }
+        }).start();
     }
 
     public static void stop() {

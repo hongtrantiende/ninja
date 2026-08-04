@@ -1,4 +1,5 @@
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class ThongTinBoss {
     public static boolean isEnable = false;
@@ -66,7 +67,7 @@ public class ThongTinBoss {
     public static void paint(mGraphics g) {
         if (!isEnable) return;
 
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int curH = cal.get(Calendar.HOUR_OF_DAY);
         int curM = cal.get(Calendar.MINUTE);
         int curS = cal.get(Calendar.SECOND);

@@ -296,3 +296,19 @@
 - **Chống giữ trạng thái cũ:** Trước mỗi lần gọi nhóm tới boss, leader phải gửi lại tín hiệu mode (`-1` hoặc `-2`), không chỉ gửi một lần lúc bật.
 - **Cleanup:** Khi tắt từ leader phải gửi `pkm -3` trước `pke`; chỉ gửi `pke` là chưa đủ vì trong Treo Boss `pke` cố ý giữ thread thành viên sống.
 - **Kết quả đã xác nhận:** `tspkb` cho cả leader và thành viên đánh; `tstreo/treo` cho cả nhóm đứng chờ, không tele vào boss.
+
+## 2026-08-03: Khoi phuc TS sau boss phai luu cuc bo tren tung client
+- Khong the dung map/khu cua leader lam diem quay ve cho ca nhom, vi thanh vien dang treo su kien o cac khu khac nhau.
+- Phai giu nguyen tham chieu Auto cu cua tung may, dung PkBoss chi de van chuyen ve map, doi khu bang Auto.gameAA(zone), sau do gan lai auto cu.
+- Tin hieu bat dau (pkm -4) chi luu trang thai; thanh vien van TS den khi leader tim thay boss. Tin hieu ket thuc (pkm -5) moi kich hoat quay ve va resume.
+## 2026-08-03: Bai hoc tu test tsbosstest
+- Lenh test chay ngay khac voi tsboss cho lich: phai co Auto ts san truoc khi chup savedAuto.
+- Neu nguoi dung go tsbosstest roi moi go ts, lenh ts se ghi de flow PkBoss va co the lam phien khong di map.
+- Khong nen tu choi test chi vi inEvent=true. Che do test can co kha nang stop phien cu, ha co inEvent, cho thread cu thoat, roi force TYPE_ALL lai.
+- Khi thay thong bao 'Dang trong phien san boss' ma nhan vat khong di, can xem day la stale state/race thread, khong coi la phien dang hoat dong hop le.
+## 2026-08-04: Bai hoc ve chuyen khu TS, softkey va auto khoi tao tre
+- Gan Code.gameAB=null khong huy het chuyen khu; LockGame co the van giu luong/giai phong packet. Can LockGame.gameBK truoc khi PkBoss chiem quyen dieu khien.
+- Khong dung timer cung de dung san boss giua tran. Timer chi cho phep dung tai diem ket thuc mot luot day du.
+- Softkey R Java ME khong phai ASCII R. Ma dung thuong la -7 hoac -22; chi intercept khi dang co auto de khong pha nut Back/phai cua game.
+- Shortcut phai chan truoc GameGraphics.gameAA; neu xu ly sau, game co the mo chat/menu truoc khi mod nhan phim.
+- Code.gameAF("ts") co the tra ve truoc khi TanSat duoc gan vao Code.gameAB. Kiem tra ngay sau lenh se bo sot Hut VP; can watcher ngan han doi TanSat.

@@ -1,0 +1,9 @@
+MIDlet-Name: Aeharuna_148TB2
+MIDlet-Vendor: ToiShare.Us
+MIDlet-Hello: UpNhanh.Us - Tiện ích Miễn Phí vận hành bởi NBK
+Manifest-Version: 1.0
+Created-By: AdvMenu Unpacker (By Quyetdaik)
+MIDlet-1: Aeharuna_148TB2,/icon.png,Class_ah
+MIDlet-Version: 1.4.8
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0

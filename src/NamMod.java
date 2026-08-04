@@ -17,6 +17,8 @@ public final class NamMod implements IActionListener {
     private static final int TREO_TG = 120117;
     private static final int TREO_VM = 120118;
     private static final int TREO_MN = 120119;
+    private static final int TS_BOSS = 120120;
+    private static final int BOSS_RADAR = 120121;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -28,7 +30,9 @@ public final class NamMod implements IActionListener {
 
         // === S\u0103n Boss ===
         items.addElement(command("S\u0103n Boss: " + onOff(AutoSanBoss.isRunning), AUTO_BOSS));
+        items.addElement(command("TS \u01b0u ti\u00ean Boss: " + onOff(AutoBossEvent.isEnabled), TS_BOSS));
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
+        items.addElement(command("Radar Boss: " + onOff(BossRadar.isRunning), BOSS_RADAR));
 
         // Trang thai tung loai boss - hien ON neu dang chay loai do
         items.addElement(command("S\u0103n Server: " + bossStatus(0), BOSS_SERVER));
@@ -93,6 +97,12 @@ public final class NamMod implements IActionListener {
         switch (id) {
             case AUTO_BOSS:
                 AutoSanBoss.toggle();
+                return;
+            case TS_BOSS:
+                AutoBossEvent.toggle();
+                return;
+            case BOSS_RADAR:
+                BossRadar.toggle();
                 return;
             case LICH_BOSS:
                 ThongTinBoss.toggle();

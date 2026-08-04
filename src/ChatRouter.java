@@ -16,17 +16,24 @@ public class ChatRouter {
 
     /** Hook cho nut Tat Auto trong menu GameScr. */
     public static void stopCurrentAuto() {
-        if (AutoLevel.isRunning) {
-            AutoLevel.stop();
-        }
-        if (AutoSanBoss.isRunning) {
-            AutoSanBoss.stop();
-        }
+        AutoBossEvent.cancelAll();
+        if (AutoLevel.isRunning) AutoLevel.stop();
+        if (AutoSanBoss.isRunning) AutoSanBoss.stop();
+        AutoPickup.stop();
         Code.gameAF();
+        GameScr.gameAC("Da tat toan bo Auto!");
     }
 
     /** Nhan pkm tu truong nhom; map -1 chi bat trang thai Auto San Boss. */
     public static void startPartyBoss(Auto auto) {
+        if (auto != null && auto.mapID == -5) {
+            AutoBossEvent.returnMemberState();
+            return;
+        }
+        if (auto != null && auto.mapID == -4) {
+            AutoBossEvent.saveMemberState();
+            return;
+        }
         if (auto != null && auto.mapID == -3) {
             AutoSanBoss.stopPartyMemberFully();
             return;
@@ -41,6 +48,7 @@ public class ChatRouter {
         }
         AutoSanBoss.startPartyMember();
         if (auto != null) {
+            LockGame.gameBK();
             Code.gameAA(auto);
         }
     }
@@ -62,6 +70,20 @@ public class ChatRouter {
     public static boolean checkAll(String text) {
         if (text == null) return false;
         
+
+        if (text.equals("radarboss") || text.equals("rboss")) {
+            BossRadar.toggle();
+            return true;
+        }
+        if (text.equals("tsbosstest")) {
+            AutoBossEvent.testNow();
+            return true;
+        }
+        if (text.equals("tsboss")) {
+            AutoBossEvent.toggle();
+            return true;
+        }
+
         // === FORCE BOSS COMMANDS ===
         if (text.equals("tspkball") || text.equals("all")) {
             AutoSanBoss.toggleALL();
@@ -176,14 +198,17 @@ public class ChatRouter {
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
+            boolean hadAuto = Code.gameAB != null;
             boolean handled = Code.gameAF(text);
             if (handled) {
                 if (Code.gameAB != null) {
                     AutoPickup.start();
                     GameScr.gameAC("H\u00FAt VP ON!");
-                } else {
+                } else if (hadAuto) {
                     AutoPickup.stop();
                     GameScr.gameAC("H\u00FAt VP OFF!");
+                } else {
+                    AutoPickup.syncAfterAutoCommand();
                 }
             }
             return handled;

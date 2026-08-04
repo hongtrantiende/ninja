@@ -144,3 +144,72 @@
 - **Luồng `tstreo/treo`:** Leader gửi `pkm -2` → `pkm <map>` → `pkk <zone>` → `pke`. Thành viên chỉ dùng `PkBoss` để tới map; khi nhận `pkk`, pop `PkBoss`, gọi `Auto.gameAA(zone)` và đứng tại điểm vào khu, không tele tới boss/không đánh.
 - **Khi tắt:** Leader gửi `pkm -3` rồi `pke` để thành viên không giữ thread/holder cũ.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/Code.java`, `Aeharuna.jar`
+
+## 2026-08-03: TSBoss - Tam dung TS de san boss va tu khoi phuc rieng tung thanh vien
+- Quyet dinh: Them AutoBossEvent va lenh tsboss bat/tat. Moi client tu luu Code.gameAB, map va khu cua chinh minh. Den gio boss, leader moi nhom mot lan, gui pkm -4 de thanh vien luu trang thai nhung van TS; leader tim boss toi da 15 phut. Chi khi thay boss moi goi thanh vien danh. Boss xong hoac het 15 phut, leader gui pkm -5; moi client tu ve map/khu cu va phuc hoi dung auto TS da luu.
+- An toan nhom: Khong broadcast mot khu quay ve chung, tranh tat ca thanh vien don vao cung khu.
+- Files: src/AutoBossEvent.java, src/AutoSanBoss.java, src/ChatRouter.java, src/NamMod.java, Aeharuna.jar
+## 2026-08-03: Chot thu nghiem TSBoss trong 1 ngay
+- Co hai lenh rieng:
+  - tsboss: che do chinh thuc, cho dung gio boss moi tu khoi dong.
+  - tsbosstest: bo qua lich, quet ALL boss ngay lap tuc, toi da 15 phut.
+- Thu tu dung tsbosstest bat buoc: tat ca nick bat ts truoc, sau do leader chat tsbosstest. Neu chat ts sau test, TanSat se ghi de boss-auto.
+- tsbosstest tu huy co phien inEvent/AutoSanBoss bi ket, cho thread cu thoat 700ms, sau do khoi dong lai phien ALL.
+- Test la mot phien; neu tsboss truoc do dang OFF thi ket thuc test se tra ve OFF.
+- Khi tim thay boss moi gui pkm -1, pkm map, pkk zone de goi thanh vien danh. Khi boss xong hoac qua 15 phut gui pkm -5.
+- Moi client luu rieng Auto cu, map va zone; luc ket thuc tu ve dung map/khu rieng roi gan lai Auto ts cu.
+- Jar da xac minh: MANIFEST.MF la entry dau, ZIP flags 0, khong dong goi javax/microedition stub.
+## 2026-08-04: Chot TSBoss, softkey R va Hut VP theo TS
+- TSBoss chi luu Auto/map/zone tai thoi diem phien boss thuc su khoi dong, khong luu luc vua bat che do cho. Truong nhom van TS va chuyen khu binh thuong truoc gio boss.
+- Khi khoi dong boss, leader goi LockGame.gameBK(), cat Code.gameAB tam thoi, cho map/zone on dinh roi moi bat PkBoss. Thanh vien cung huy khoa di chuyen truoc khi nhan PkBoss.
+- Mot luot duoc tinh theo day du danh sach map cua tung loai boss: Server, The Gioi, VDMQ 141-143, Map Ngoai 12 map.
+- Sau luot dau: nghi 10 giay, quet luot tiep; lap lai trong 10 phut. Het 10 phut khong cat ngang boss/luot dang chay, chi ve TS tai ranh gioi ket thuc luot.
+- TSBoss bat trong 40 phut boss con song van khoi dong, ke ca qua phut 15.
+- Softkey phai Java ME R dung keycode -7/-22. Khi dang co Auto va o man hinh game, R goi ChatRouter.stopCurrentAuto; khi khong co Auto thi giu hanh vi goc.
+- Khong dung chu R va khong co lenh chat r. Hook MotherCanvas dung methodref replacement GameGraphics.gameAA(I)V -> ShortcutHandler.handleKey(GameGraphics,int), script scripts/patch_mothercanvas_shortcut.py.
+- Chat ts/tsn/ak dong bo Hut VP. Rieng ts co the tao TanSat tre, AutoPickup.syncAfterAutoCommand cho toi 30 giay va bat Hut VP khi TanSat xuat hien.
+- Jar kiem tra: MANIFEST.MF dau tien, ZIP flags 0, khong dong goi javax/microedition stub.
+
+## 2026-08-05: Đóng băng quái (bang / fz) làm mặc định khi vào game
+- **Quyết định:** Chuyển hai cờ `Code.gameBE` và `Code.timBG` sang mặc định `true` ngay khi khởi tạo nhân vật / vào game.
+- **Tác dụng:** Giống như khi người dùng gõ lệnh `bang` (hoặc `fz`), tính năng đóng băng quái (băng boss & băng skill) được tự động bật sẵn 24/7 từ lúc vừa đăng nhập vào game mà không cần phải gõ lệnh chat thủ công.
+- **Files thay đổi:** `src/Code.java`, `Aeharuna.jar`
+
+## 2026-08-05: Mod Xóa Nền Trời Map (Nền Đen 1.4.8 / Fix Lag)
+- **Quyết định:** Patch bytecode `GameCanvas.class` tại phương thức `gameAA(mGraphics)`: chèn lệnh `goto 26` ngay tại PC 0.
+- **Tác dụng:** Loại bỏ hoàn toàn ảnh nền trời, mây, núi, cảnh nền chuyển động ở phía sau các map, tô đen toàn bộ phông nền canvas (`0x000000`) giống bản 1.4.8. Giữ nguyên bậc đá, mặt đất, cột đá, cây cối địa hình, quái, nhân vật và giao diện UI để di chuyển & chơi bình thường.
+- **Files thay đổi:** `scripts/patch_black_bg.py`, `build/unpacked/GameCanvas.class`, `Aeharuna.jar`
+
+## 2026-08-05: Mặc Định Bật Hút VP & SPGame = 20 (Khôi phục lệnh s về mặc định)
+- **Quyết định:** Set `Code.gameAQ = true`, `AutoPickup.start()`, và `Char.speedGame = 20` mặc định khi khởi tạo game; khôi phục `Code.gameBG = false`, `Code.gameBH = 5` về mặc định gốc của game.
+- **Tác dụng:**
+  1. Hút VP (nhặt xa / auto pickup) bật tự động 24/7 từ khi khởi động game.
+  2. Tốc độ `SPGame` (tốc độ xử lý game trong menu auto) mặc định bằng `20` (thay vì 30).
+  3. Lệnh `s` (fake tốc chạy/tốc giày) được khôi phục về mặc định gốc (`gameBG = false`), không ép bật `s 20`.
+- **Files thay đổi:** `src/Code.java`, `src/AutoPickup.java`, `Aeharuna.jar`
+
+## 2026-08-05: Cài Đặt Mặc Định Cho Menu "Tự Động" Theo Ảnh Yêu Cầu
+- **Quyết định:** Đã cấu hình lại 20 mục trong menu "Tự động" mặc định chính xác theo 4 ảnh chụp của người dùng:
+  - `Dùng HP khi còn dưới: 20%` (Bật)
+  - `Dùng MP khi còn dưới: 20%` (Bật)
+  - `Dùng thức ăn cấp: 50` (Bật)
+  - `Dùng chiêu hỗ trợ` (Bật)
+  - `Dùng khiên mana` (Bật)
+  - `Dùng đốt quái & ẩn thân` (Bật)
+  - `Dùng phân thân` (Bật)
+  - `Nhặt yên` (Bật)
+  - `Nhặt VP Nhiệm Vụ` (Tắt)
+  - `Nhặt VP Sự Kiện` (Bật)
+  - `Nhặt All` (Bật)
+  - `Nhặt SVC` (Bật)
+  - `ReMap` (Bật)
+  - `Tàn sát map trống` (Tắt)
+  - `Auto Mua Thức Ăn` (Bật)
+  - `TS khi hết MP` (Bật)
+  - `Auto Reconnect` (Bật)
+- **Files thay đổi:** `src/Code.java`, `Aeharuna.jar`
+
+## 2026-08-05: Bật Tự Động Hút VP (NamMod AutoPickup) Khi Bật Tàn Sát Trong Menu Auto
+- **Quyết định:** Chèn `AutoPickup.start()` trực tiếp vào phương thức `Code.gameAA(Auto var0)` trong `src/Code.java`.
+- **Tác dụng:** Khi người dùng bật tính năng **"Tàn sát"** từ trong Menu Auto (hoặc bất kỳ hình thức kích hoạt Auto nào), tính năng Hút VP của Nam Mod sẽ tự động được khởi chạy ngay lập tức tương tự như khi gõ lệnh chat `ts`.
+- **Files thay đổi:** `src/Code.java`, `Aeharuna.jar`

@@ -1,4 +1,5 @@
 import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * AutoSanBoss - Tu dong san boss theo khung gio
@@ -19,6 +20,8 @@ public class AutoSanBoss implements Runnable {
     private static Thread thread;
     private static Thread memberMoveThread;
     private static int memberTargetZone = -1;
+    private static boolean eventHuntMode;
+    private static boolean eventRoundCompleted;
 
     // 4 loai boss theo lich server
     // Moi boss co: ten, int[] mapIDs, int[] hours
@@ -49,8 +52,8 @@ public class AutoSanBoss implements Runnable {
 
     // Khung gio spawn (gio)
     private static final int[][] BOSS_HOURS = {
-        {10, 15, 20},                            // Server (moi)
-        {5, 10, 15},                             // TheGioi (moi)
+        {12, 18, 20, 22},                        // Server
+        {11, 17, 19, 21},                        // TheGioi
         {6, 13, 19, 23},                         // VDMQ
         {1, 4, 7, 10, 13, 16, 19, 22}            // MapNgoai
     };
@@ -156,6 +159,37 @@ public class AutoSanBoss implements Runnable {
 
     public static void toggleParty() {
         toggleInternal(true, -1);
+    }
+
+    public static void startEventHunt() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        toggleInternal(true, -1);
+    }
+
+    public static void startEventHuntAll() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        toggleInternal(true, TYPE_ALL);
+    }
+
+    public static void stopEventHunt() {
+        eventHuntMode = false;
+        stop();
+    }
+
+    public static boolean consumeEventRoundCompleted() {
+        if (!eventRoundCompleted) return false;
+        eventRoundCompleted = false;
+        return true;
     }
 
     /** Nhan pke tu truong nhom; pop PkBoss roi tat holder/thread thanh vien. */
@@ -304,7 +338,7 @@ public class AutoSanBoss implements Runnable {
                     }
                 } catch (Exception e) {}
                 
-                if (isLeader) {
+                if (isLeader && !eventHuntMode) {
                     autoInviteFriends();
                     // Tin hieu khoi dong holder tren thanh vien, khong chuyen map.
                     try { Service.gI().gameAK("pkm " + (treoMode ? -2 : -1)); } catch (Exception e) {}
@@ -643,7 +677,7 @@ public class AutoSanBoss implements Runnable {
      * Kiem tra boss co dang trong khung gio spawn khong (40 phut sau gio spawn)
      */
     private boolean isBossActive(int bossType) {
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int h = cal.get(Calendar.HOUR_OF_DAY);
         int m = cal.get(Calendar.MINUTE);
         int s = cal.get(Calendar.SECOND);
@@ -933,7 +967,7 @@ public class AutoSanBoss implements Runnable {
         restoreDummyAuto();
 
         long elapsed = System.currentTimeMillis() - startTime;
-        boolean fought = elapsed > 5000;
+        boolean fought = sentPartyCmd && elapsed > 5000;
         if (fought) {
             GameScr.gameAC("TSB: Xong M" + mapID + " (" + (elapsed / 1000) + "s)");
             // Boss da chet -> nhat nhanh do roi
@@ -999,6 +1033,8 @@ public class AutoSanBoss implements Runnable {
                         huntBossType(b);
                     }
 
+                    if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
+
                     if (checkStillRunning()) {
                         GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t ALL map, qu\u00e9t l\u1ea1i sau 10s...");
                         sleepSeconds(10);
@@ -1008,6 +1044,7 @@ public class AutoSanBoss implements Runnable {
                     huntBossType(forcedBossType);
 
                     // Sau khi quet xong 1 round, doi 10s roi quet lai
+                    if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
                     if (checkStillRunning()) {
                         GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", qu\u00e9t l\u1ea1i sau 10s...");
                         sleepSeconds(10);
@@ -1022,6 +1059,8 @@ public class AutoSanBoss implements Runnable {
                         huntedAny = true;
                         huntBossType(bossType);
                     }
+
+                    if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
 
                     if (huntedAny && checkStillRunning()) {
                         GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t, qu\u00e9t l\u1ea1i sau 10s...");
@@ -1063,7 +1102,7 @@ public class AutoSanBoss implements Runnable {
 
         for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
             // Neu mode tu dong (forcedBossType == -1), check gio
-            if (forcedBossType < 0 && !isBossActive(bossType)) break;
+            if (!eventHuntMode && forcedBossType < 0 && !isBossActive(bossType)) break;
             if (treoMode) {
                 treoScanMap(maps[mi]);
             } else {
