@@ -76,6 +76,12 @@ public class ChatRouter {
             return true;
         }
         if (text.startsWith("gb") && text.length() > 2) {
+            // "gb all" — danh tat ca quai trong map
+            if (text.equals("gb all") || text.equals("gball")) {
+                GhostBoss.startAll();
+                return true;
+            }
+            // "gb63" — ghost boss map cu the
             String numPart = text.substring(2);
             boolean isNum = true;
             for (int ci = 0; ci < numPart.length(); ci++) {

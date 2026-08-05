@@ -8,22 +8,27 @@
  * 4. NO COOLDOWN: Spam skill lien tuc khong can doi CD (server co the ko check)
  * 5. AUTO BUFF: Tu dong buff truoc khi danh (tang dame)
  *
- * Lenh: "gb" (auto detect) | "gb63" (map cu the)
+ * Lenh:
+ *   "gb" / "gb63" — ghost boss map 63 (id 211)
+ *   "gb all"      — danh TAT CA quai trong map, xa toan map
  */
 public final class GhostBoss implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
     private static int targetMapId = -1;
+    private static int mode = 0;
+    private static final int MODE_BOSS = 0;
+    private static final int MODE_ALL = 1;
 
     // Config
     private static final int ATTACK_DELAY_MS = 30;
     private static final int ROUND_DELAY_MS = 300;
-    private static final int BOSS_ID_M63 = 211;     // ID boss map 63 — XAC NHAN
-    private static final int HITS_PER_PACKET = 3;   // gui cung 1 mobId 3 lan/packet
+    private static final int BOSS_ID_M63 = 211;     // ID boss map 63
+    private static final int HITS_PER_PACKET = 3;
 
     // Toa do boss spawn — {mapId, x, y}
     private static final int[][] BOSS_POSITIONS = {
-        {63, 1124, 264},        // Server boss — XAC NHAN
+        {63, 1124, 264},
     };
 
     private GhostBoss() {}
@@ -45,27 +50,115 @@ public final class GhostBoss implements Runnable {
     public static void startOnMap(int mapId) {
         if (isRunning) stop();
         targetMapId = mapId;
+        mode = MODE_BOSS;
         isRunning = true;
         thread = new Thread(new GhostBoss());
         thread.start();
-        GameScr.gameAC("GhostBoss v4: ON - M" + mapId);
+        GameScr.gameAC("GB Boss: ON - M" + mapId + " (id=" + BOSS_ID_M63 + ")");
+    }
+
+    /**
+     * Mode ALL: danh tat ca quai trong map hien tai, xa toan map.
+     */
+    public static void startAll() {
+        if (isRunning) {
+            stop();
+            GameScr.gameAC("GB ALL: OFF");
+            return;
+        }
+        targetMapId = TileMap.mapID;
+        mode = MODE_ALL;
+        isRunning = true;
+        thread = new Thread(new GhostBoss());
+        thread.start();
+        GameScr.gameAC("GB ALL: ON - Danh tat ca quai M" + targetMapId);
     }
 
     public static void stop() {
         isRunning = false;
         targetMapId = -1;
+        mode = MODE_BOSS;
     }
 
     public void run() {
         sleep(500);
+        if (mode == MODE_ALL) {
+            runAllMode();
+        } else {
+            runBossMode();
+        }
+        isRunning = false;
+        GameScr.gameAC("GB: Dung.");
+    }
+
+    // ========== MODE ALL: danh tat ca quai, xa toan map ==========
+
+    private void runAllMode() {
+        Char myChar = Char.getMyChar();
+        if (myChar == null) return;
+
+        int bestSkillId = findBestAttackSkill(myChar);
+        autoBuff(myChar);
+
+        while (isRunning) {
+            try {
+                if (myChar.cName == null) { waitReconnect(); continue; }
+
+                // Hoi sinh
+                if (myChar.statusMe == 14 || myChar.cHP <= 0) {
+                    respawnFast(); sleep(1000); continue;
+                }
+
+                // Lay danh sach tat ca mob trong zone
+                if (GameScr.vMob == null || GameScr.vMob.size() == 0) {
+                    sleep(500); continue;
+                }
+
+                // Chon skill
+                if (bestSkillId >= 0) {
+                    try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
+                }
+
+                // Gui attack cho TAT CA mob trong vMob
+                MyVector mobs = new MyVector();
+                try {
+                    for (int i = 0; i < GameScr.vMob.size(); i++) {
+                        Object o = GameScr.vMob.elementAt(i);
+                        if (o instanceof Mob) {
+                            Mob mob = (Mob) o;
+                            if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
+                                mobs.addElement(mob);
+                            }
+                        }
+                    }
+                } catch (Exception e) {}
+
+                if (mobs.size() > 0) {
+                    MyVector chars = new MyVector();
+                    int sType = bestSkillId >= 0 ? 2 : 1;
+                    Service.gI().gameAA(mobs, chars, sType);
+                }
+
+                sleep(ATTACK_DELAY_MS);
+
+                // Nhat do
+                grabItems();
+
+            } catch (Exception e) {
+                sleep(500);
+            }
+        }
+    }
+
+    // ========== MODE BOSS: ghost boss map 63 ==========
+
+    private void runBossMode() {
         while (isRunning) {
             try {
                 Char myChar = Char.getMyChar();
                 if (myChar == null || myChar.cName == null) {
                     waitReconnect(); continue;
                 }
-
-                // Di chuyen den map boss
                 if (TileMap.mapID != targetMapId) {
                     GameScr.gameAC("GB: Di toi M" + targetMapId + "...");
                     travelToMap(targetMapId);
@@ -73,23 +166,14 @@ public final class GhostBoss implements Runnable {
                         sleep(5000); continue;
                     }
                 }
-
-                // Di den vi tri boss
                 walkToBossPosition();
-
-                // Auto buff truoc khi danh
                 autoBuff(myChar);
-
-                // GHOST ATTACK!
-                GameScr.gameAC("GB: GHOST ATTACK M" + targetMapId + " (1124,264)");
+                GameScr.gameAC("GB: GHOST ATTACK M" + targetMapId + " id=" + BOSS_ID_M63);
                 ghostAttack(myChar);
-
             } catch (Exception e) {
                 sleep(3000);
             }
         }
-        isRunning = false;
-        GameScr.gameAC("GB: Dung.");
     }
 
     /**
