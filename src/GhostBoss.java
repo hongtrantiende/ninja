@@ -18,8 +18,8 @@ public final class GhostBoss implements Runnable {
     // Config
     private static final int ATTACK_DELAY_MS = 30;
     private static final int ROUND_DELAY_MS = 300;
-    private static final int MAX_MOB_ID = 20;
-    private static final int HITS_PER_PACKET = 3;  // gui cung 1 mobId 3 lan/packet
+    private static final int BOSS_ID_M63 = 211;     // ID boss map 63 — XAC NHAN
+    private static final int HITS_PER_PACKET = 3;   // gui cung 1 mobId 3 lan/packet
 
     // Toa do boss spawn — {mapId, x, y}
     private static final int[][] BOSS_POSITIONS = {
@@ -146,20 +146,18 @@ public final class GhostBoss implements Runnable {
                 grabItems(); sleep(3000); continue;
             }
 
-            // === GHOST ATTACK: Brute-force mobId ===
-            for (int mobId = 0; mobId <= MAX_MOB_ID && isRunning; mobId++) {
-                if (myChar.cName == null) return;
+            // === GHOST ATTACK: Spam thang id boss 211 ===
+            if (myChar.cName == null) return;
 
-                // TRICK 3+4: Chon skill truoc moi hit (bypass CD)
-                if (bestSkillId >= 0) {
-                    try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
-                }
-
-                // TRICK 1+2: Multi-hit + Skill attack
-                sendMultiHitAttack((short)mobId, bestSkillId >= 0 ? 2 : 1);
-
-                sleep(ATTACK_DELAY_MS);
+            // TRICK 3+4: Chon skill truoc moi hit (bypass CD)
+            if (bestSkillId >= 0) {
+                try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
             }
+
+            // TRICK 1+2: Multi-hit + Skill attack — chi target id 211
+            sendMultiHitAttack((short)BOSS_ID_M63, bestSkillId >= 0 ? 2 : 1);
+
+            sleep(ATTACK_DELAY_MS);
 
             round++;
             if (round % 10 == 0) {
