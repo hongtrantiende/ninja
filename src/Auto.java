@@ -480,16 +480,54 @@ public abstract class Auto {
 
     private void gameAM() {
         if (Code.gameAV) {
-            Code.gameAW = (Code.gameAW + 1) % Code.gameAX.length;
-            this.zoneID = Code.gameAX[Code.gameAW];
-            Auto.gameAA(this.zoneID);
-            if (this.gameAL()) {
-                Service.gI().gameAK("khu " + this.zoneID);
-                return;
+            int totalZones = Code.gameAX.length;
+            // Duyet toi da so zone trong danh sach, tranh loop vo han
+            for (int attempt = 0; attempt < totalZones; attempt++) {
+                Code.gameAW = (Code.gameAW + 1) % totalZones;
+                this.zoneID = Code.gameAX[Code.gameAW];
+                Auto.gameAA(this.zoneID);
+                if (this.gameAL()) {
+                    Service.gI().gameAK("khu " + this.zoneID);
+                }
+                // Doi zone load xong (toi da 3 giay)
+                for (int w = 0; w < 15; w++) {
+                    if (TileMap.zoneID == this.zoneID) break;
+                    Auto.Sleep(200);
+                }
+                // Dem quai song
+                Auto.Sleep(500); // doi vMob cap nhat
+                int mobCount = countAliveMobs();
+                if (mobCount >= 10) {
+                    GameScr.gameAC("Khu " + this.zoneID + ": " + mobCount + " quai. OK!");
+                    return; // Du quai, farm o day
+                }
+                GameScr.gameAC("Khu " + this.zoneID + ": " + mobCount + " quai (<10). Bo qua!");
             }
+            // Het zone de thu → quay lai zone dau tien
+            GameScr.gameAC("Het zone! Quay lai khu dau.");
         } else {
             this.gameAB(TileMap.zoneID);
         }
+    }
+
+    /**
+     * Dem so quai song tren map hien tai.
+     */
+    private static int countAliveMobs() {
+        int count = 0;
+        try {
+            int size = GameScr.vMob.size();
+            for (int i = 0; i < size; i++) {
+                Object o = GameScr.vMob.elementAt(i);
+                if (o instanceof Mob) {
+                    Mob mob = (Mob) o;
+                    if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
+                        count++;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return count;
     }
 
     /*
@@ -499,31 +537,23 @@ public abstract class Auto {
         if (var1 >= 4) {
             return false;
         }
+        int var4;
+        Mob var5;
+        boolean var6;
         for (var4 = 0; var4 < Auto.gameAN.size(); ++var4) {
-            block4: {
-                block6: {
-                    block5: {
-                        var5 = (Mob)Auto.gameAN.elementAt(var4);
-                        if (var5.levelBoss == 0 || var5.hp <= 0 || var5.status == 0) break block4;
-                        if (var5.levelBoss != 3) break block5;
-                        if (!(this instanceof TaThu) && !(this instanceof TuDanh)) ** GOTO lbl-1000
-                        var6 = false;
-                        break block6;
-                    }
-                    if (!(var5.isBoss && (var1 & 6) != 6 || var5.levelBoss == 1 && (var1 & 2) == 0 || var5.levelBoss == 2 && (var1 & 4) == 0)) {
-                        var6 = false;
-                    } else lbl-1000:
-                    // 2 sources
-
-                    {
-                        var6 = true;
-                    }
-                }
-                if (!var6 || Res.abs(var2 - var5.xFirst) > 200 || Res.abs(var3 - var5.yFirst) > 100) continue;
-                return true;
+            var5 = (Mob)Auto.gameAN.elementAt(var4);
+            if (var5.levelBoss == 0 || var5.hp <= 0 || var5.status == 0) {
+                Auto.gameAN.removeElement(var5);
+                --var4;
+                continue;
             }
-            Auto.gameAN.removeElement(var5);
-            --var4;
+            if (var5.levelBoss == 3) {
+                var6 = !(this instanceof TaThu) && !(this instanceof TuDanh);
+            } else {
+                var6 = var5.isBoss && (var1 & 6) != 6 || var5.levelBoss == 1 && (var1 & 2) == 0 || var5.levelBoss == 2 && (var1 & 4) == 0;
+            }
+            if (!var6 || Res.abs(var2 - var5.xFirst) > 200 || Res.abs(var3 - var5.yFirst) > 100) continue;
+            return true;
         }
         return false;
     }
@@ -756,7 +786,7 @@ public abstract class Auto {
                 var21 = true;
                 var6 = null;
             }
-            if (var6 == null || var6.status == 0 || !Auto.gameAA(var6, var1) || !Auto.gameAC(var6.levelBoss, var2) || System.currentTimeMillis() - this.gameAR > 5000L) {
+            if (var6 == null || var6.hp <= 0 || var6.status == 0 || var6.status == 1 || !Auto.gameAA(var6, var1) || !Auto.gameAC(var6.levelBoss, var2) || System.currentTimeMillis() - this.gameAR > 1500L) {
                 var6 = this.gameAA(var3, var1, var2, var4, var5);
             }
             if (var6 == null && var21 && this.gameAV > 0 && this.gameAW > 0) {
@@ -852,6 +882,7 @@ public abstract class Auto {
                     }
                     if (!(var26.template.type != 1 && var26.template.type != 3 || Res.abs(var3.cx - var6.xFirst) <= var26.dx + 30 && Res.abs(var3.cy - var6.yFirst) <= var26.dy + 30)) {
                         var3.mobFocus = null;
+                        var6 = null;
                         return;
                     }
                     int var25 = var26.dx;

@@ -214,15 +214,10 @@
 - **Tác dụng:** Khi người dùng bật tính năng **"Tàn sát"** từ trong Menu Auto (hoặc bất kỳ hình thức kích hoạt Auto nào), tính năng Hút VP của Nam Mod sẽ tự động được khởi chạy ngay lập tức tương tự như khi gõ lệnh chat `ts`.
 - **Files thay đổi:** `src/Code.java`, `Aeharuna.jar`
 
-## 2026-08-05: TSBoss — Gửi nhóm về farm sau lượt đầu + Leader quét solo 10 phút
-- **Quyết định:** Sau khi leader xong lượt quét đầu tiên, gửi `pkm -5` cho nhóm về chỗ cũ farm tiếp ngay. Leader tiếp tục quét solo 10 phút (tắt `isPartyMode` để không gửi party commands). Khi leader xong cũng về + mời lại nhóm.
-- **Files thay đổi:** `src/AutoBossEvent.java`, `Aeharuna.jar`
-
-## 2026-08-05: TSBoss — Fix 3 bug an toàn: saveLocalState, retry travel, fallback TS
-- **Bug 1 (saveLocalState):** Nếu member nhận `pkm -1` trước `pkm -4`, `Code.gameAB` = `SanBossHolder`. Code cũ chỉ check trực tiếp nên `savedAuto = null`. TanSat nằm ở `SanBossHolder.reAB` bị bỏ qua.
-- **Fix 1:** Traverse auto stack (`reAB` chain): `while (a instanceof PkBoss || a instanceof SanBossHolder) a = a.reAB;` để tìm auto thật (TanSat).
-- **Bug 2 (returnAndResume):** Chỉ travel 1 lần, nếu PkBoss bị ghi đè bởi auto khác → member kẹt ở map boss.
-- **Fix 2:** Retry travel tối đa 3 lần, gọi `LockGame.gameBK()` trước mỗi lần để dọn lock.
-- **Bug 3 (savedAuto null):** Nếu savedAuto null (mất TanSat), `Code.gameAB = null` → member đứng yên.
-- **Fix 3:** Fallback: nếu `oldAuto == null`, restart TanSat bằng `Code.gameAA(-1, mapID)` + `AutoPickup.start()`.
-- **Files thay đổi:** `src/AutoBossEvent.java`, `Aeharuna.jar`
+## 2026-08-05: Sửa Triệt Để Lỗi Đứng Hình / Không Đánh Quái Khi Treo Tàn Sát Lâu (`Auto.java`)
+- **Quyết định:**
+  1. Giảm thời gian chờ đổi mục tiêu quái `gameAR` từ `5000ms` (5s) xuống `1500ms` (1.5s) trong `src/Auto.java`.
+  2. Bổ sung kiểm tra quái đã chết (`hp <= 0` hoặc `status == 1`) vào điều kiện đổi mục tiêu quái tức thì.
+  3. Reset `var6 = null` khi quái mục tiêu vượt quá tầm đánh (`Res.abs(cx - xFirst) > dx + 30`) để tránh vòng lặp khóa mục tiêu kẹt vị trí.
+- **Tác dụng:** Loại bỏ hoàn toàn hiện tượng nhân vật đứng chôn chân ở khu mà không đánh quái khi treo game lâu.
+- **Files thay đổi:** `src/Auto.java`, `Aeharuna.jar`

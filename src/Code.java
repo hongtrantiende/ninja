@@ -247,6 +247,7 @@ implements Runnable {
         var0.reAB = gameAB;
         gameAB = var0;
         AutoPickup.start();
+        TsBoost.onTsStarted();
     }
 
     public static void gameAC() {

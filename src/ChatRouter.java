@@ -9,6 +9,7 @@
  * - tspkbsv/tg/vm/mn: Force san boss
  * - nhat: Toggle nhat do nhanh (AutoPickup)
  * - ts/tsn/ak: Intercept de tu dong bat nhat do khi bat auto
+ * - tsp: Toggle Ts Pro (ts + gb all — danh ALL quai khong gioi han range)
  * - ts50/ts99: Auto Level (treo lv tu dong)
  * - tslv: Tat Auto Level
  */
@@ -19,6 +20,7 @@ public class ChatRouter {
         AutoBossEvent.cancelAll();
         if (AutoLevel.isRunning) AutoLevel.stop();
         if (AutoSanBoss.isRunning) AutoSanBoss.stop();
+        TsBoost.onTsStopped();
         AutoPickup.stop();
         Code.gameAF();
         GameScr.gameAC("Da tat toan bo Auto!");
@@ -154,6 +156,12 @@ public class ChatRouter {
             return true;
         }
         
+        // === TS PRO: ts + gb all mode ===
+        if (text.equals("tsp") || text.equals("tspro")) {
+            TsBoost.toggleMode();
+            return true;
+        }
+        
         // === NHAT DO NHANH ===
         if (text.equals("nhat")) {
             AutoPickup.toggle();
@@ -224,19 +232,23 @@ public class ChatRouter {
             return true;
         }
         
-        // === INTERCEPT ts/tsn/ak: bat/tat nhat do tu dong ===
+        // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
             boolean hadAuto = Code.gameAB != null;
             boolean handled = Code.gameAF(text);
             if (handled) {
                 if (Code.gameAB != null) {
                     AutoPickup.start();
-                    GameScr.gameAC("H\u00FAt VP ON!");
+                    TsBoost.onTsStarted();
+                    GameScr.gameAC("H\u00FAt VP ON!" + (TsBoost.isRunning ? " + Ts Pro!" : ""));
                 } else if (hadAuto) {
+                    TsBoost.onTsStopped();
                     AutoPickup.stop();
                     GameScr.gameAC("H\u00FAt VP OFF!");
                 } else {
+                    // ts tao TanSat tre — doi roi bat
                     AutoPickup.syncAfterAutoCommand();
+                    TsBoost.syncAfterTs();
                 }
             }
             return handled;
