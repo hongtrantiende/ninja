@@ -453,21 +453,31 @@ public class AutoSanBoss implements Runnable {
      * Su dung Service.gI().gameAF(name) (Packet 79 - Party Invite chuan Ninja School).
      */
     public static void autoInviteFriends() {
-        try {
-            int invitedCount = 0;
-            String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
-
-            // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI)
-            if (Code.gameAI != null && Code.gameAI.size() > 0) {
-                for (int i = 0; i < Code.gameAI.size(); i++) {
-                    String name = (String) Code.gameAI.elementAt(i);
-                    if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
-                        Service.gI().gameAF(name);
-                        invitedCount++;
-                        sleep(250);
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    // Xin server load danh sach ban be neu vFriend chua co du lieu
+                    if (GameScr.vFriend == null || GameScr.vFriend.size() == 0) {
+                        try {
+                            Service.gI().gameAT(); // Packet 83: Request friend list
+                        } catch (Exception e) {}
+                        sleep(800); // Cho 800ms de server phan hoi va load vFriend
                     }
-                }
-            }
+
+                    int invitedCount = 0;
+                    String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
+
+                    // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI)
+                    if (Code.gameAI != null && Code.gameAI.size() > 0) {
+                        for (int i = 0; i < Code.gameAI.size(); i++) {
+                            String name = (String) Code.gameAI.elementAt(i);
+                            if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
+                                Service.gI().gameAF(name);
+                                invitedCount++;
+                                sleep(250);
+                            }
+                        }
+                    }
 
             // 2. Moi ban be trong GameScr.vFriend
             if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
@@ -490,6 +500,8 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (DS b\u1ea1n b\u00e8 tr\u1ed1ng)");
             }
         } catch (Exception e) {}
+            }
+        }).start();
     }
 
     private static boolean isAlreadyInParty(String name) {
