@@ -47,7 +47,7 @@ public class ThongKe {
      * Ve 2 dong thong ke HUD len man hinh (duoc goi tu GameScr.paint)
      * CHỈ HIỆN KHI ĐANG BẬT TÀN SÁT (Code.gameAB != null)!
      */
-    public static void paint(mGraphics g) {
+    public static void draaw(mGraphics g) {
         if (Code.gameAB == null) {
             // Khi tat TS -> reset moc thoi gian & bo dem ve 0
             startTime = 0L;

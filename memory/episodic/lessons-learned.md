@@ -324,4 +324,97 @@
   5. Nhân vật đứng im, không cần thấy boss
 - **Mob Constructor:** `Mob(short mobId, boolean isDisable, boolean isDontMove, boolean isFire, boolean isIce, boolean isWind, int templateId, int sys, int hp, int maxHp, int level, short x, short y, byte status, byte levelBoss, boolean isBoss, boolean removeWhenDie)`
 - **Lệnh:** `gb` / `ghostboss` (auto detect) hoặc `gb65` (chỉ map 65)
-- **Status:** ✅ Built (chưa test thực tế — cần xác nhận server có reject hay không)
+- **Status:** ✅ Built (chưa test thực tế — cần xác nhận server có reject hay không)
+
+## 2026-08-06: J2ME Loader DEX Converter — Class Version & StackMapTable
+
+### Vấn đề
+Khi compile bằng `javac -source 8 -target 8` (JDK 21), class files có version **52.0** (Java 8). Trên PC (MicroEmulator) chạy JVM đầy đủ nên OK. Nhưng **J2ME Loader** (Android) chuyển `.class` → `.dex` (Dalvik) và DEX converter **KHÔNG xử lý được**:
+1. **Class version 52.0** — game gốc dùng version 45.3 (Java 1.1)
+2. **StackMapTable attribute** — Java 7+ javac tự thêm attribute này vào MỌI method. Khi class version bị patch thành 45.3 nhưng vẫn còn StackMapTable → DEX converter lỗi phân tích → method không được add vào DEX → `NoSuchMethodError`
+
+### Triệu chứng
+```
+java.lang.NoSuchMethodError: No static method PAINT(LmGraphics;)V 
+in class Lpackage1/ThongKe; or its super classes
+```
+- Lỗi chỉ trên J2ME Loader (Android), PC MicroEmulator chạy bình thường
+- Error message hiển thị method name VIẾT HOA (VD: `PAINT` thay vì `paint`) — đây là format hiển thị của J2ME Loader, KHÔNG phải case mismatch
+
+### Giải pháp — Build Workflow BẮT BUỘC
+```powershell
+# 1. Compile bằng javac (vẫn tạo version 52.0)
+javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/*.java
+
+# 2. Patch J2ME compatibility: downgrade version 52→45.3 + strip StackMapTable
+python scripts/patch_class_j2me.py build/unpacked
+
+# 3. Đóng gói JAR
+Push-Location "build/unpacked"; jar cfm "../../Aeharuna.jar" "META-INF/MANIFEST.MF" .; Pop-Location
+```
+
+### Script: `scripts/patch_class_j2me.py`
+- Tự động quét tất cả mod class files (ThongKe, TsBoost, Auto, Code, etc.)
+- Downgrade class version header: 52.0 → 45.3
+- **Strip StackMapTable** attribute từ MỌI method (bao gồm cả sub-attributes trong Code attribute)
+- Xử lý inner classes (VD: `AutoSanBoss$1.class`)
+- An toàn: skip class đã là version 45.x
+
+### Quy tắc VÀNG
+1. **LUÔN chạy `patch_class_j2me.py` sau mỗi lần compile** — dù chỉ compile 1 file
+2. **Chỉ patch header (version bytes) là KHÔNG ĐỦ** — phải strip StackMapTable
+3. **Test trên J2ME Loader mỗi khi thêm class MỚI** — class mới dễ bị lỗi nhất vì DEX converter phải tạo method table từ đầu
+
+## 2026-08-06: Method Name `paint` Bị Conflict Trên J2ME Loader
+
+### Vấn đề
+Class `ThongKe` có method `public static void paint(mGraphics g)`. Dù class version + StackMapTable đã fix, J2ME Loader vẫn báo `NoSuchMethodError` cho `paint`.
+
+### Nguyên nhân
+`paint` là **reserved method name** trong J2ME framework (`Canvas.paint(Graphics)`). J2ME Loader DEX converter có thể xử lý đặc biệt các method tên `paint` → gây conflict khi class không extends `Canvas`.
+
+### Giải pháp
+Đổi tên method từ `paint` → `draaw` (hoặc tên bất kỳ KHÔNG trùng J2ME API):
+1. **ThongKe.java**: `public static void draaw(mGraphics g)`
+2. **GameScr.class**: Patch constant pool UTF-8 entry — thay `paint` → `draaw` (cùng 5 bytes)
+3. Script: `scripts/fix_gamescr_thongke.py`
+
+### Quy tắc
+- **KHÔNG đặt tên method trùng J2ME API** trong class mới: `paint`, `run`, `keyPressed`, `pointerPressed`, etc.
+- Nếu class extends `Runnable` thì `run()` OK vì là override. Nhưng class độc lập KHÔNG nên dùng tên reserved.
+
+## 2026-08-06: Anti-Stuck vs Boss Hunting Conflict
+
+### Vấn đề
+TsBoost có 2 cơ chế anti-stuck:
+- **10s không giết quái** → reload zone (`reloadZone()`)
+- **30s không giết quái** → tự sát về làng (`suicideAndReturn()`)
+
+Khi đang đánh boss hoặc săn boss, các cơ chế này gây:
+- Tự reload zone giữa trận boss
+- Tự sát khi boss chưa chết (boss HP cao, đánh lâu)
+
+### Giải pháp
+Thêm **2 lớp bảo vệ** trong TsBoost main loop:
+1. `isBossHunting = AutoSanBoss.isRunning` → **TẮT TOÀN BỘ** (anti-stuck, chuyển khu, ghost move, idle nudge)
+2. `hasBoss = hasBossOnMap()` → **TẮT chỉ anti-stuck** 10s/30s (vẫn giữ attack)
+
+### `hasBossOnMap()` check
+```java
+// Quét GameScr.vMob tìm mob có isBoss=true VÀ hp > 0
+for (Mob mob : GameScr.vMob) {
+    if (mob.isBoss && mob.hp > 0 && mob.status != 0) return true;
+}
+```
+
+## 2026-08-06: Auto.gameAM() — Ngưỡng Chuyển Khu
+
+### Vấn đề
+`Auto.gameAM()` là method gốc game gọi khi cần đổi khu. Có **3 call sites** trong `Auto.java`:
+1. Dòng 627: `countAliveMobs() < N` (smart zone check)
+2. Dòng 705: `Char.ChuyenMapHetQuai` (hết mob gần)
+3. Dòng 781: `Char.ChuyenMapHetQuai` (tránh chướng ngại)
+
+### Giải pháp
+Thêm `countAliveMobs() < 3` vào **TẤT CẢ 3** call sites. Nếu chỉ sửa 1 chỗ, 2 chỗ còn lại vẫn trigger chuyển khu sớm.
+
