@@ -69,7 +69,29 @@ public class ChatRouter {
      */
     public static boolean checkAll(String text) {
         if (text == null) return false;
-        
+
+        // === GHOST BOSS: danh boss vo hinh ===
+        if (text.equals("gb") || text.equals("ghostboss")) {
+            GhostBoss.toggle();
+            return true;
+        }
+        if (text.startsWith("gb") && text.length() > 2) {
+            String numPart = text.substring(2);
+            boolean isNum = true;
+            for (int ci = 0; ci < numPart.length(); ci++) {
+                if (numPart.charAt(ci) < '0' || numPart.charAt(ci) > '9') {
+                    isNum = false;
+                    break;
+                }
+            }
+            if (isNum && numPart.length() > 0) {
+                try {
+                    int mapId = Integer.parseInt(numPart);
+                    GhostBoss.startOnMap(mapId);
+                    return true;
+                } catch (Exception e) {}
+            }
+        }
 
         if (text.equals("radarboss") || text.equals("rboss")) {
             BossRadar.toggle();

@@ -5,6 +5,7 @@ import java.util.TimeZone;
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
     private static boolean inEvent;
+    private static boolean membersSentBack;
     private static Auto savedAuto;
     private static int savedMap = -1;
     private static int savedZone = -1;
@@ -32,6 +33,7 @@ public final class AutoBossEvent implements Runnable {
         isEnabled = false;
         forceAllNext = false;
         disableAfterTest = false;
+        membersSentBack = false;
         if (inEvent) {
             AutoSanBoss.stopEventHunt();
             sendParty("pkm -3");
@@ -77,7 +79,9 @@ public final class AutoBossEvent implements Runnable {
     }
 
     public static void returnMemberState() {
-        if (!inEvent && savedMap < 0) return;
+        // Lenient: cho phep ve ngay ca khi inEvent bi reset (vi du nhan Tat Auto)
+        // Chi skip neu THAT SU khong co gi de lam
+        if (!inEvent && savedMap < 0 && savedAuto == null) return;
         AutoSanBoss.stopPartyMemberFully();
         returnAndResume();
     }
@@ -85,8 +89,13 @@ public final class AutoBossEvent implements Runnable {
     private static void saveLocalState() {
         savedMap = TileMap.mapID;
         savedZone = TileMap.zoneID;
-        savedAuto = Code.gameAB;
-        if (savedAuto instanceof PkBoss || savedAuto instanceof SanBossHolder) savedAuto = null;
+        // Traverse auto stack de tim auto that (TanSat/Stanima...)
+        // Skip PkBoss va SanBossHolder vi do la wrapper cua mod
+        Auto a = Code.gameAB;
+        while (a != null && (a instanceof PkBoss || a instanceof SanBossHolder)) {
+            a = a.reAB;
+        }
+        savedAuto = a;
     }
 
     private static void pauseLeaderAndWaitStable() {
@@ -151,6 +160,7 @@ public final class AutoBossEvent implements Runnable {
         saveLocalState();
         pauseLeaderAndWaitStable();
         inEvent = true;
+        membersSentBack = false;
         GameScr.gameAC("TSBoss: Den gio boss - luu M" + savedMap + " K" + savedZone);
         AutoSanBoss.autoInviteFriends();
         sleep(1000L);
@@ -167,7 +177,14 @@ public final class AutoBossEvent implements Runnable {
                 if (!completedFirstRound) {
                     completedFirstRound = true;
                     retryEnd = now + ROUND_RECHECK_TIME;
-                    GameScr.gameAC("TSBoss: Xong luot dau, nghi 10s roi quet lai trong 10 phut");
+                    // Xong luot dau: gui nhom ve farm, leader tiep tuc quet solo
+                    membersSentBack = true;
+                    GameScr.gameAC("TSBoss: Xong luot dau, gui nhom ve farm!");
+                    sendParty("pkm -5");
+                    sleep(3000L);
+                    AutoSanBoss.autoInviteFriends();
+                    AutoSanBoss.isPartyMode = false;
+                    GameScr.gameAC("TSBoss: Leader quet tiep 10 phut...");
                 }
                 if (completedFirstRound && now >= retryEnd) break;
             }
@@ -179,9 +196,14 @@ public final class AutoBossEvent implements Runnable {
     private static void finishEvent(boolean disabledByUser) {
         if (!inEvent) return;
         AutoSanBoss.stopEventHunt();
-        sendParty("pkm -5");
+        if (!membersSentBack) {
+            sendParty("pkm -5");
+        }
+        membersSentBack = false;
         if (!disabledByUser) GameScr.gameAC("TSBoss: Ket thuc, quay lai TS");
         returnAndResume();
+        sleep(2000L);
+        AutoSanBoss.autoInviteFriends();
         if (disableAfterTest) {
             disableAfterTest = false;
             isEnabled = false;
@@ -200,26 +222,62 @@ public final class AutoBossEvent implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    if (TileMap.mapID != map) {
+                    // Dong dialog/NPC neu dang mo (tranh chan travel)
+                    try { GameCanvas.endDlg(); } catch (Exception e) {}
+                    // Xoa lock va auto hien tai de tranh xung dot
+                    LockGame.gameBK();
+                    if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                        Code.gameAB = null;
+                    }
+                    // Travel ve map cu voi retry 3 lan
+                    for (int retry = 0; retry < 3 && TileMap.mapID != map; retry++) {
+                        if (retry > 0) {
+                            GameScr.gameAC("TSBoss: Thu lai lan " + (retry + 1) + "...");
+                            sleep(2000L);
+                            try { GameCanvas.endDlg(); } catch (Exception e) {}
+                            LockGame.gameBK();
+                        }
                         PkBoss travel = new PkBoss(map);
                         Code.gameAB = travel;
                         for (int i = 0; i < 9000 && TileMap.mapID != map; i++) sleep(10L);
                         if (Code.gameAB == travel) Code.gameAB = null;
                     }
+                    // Doi khu cu
                     if (TileMap.mapID == map && TileMap.zoneID != zone) {
                         Auto.gameAA(zone);
                         for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
                     }
                 } catch (Exception e) {}
-                Code.gameAB = oldAuto;
-                GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - tiep tuc TS");
+                // Khoi phuc auto: dung saved neu co, khong thi restart TS
+                if (oldAuto != null) {
+                    Code.gameAB = oldAuto;
+                    AutoPickup.start();
+                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - tiep tuc TS");
+                } else {
+                    // Fallback: khong co auto cu -> restart TanSat tai map hien tai
+                    try {
+                        Code.gameAA(-1, (int)TileMap.mapID);
+                        AutoPickup.start();
+                    } catch (Exception e) {}
+                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - bat lai TS moi");
+                }
             }
         }).start();
     }
 
     private static void sendParty(String cmd) {
         try {
-            if (GameScr.vParty != null && GameScr.vParty.size() > 1) Service.gI().gameAK(cmd);
+            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                Service.gI().gameAK(cmd);
+                // Gui lai 2 lan nua de chac chan member nhan duoc
+                // (phong truong hop lag/member dang loading map)
+                for (int r = 0; r < 2; r++) {
+                    sleep(2000L);
+                    if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                        Service.gI().gameAK(cmd);
+                    }
+                }
+            }
         } catch (Exception e) {}
     }
 

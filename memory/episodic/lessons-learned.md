@@ -312,3 +312,16 @@
 - Softkey R Java ME khong phai ASCII R. Ma dung thuong la -7 hoac -22; chi intercept khi dang co auto de khong pha nut Back/phai cua game.
 - Shortcut phai chan truoc GameGraphics.gameAA; neu xu ly sau, game co the mo chat/menu truoc khi mod nhan phim.
 - Code.gameAF("ts") co the tra ve truoc khi TanSat duoc gan vao Code.gameAB. Kiem tra ngay sau lenh se bo sot Hut VP; can watcher ngan han doi TanSat.
+
+## 2026-08-05: GhostBoss — Exploit Bug Server Đánh Boss Vô Hình
+- **Phát hiện:** Server chỉ validate `Mob.mobId` (1 byte, short) trong attack packet. KHÔNG validate client có load mob đó trong `GameScr.vMob` hay không.
+- **Packet Attack:** `Service.gameAA(MyVector mobs, MyVector chars, int skillType)` gửi Message type 4 (skillType=1) hoặc 73 (skillType=2). Nội dung: `writeByte(count)` + `writeByte(Mob.mobId)` cho mỗi mob.
+- **Exploit Flow:**
+  1. Vào map boss, quét zone tìm boss → ghi nhớ `Mob.mobId` (short)
+  2. Tạo fake `Mob` object với đúng `mobId` → add vào `MyVector` targets
+  3. Gọi `Service.gI().gameAA(targets, emptyChars, 1)` liên tục
+  4. Server nhận `mobId`, tìm boss trên server, xử lý damage → trả kết quả
+  5. Nhân vật đứng im, không cần thấy boss
+- **Mob Constructor:** `Mob(short mobId, boolean isDisable, boolean isDontMove, boolean isFire, boolean isIce, boolean isWind, int templateId, int sys, int hp, int maxHp, int level, short x, short y, byte status, byte levelBoss, boolean isBoss, boolean removeWhenDie)`
+- **Lệnh:** `gb` / `ghostboss` (auto detect) hoặc `gb65` (chỉ map 65)
+- **Status:** ✅ Built (chưa test thực tế — cần xác nhận server có reject hay không)

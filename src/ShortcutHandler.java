@@ -1,6 +1,7 @@
 /** Xu ly softkey R Java ME va shortcut desktop. */
 public final class ShortcutHandler {
-    private ShortcutHandler() {}
+    private ShortcutHandler() {
+    }
 
     public static void handleKey(GameGraphics graphics, int keycode) {
         boolean inGame = GameCanvas.currentScreen == GameScr.instance;
@@ -19,17 +20,18 @@ public final class ShortcutHandler {
 
     private static boolean hasAnyAuto() {
         return Code.gameAB != null || AutoBossEvent.isEnabled || AutoSanBoss.isRunning
-            || AutoPickup.isRunning || AutoLevel.isRunning;
+                || AutoPickup.isRunning || AutoLevel.isRunning;
     }
 
     public static void checkKey(int keycode) {
-        if (GameCanvas.currentScreen != GameScr.instance || ChatTextField.gameAA().isShow) return;
+        if (GameCanvas.currentScreen != GameScr.instance || ChatTextField.gameAA().isShow)
+            return;
         if (keycode == 96) {
             GameCanvas.gameBR = 0;
             if (Code.gameAB instanceof TanSat) {
                 ChatRouter.stopCurrentAuto();
             } else {
-                Code.gameAA(-1, (int)TileMap.mapID);
+                Code.gameAA(-1, (int) TileMap.mapID);
                 AutoPickup.start();
                 GameScr.gameAC("Bat Tan Sat + Hut VP");
             }
