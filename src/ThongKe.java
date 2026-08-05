@@ -122,7 +122,7 @@ public class ThongKe {
         String line3 = "Exp: +" + expPercent + "% | Diệt: " + kills + " quái";
 
         int x = 2;
-        int y = 112;
+        int y = 155;
 
         try {
             mFont.tahoma_7_yellow.gameAA(g, line1, x, y, 0, mFont.tahoma_7_grey);

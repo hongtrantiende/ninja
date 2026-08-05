@@ -181,6 +181,9 @@ public class TsBoost implements Runnable {
                 // Lay tat ca mob song
                 MyVector mobs = collectAllAliveMobs();
 
+                // === KHI DANG SAN BOSS: chi attack, KHONG can thiep di chuyen ===
+                boolean isBossHunting = AutoSanBoss.isRunning;
+
                 if (mobs.size() > 0) {
                     int currentMobCount = mobs.size();
                     long now2 = System.currentTimeMillis();
@@ -198,70 +201,77 @@ public class TsBoost implements Runnable {
                     }
                     lastMobCount = currentMobCount;
 
-                    // === ANTI-STUCK LỚP 2 (30s): 30s khong DIỆT duoc quai -> Tu sat ve lang ===
-                    if (lastMobChangeTime > 0
-                            && now2 - lastMobChangeTime > SUICIDE_STUCK_TIMEOUT_MS
-                            && currentMobCount > 0) {
-                        GameScr.gameAC("Ts Pro: KẸT 30s (Diệt không tăng)! Tự sát về làng...");
-                        suicideAndReturn();
-                        lastMobChangeTime = now2;
-                        lastMobCount = -1;
-                        sleep(3000);
-                        continue;
-                    }
+                    if (!isBossHunting) {
+                        // === ANTI-STUCK: BO QUA khi dang danh boss / ak ===
+                        boolean hasBoss = hasBossOnMap();
 
-                    // === ANTI-STUCK LỚP 1 (10s): 10s khong DIỆT duoc quai -> Reload zone ===
-                    if (lastMobChangeTime > 0
-                            && now2 - lastMobChangeTime > STUCK_TIMEOUT_MS
-                            && currentMobCount > 0) {
-                        GameScr.gameAC("Ts Pro: KẸT 10s (Diệt không tăng)! Reload zone...");
-                        reloadZone();
-                        lastMobChangeTime = now2;
-                        lastMobCount = -1;
-                        sleep(2000);
-                        continue;
-                    }
+                        // === ANTI-STUCK LỚP 2 (30s): 30s khong DIỆT duoc quai -> Tu sat ve lang ===
+                        if (!hasBoss
+                                && lastMobChangeTime > 0
+                                && now2 - lastMobChangeTime > SUICIDE_STUCK_TIMEOUT_MS
+                                && currentMobCount > 0) {
+                            GameScr.gameAC("Ts Pro: KẸT 30s (Diệt không tăng)! Tự sát về làng...");
+                            suicideAndReturn();
+                            lastMobChangeTime = now2;
+                            lastMobCount = -1;
+                            sleep(3000);
+                            continue;
+                        }
 
-                    // === SMART ZONE: Quai map < 10 => tu chuyen khu ===
-                    if (currentMobCount < 10 && Char.ChuyenMapHetQuai && Code.gameAB != null) {
-                        GameScr.gameAC("Quái map: " + currentMobCount + " (<10) -> Chuyển khu...");
-                        smartZoneSwitch();
-                    }
+                        // === ANTI-STUCK LỚP 1 (10s): 10s khong DIỆT duoc quai -> Reload zone ===
+                        if (!hasBoss
+                                && lastMobChangeTime > 0
+                                && now2 - lastMobChangeTime > STUCK_TIMEOUT_MS
+                                && currentMobCount > 0) {
+                            GameScr.gameAC("Ts Pro: KẸT 10s (Diệt không tăng)! Reload zone...");
+                            reloadZone();
+                            lastMobChangeTime = now2;
+                            lastMobCount = -1;
+                            sleep(2000);
+                            continue;
+                        }
+
+                        // === SMART ZONE: Quai map < 10 => tu chuyen khu ===
+                        if (currentMobCount < 3 && Char.ChuyenMapHetQuai && Code.gameAB != null) {
+                            GameScr.gameAC("Quái map: " + currentMobCount + " (<3) -> Chuyển khu...");
+                            smartZoneSwitch();
+                        }
+                    } // end !isBossHunting
 
                     // === STATS: Da hien thi qua 3 dong HUD goc man hinh ===
                     if (now2 - statsStartTime > STATS_INTERVAL_MS) {
                         statsStartTime = now2;
                     }
 
-                    // === IDLE NUDGE: dung im 5s co quai => ghost move den quai gan ===
-                    long now3 = System.currentTimeMillis();
-                    if (myChar.cx != lastPosX || myChar.cy != lastPosY) {
-                        lastPosX = myChar.cx;
-                        lastPosY = myChar.cy;
-                        lastMoveTime = now3;
-                    } else if (now3 - lastMoveTime > IDLE_NUDGE_MS && currentMobCount > 0) {
-                        // Dung im qua lau! Ghost move den quai gan nhat
-                        Mob nearest = findNearestMob(myChar.cx, myChar.cy);
-                        if (nearest != null) {
-                            Char.gameAC(nearest.x, nearest.y);
-                            myChar.cx = nearest.x;
-                            myChar.cy = nearest.y;
+                    if (!isBossHunting) {
+                        // === IDLE NUDGE: dung im 5s co quai => ghost move den quai gan ===
+                        long now3 = System.currentTimeMillis();
+                        if (myChar.cx != lastPosX || myChar.cy != lastPosY) {
+                            lastPosX = myChar.cx;
+                            lastPosY = myChar.cy;
                             lastMoveTime = now3;
+                        } else if (now3 - lastMoveTime > IDLE_NUDGE_MS && currentMobCount > 0) {
+                            Mob nearest = findNearestMob(myChar.cx, myChar.cy);
+                            if (nearest != null) {
+                                Char.gameAC(nearest.x, nearest.y);
+                                myChar.cx = nearest.x;
+                                myChar.cy = nearest.y;
+                                lastMoveTime = now3;
+                            }
                         }
-                    }
 
-                    // === GHOST MOVE: bay den cum quai xa neu het quai gan ===
-                    int nearbyCount = countNearbyMobs(myChar.cx, myChar.cy);
-                    if (nearbyCount == 0) {
-                        Mob farMob = findFarMob(myChar.cx, myChar.cy);
-                        if (farMob != null) {
-                            // Ghost move toi quai xa
-                            Char.gameAC(farMob.x, farMob.y);
-                            myChar.cx = farMob.x;
-                            myChar.cy = farMob.y;
-                            sleep(GHOST_MOVE_DELAY_MS);
+                        // === GHOST MOVE: bay den cum quai xa neu het quai gan ===
+                        int nearbyCount = countNearbyMobs(myChar.cx, myChar.cy);
+                        if (nearbyCount == 0) {
+                            Mob farMob = findFarMob(myChar.cx, myChar.cy);
+                            if (farMob != null) {
+                                Char.gameAC(farMob.x, farMob.y);
+                                myChar.cx = farMob.x;
+                                myChar.cy = farMob.y;
+                                sleep(GHOST_MOVE_DELAY_MS);
+                            }
                         }
-                    }
+                    } // end !isBossHunting
 
                     // === ATTACK: danh TAT CA quai voi skill AOE tot nhat ===
                     fireAttack(myChar, mobs);
@@ -271,16 +281,11 @@ public class TsBoost implements Runnable {
                     lastMobCount = 0;
                     lastMobChangeTime = System.currentTimeMillis();
                     
-                    if (Char.ChuyenMapHetQuai && Code.gameAB != null) {
+                    if (!isBossHunting && Char.ChuyenMapHetQuai && Code.gameAB != null) {
                         // Bat chuyen map het quai -> chuyen khu THONG MINH!
                         smartZoneSwitch();
                     } else {
-                        // Khong bat chuyen khu -> quay ve home doi respawn
-                        if (Math.abs(myChar.cx - homeX) + Math.abs(myChar.cy - homeY) > NEARBY_RANGE) {
-                            Char.gameAC(homeX, homeY);
-                            myChar.cx = homeX;
-                            myChar.cy = homeY;
-                        }
+                        // San boss hoac khong bat chuyen khu -> doi respawn
                         sleep(IDLE_DELAY_MS);
                     }
                 }
@@ -404,6 +409,31 @@ public class TsBoost implements Runnable {
         // Het 5 lan thu -> dung lai doi respawn
         lastMobCount = -1;
         lastMobChangeTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Kiem tra co boss tren map khong.
+     * Dung Auto.gameAN (boss vector) + quet mob.isBoss / levelBoss.
+     * Khi co boss -> bo qua anti-stuck de tranh tu sat/reload giua chung danh boss.
+     */
+    private static boolean hasBossOnMap() {
+        try {
+            // Check boss vector cua Auto
+            if (Auto.gameAN != null && Auto.gameAN.size() > 0) return true;
+
+            // Quet vMob xem co boss nao khong
+            int size = GameScr.vMob.size();
+            for (int i = 0; i < size; i++) {
+                Object o = GameScr.vMob.elementAt(i);
+                if (o instanceof Mob) {
+                    Mob mob = (Mob) o;
+                    if (mob.hp > 0 && (mob.isBoss || mob.levelBoss > 0)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return false;
     }
 
     // =============================================

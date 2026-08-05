@@ -624,7 +624,7 @@ public abstract class Auto {
         // === Smart zone: khu < 10 quai song (hoac het quai) => chuyen khu luon ===
         if (var5 && Char.ChuyenMapHetQuai) {
             int aliveMobs = countAliveMobs();
-            if (aliveMobs < 10) {
+            if (aliveMobs < 3) {
                 this.gameAM();
                 if (aliveMobs == 0) {
                     return null;
@@ -702,7 +702,7 @@ public abstract class Auto {
                     Thread.sleep(5L);
                 }
                 catch (InterruptedException interruptedException) {}
-            } else if (var5 && Char.ChuyenMapHetQuai) {
+            } else if (var5 && Char.ChuyenMapHetQuai && countAliveMobs() < 3) {
                 this.gameAM();
             }
         }
@@ -778,7 +778,7 @@ public abstract class Auto {
                     // empty catch block
                 }
                 GameScr.gameAC("N\u00e9");
-                if (Char.ChuyenMapHetQuai && var5) {
+                if (Char.ChuyenMapHetQuai && var5 && countAliveMobs() < 3) {
                     this.gameAM();
                     var21 = true;
                 } else {
