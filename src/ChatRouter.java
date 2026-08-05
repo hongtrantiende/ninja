@@ -231,6 +231,12 @@ public class ChatRouter {
             AutoVT55.setup58();
             return true;
         }
+
+        // === THONG KE 5 CHI SO UP ===
+        if (text.equals("tt") || text.equals("thongke")) {
+            TsBoost.showFullStats();
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {

@@ -478,35 +478,27 @@ public abstract class Auto {
         return this.gameAA && GameScr.vParty.size() > 0 && ((Party)GameScr.vParty.firstElement()).charId != Char.getMyChar().charID;
     }
 
-    private void gameAM() {
-        if (Code.gameAV) {
+    private static long lastZoneSwitchTime = 0;
+
+    public void gameAM() {
+        long now = System.currentTimeMillis();
+        if (now - lastZoneSwitchTime < 50) return; // Cooldown 50ms chuyen sieu toc
+        lastZoneSwitchTime = now;
+
+        if (Code.gameAV && Code.gameAX != null && Code.gameAX.length > 0) {
             int totalZones = Code.gameAX.length;
-            // Duyet toi da so zone trong danh sach, tranh loop vo han
-            for (int attempt = 0; attempt < totalZones; attempt++) {
-                Code.gameAW = (Code.gameAW + 1) % totalZones;
-                this.zoneID = Code.gameAX[Code.gameAW];
-                Auto.gameAA(this.zoneID);
-                if (this.gameAL()) {
-                    Service.gI().gameAK("khu " + this.zoneID);
-                }
-                // Doi zone load xong (toi da 2 giay)
-                for (int w = 0; w < 10; w++) {
-                    if (TileMap.zoneID == this.zoneID) break;
-                    Auto.Sleep(200);
-                }
-                // Dem quai song
-                Auto.Sleep(300); // doi vMob cap nhat
-                int mobCount = countAliveMobs();
-                if (mobCount >= 10) {
-                    GameScr.gameAC("Khu " + this.zoneID + ": " + mobCount + " quai. OK!");
-                    return; // Du quai, farm o day
-                }
-                GameScr.gameAC("Khu " + this.zoneID + ": " + mobCount + " quai (<10). Bo qua!");
-            }
-            // Het zone de thu → quay lai zone dau tien
-            GameScr.gameAC("Het zone! Quay lai khu dau.");
+            Code.gameAW = (Code.gameAW + 1) % totalZones;
+            int nextZone = Code.gameAX[Code.gameAW];
+            this.zoneID = nextZone;
+            Service.gI().gameAA(nextZone, -1);
+            GameScr.gameAC("Đổi khu " + nextZone + " (dck)...");
         } else {
-            this.gameAB(TileMap.zoneID);
+            GameScr gScr = GameScr.gI();
+            int total = (gScr != null && gScr.zones != null) ? gScr.zones.length : 30;
+            int nextZone = (TileMap.zoneID + 1) % total;
+            this.zoneID = nextZone;
+            Service.gI().gameAA(nextZone, -1);
+            GameScr.gameAC("Đổi khu " + nextZone + "...");
         }
     }
 
@@ -629,13 +621,14 @@ public abstract class Auto {
             return Auto.gameAA(var1.cx, var1.cy);
         }
 
-        // === Smart zone: khu < 10 quai song => chuyen khu luon ===
-        if (var5 && Char.ChuyenMapHetQuai && Code.gameAV) {
+        // === Smart zone: khu < 10 quai song (hoac het quai) => chuyen khu luon ===
+        if (var5 && Char.ChuyenMapHetQuai) {
             int aliveMobs = countAliveMobs();
-            if (aliveMobs > 0 && aliveMobs < 10) {
-                GameScr.gameAC("Khu " + TileMap.zoneID + ": " + aliveMobs + " quai (<10). Chuyen!");
+            if (aliveMobs < 10) {
                 this.gameAM();
-                return null;
+                if (aliveMobs == 0) {
+                    return null;
+                }
             }
         }
 
