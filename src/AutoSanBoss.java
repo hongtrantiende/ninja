@@ -462,21 +462,21 @@ public class AutoSanBoss implements Runnable {
                 for (int i = 0; i < Code.gameAI.size(); i++) {
                     String name = (String) Code.gameAI.elementAt(i);
                     if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
-                        Service.gI().gameAF(name); // Packet 79 - Party Invite
+                        Service.gI().gameAF(name);
                         invitedCount++;
                         sleep(250);
                     }
                 }
             }
 
-            // 2. Moi danh sach ban be trong GameScr.vFriend
+            // 2. Moi ban be trong GameScr.vFriend
             if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
                 for (int i = 0; i < GameScr.vFriend.size(); i++) {
                     try {
                         Friend f = (Friend) GameScr.vFriend.elementAt(i);
                         if (f != null && f.friendName != null && f.friendName.length() > 0
                                 && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
-                            Service.gI().gameAF(f.friendName); // Packet 79 - Party Invite
+                            Service.gI().gameAF(f.friendName);
                             invitedCount++;
                             sleep(250);
                         }
@@ -485,7 +485,9 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (invitedCount > 0) {
-                GameScr.gameAC("TSB: \u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
+                GameScr.gameAC("\u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
+            } else {
+                GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (DS b\u1ea1n b\u00e8 tr\u1ed1ng)");
             }
         } catch (Exception e) {}
     }

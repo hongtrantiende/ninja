@@ -18,17 +18,21 @@ public class TsBoost implements Runnable {
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int ATTACK_DELAY_MS = 15;    // Delay giua moi lan attack (giam de tang toc)
-    private static final int IDLE_DELAY_MS = 100;      // Delay khi het quai
+    private static final int ATTACK_DELAY_MS = 50;    // Delay giua moi lan attack (50ms giam lag)
+    private static final int IDLE_DELAY_MS = 200;      // Delay khi het quai
     private static final int BUFF_INTERVAL_MS = 15000; // Buff moi 15 giay
     private static final int NEARBY_RANGE = 150;       // Quai < 150px = gan
-    private static final int GHOST_MOVE_DELAY_MS = 50;  // Delay sau ghost move (giam de tang toc)
+    private static final int GHOST_MOVE_DELAY_MS = 50;  // Delay sau ghost move
     private static final int ZONE_WAIT_MOB_MS = 3000;  // Doi 3s xem zone moi co quai khong
-    private static final int MAX_ZONE_RETRIES = 5;     // Thu toi da 5 zone
+    private static final int MAX_ZONE_RETRIES = 3;     // Thu toi da 3 zone
     private static final int STUCK_TIMEOUT_MS = 10000; // 10 giay khong giet quai = reload zone
     private static final int SUICIDE_STUCK_TIMEOUT_MS = 30000; // 30 giay khong giet quai = tu sat ve lang
     private static final int STATS_INTERVAL_MS = 30000; // Hien stats moi 30 giay
     private static final int IDLE_NUDGE_MS = 5000;     // 5 giay dung im = nudge
+
+    // === REUSABLE VECTORS (tranh tao moi moi frame = giam GC/lag) ===
+    private static final MyVector reusableMobs = new MyVector();
+    private static final MyVector reusableChars = new MyVector();
 
     // Luu vi tri ban dau de quay ve khi het quai
     private static int homeX = 0;
@@ -509,7 +513,7 @@ public class TsBoost implements Runnable {
      * Khong gioi han range — giong gb all.
      */
     private static MyVector collectAllAliveMobs() {
-        MyVector mobs = new MyVector();
+        reusableMobs.removeAllElements();
         try {
             int size = GameScr.vMob.size();
             for (int i = 0; i < size; i++) {
@@ -517,12 +521,12 @@ public class TsBoost implements Runnable {
                 if (o instanceof Mob) {
                     Mob mob = (Mob) o;
                     if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
-                        mobs.addElement(mob);
+                        reusableMobs.addElement(mob);
                     }
                 }
             }
         } catch (Exception e) {}
-        return mobs;
+        return reusableMobs;
     }
 
     /**
@@ -545,12 +549,12 @@ public class TsBoost implements Runnable {
                 lastSkillSelectTime = now;
             }
 
-            // Gui 1 attack packet duy nhat — server tu xu ly splash/lan
-            MyVector chars = new MyVector();
+            // Gui 1 attack packet duy nhat — reuse vector tranh tao moi
+            reusableChars.removeAllElements();
             if (cachedSkillId >= 0) {
-                Service.gI().gameAA(mobs, chars, 2); // Skill attack
+                Service.gI().gameAA(mobs, reusableChars, 2); // Skill attack
             } else {
-                Service.gI().gameAA(mobs, chars, 1); // Danh thuong
+                Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
             }
         } catch (Exception e) {}
     }
