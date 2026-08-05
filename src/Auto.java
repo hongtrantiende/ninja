@@ -482,45 +482,19 @@ public abstract class Auto {
 
     public void gameAM() {
         long now = System.currentTimeMillis();
-        if (now - lastZoneSwitchTime < 50) return; // Cooldown 50ms
+        if (now - lastZoneSwitchTime < 500) return;
         lastZoneSwitchTime = now;
 
         if (Code.gameAV && Code.gameAX != null && Code.gameAX.length > 0) {
             int totalZones = Code.gameAX.length;
             Code.gameAW = (Code.gameAW + 1) % totalZones;
-            int nextZone = Code.gameAX[Code.gameAW];
-            this.zoneID = nextZone;
-            Service.gI().gameAA(nextZone, -1);
-            GameScr.gameAC("Đổi khu " + nextZone + " (dck)...");
+            this.zoneID = Code.gameAX[Code.gameAW];
+            Service.gI().gameAA(this.zoneID, -1);
         } else {
-            // === CHON KHU IT NGUOI NHAT (khu trong = nhieu quai) ===
             GameScr gScr = GameScr.gI();
-            int[] zoneData = (gScr != null) ? gScr.zones : null;
-            int total = (zoneData != null) ? zoneData.length : 30;
-            int currentZone = TileMap.zoneID;
-
-            int bestZone = -1;
-            int bestCount = Integer.MAX_VALUE;
-
-            // Quet tat ca khu, tim khu it nguoi nhat (bo qua khu hien tai)
-            for (int z = 0; z < total; z++) {
-                if (z == currentZone) continue;
-                int players = (zoneData != null && z < zoneData.length) ? zoneData[z] : 99;
-                if (players < bestCount) {
-                    bestCount = players;
-                    bestZone = z;
-                }
-            }
-
-            // Neu khong tim duoc khu nao tot hon -> chuyen khu ke tiep
-            if (bestZone < 0) {
-                bestZone = (currentZone + 1) % total;
-            }
-
-            this.zoneID = bestZone;
-            Service.gI().gameAA(bestZone, -1);
-            int pCount = (zoneData != null && bestZone < zoneData.length) ? zoneData[bestZone] : -1;
-            GameScr.gameAC("Đổi khu " + bestZone + " (" + pCount + " người)...");
+            int total = (gScr != null && gScr.zones != null) ? gScr.zones.length : 30;
+            this.zoneID = (TileMap.zoneID + 1) % total;
+            Service.gI().gameAA(this.zoneID, -1);
         }
     }
 
@@ -643,17 +617,6 @@ public abstract class Auto {
             return Auto.gameAA(var1.cx, var1.cy);
         }
 
-        // === Smart zone: khu < 10 quai song (hoac het quai) => chuyen khu luon ===
-        if (var5 && Char.ChuyenMapHetQuai) {
-            int aliveMobs = countAliveMobs();
-            if (aliveMobs < 3) {
-                this.gameAM();
-                if (aliveMobs == 0) {
-                    return null;
-                }
-            }
-        }
-
         int var6 = var3;
         int var7 = var2;
         var3 = var1.cy;
@@ -724,7 +687,7 @@ public abstract class Auto {
                     Thread.sleep(5L);
                 }
                 catch (InterruptedException interruptedException) {}
-            } else if (var5 && Char.ChuyenMapHetQuai && countAliveMobs() < 3) {
+            } else if (var5 && Char.ChuyenMapHetQuai) {
                 this.gameAM();
             }
         }
@@ -800,7 +763,7 @@ public abstract class Auto {
                     // empty catch block
                 }
                 GameScr.gameAC("N\u00e9");
-                if (Char.ChuyenMapHetQuai && var5 && countAliveMobs() < 3) {
+                if (Char.ChuyenMapHetQuai && var5) {
                     this.gameAM();
                     var21 = true;
                 } else {

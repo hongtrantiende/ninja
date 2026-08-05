@@ -235,11 +235,7 @@ public class TsBoost implements Runnable {
                             continue;
                         }
 
-                        // === SMART ZONE: Quai map < 10 => tu chuyen khu ===
-                        if (currentMobCount < 3 && Char.ChuyenMapHetQuai && Code.gameAB != null) {
-                            GameScr.gameAC("Quái map: " + currentMobCount + " (<3) -> Chuyển khu...");
-                            smartZoneSwitch();
-                        }
+                        // Removed Smart Zone
                     } // end !isBossHunting
 
                     // === STATS: Da hien thi qua 3 dong HUD goc man hinh ===
@@ -286,8 +282,8 @@ public class TsBoost implements Runnable {
                     lastMobChangeTime = System.currentTimeMillis();
                     
                     if (!isBossHunting && Char.ChuyenMapHetQuai && Code.gameAB != null) {
-                        // Bat chuyen map het quai -> chuyen khu THONG MINH!
-                        smartZoneSwitch();
+                        try { Code.gameAB.gameAM(); } catch (Exception e) {}
+                        sleep(500);
                     } else {
                         // San boss hoac khong bat chuyen khu -> doi respawn
                         sleep(IDLE_DELAY_MS);
