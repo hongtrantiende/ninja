@@ -461,7 +461,7 @@ public class AutoSanBoss implements Runnable {
                         try {
                             Service.gI().gameAT(); // Packet 83: Request friend list
                         } catch (Exception e) {}
-                        sleep(800); // Cho 800ms de server phan hoi va load vFriend
+                        sleep(2000); // Tang len 2 giay de server co thoi gian phan hoi
                     }
 
                     int invitedCount = 0;
@@ -479,27 +479,42 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
-            // 2. Moi ban be trong GameScr.vFriend
-            if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
-                for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                    try {
-                        Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                        if (f != null && f.friendName != null && f.friendName.length() > 0
-                                && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
-                            Service.gI().gameAF(f.friendName);
-                            invitedCount++;
-                            sleep(250);
+                    // 2. Moi ban be trong GameScr.vFriend
+                    if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
+                        for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                            try {
+                                Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                                if (f != null && f.friendName != null && f.friendName.length() > 0
+                                        && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
+                                    Service.gI().gameAF(f.friendName);
+                                    invitedCount++;
+                                    sleep(250);
+                                }
+                            } catch (Exception ex) {}
                         }
-                    } catch (Exception ex) {}
-                }
-            }
+                    }
 
-            if (invitedCount > 0) {
-                GameScr.gameAC("\u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
-            } else {
-                GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (DS b\u1ea1n b\u00e8 tr\u1ed1ng)");
-            }
-        } catch (Exception e) {}
+                    // 3. Du phong: Neu khong co ban be nao, moi nguoi tren map
+                    if (invitedCount == 0 && GameScr.vCharInMap != null && GameScr.vCharInMap.size() > 0) {
+                        for (int i = 0; i < GameScr.vCharInMap.size(); i++) {
+                            try {
+                                Char c = (Char) GameScr.vCharInMap.elementAt(i);
+                                if (c != null && c.cName != null && c.cName.length() > 0
+                                        && !c.cName.equals(myName) && !isAlreadyInParty(c.cName)) {
+                                    Service.gI().gameAF(c.cName);
+                                    invitedCount++;
+                                    sleep(250);
+                                }
+                            } catch (Exception ex) {}
+                        }
+                    }
+
+                    if (invitedCount > 0) {
+                        GameScr.gameAC("\u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
+                    } else {
+                        GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (DS b\u1ea1n b\u00e8 tr\u1ed1ng)");
+                    }
+                } catch (Exception e) {}
             }
         }).start();
     }
