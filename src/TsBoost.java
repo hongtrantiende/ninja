@@ -23,8 +23,9 @@ public class TsBoost implements Runnable {
     private static final int BUFF_INTERVAL_MS = 15000; // Buff moi 15 giay
     private static final int NEARBY_RANGE = 150;       // Quai < 150px = gan
     private static final int GHOST_MOVE_DELAY_MS = 200; // Delay sau ghost move
-    private static final int STUCK_TIMEOUT_MS = 20000; // 20 giay khong giet quai = stuck
+    private static final int STUCK_TIMEOUT_MS = 10000; // 10 giay khong giet quai = stuck
     private static final int STATS_INTERVAL_MS = 30000; // Hien stats moi 30 giay
+    private static final int IDLE_NUDGE_MS = 5000;     // 5 giay dung im = nudge
 
     // Luu vi tri ban dau de quay ve khi het quai
     private static int homeX = 0;
@@ -36,6 +37,11 @@ public class TsBoost implements Runnable {
     private static int lastMobCount = -1;
     private static long lastMobChangeTime = 0;
     private static long statsStartTime = 0;
+
+    // === IDLE DETECTION ===
+    private static int lastPosX = 0;
+    private static int lastPosY = 0;
+    private static long lastMoveTime = 0;
 
     /** Toggle mode on/off. */
     public static void toggleMode() {
@@ -192,6 +198,23 @@ public class TsBoost implements Runnable {
                         totalKills = 0;
                     }
 
+                    // === IDLE NUDGE: dung im 5s co quai => ghost move den quai gan ===
+                    long now3 = System.currentTimeMillis();
+                    if (myChar.cx != lastPosX || myChar.cy != lastPosY) {
+                        lastPosX = myChar.cx;
+                        lastPosY = myChar.cy;
+                        lastMoveTime = now3;
+                    } else if (now3 - lastMoveTime > IDLE_NUDGE_MS && currentMobCount > 0) {
+                        // Dung im qua lau! Ghost move den quai gan nhat
+                        Mob nearest = findNearestMob(myChar.cx, myChar.cy);
+                        if (nearest != null) {
+                            Char.gameAC(nearest.x, nearest.y);
+                            myChar.cx = nearest.x;
+                            myChar.cy = nearest.y;
+                            lastMoveTime = now3;
+                        }
+                    }
+
                     // === GHOST MOVE: bay den cum quai xa neu het quai gan ===
                     int nearbyCount = countNearbyMobs(myChar.cx, myChar.cy);
                     if (nearbyCount == 0) {
@@ -246,6 +269,27 @@ public class TsBoost implements Runnable {
     // =============================================
     // GHOST MOVE — bay den quai xa giong tsxa + hut VP
     // =============================================
+
+    /**
+     * Tim con quai song GAN nhat (dung cho idle nudge).
+     */
+    private static Mob findNearestMob(int cx, int cy) {
+        Mob best = null;
+        int bestDist = Integer.MAX_VALUE;
+        try {
+            int size = GameScr.vMob.size();
+            for (int i = 0; i < size; i++) {
+                Mob mob = (Mob) GameScr.vMob.elementAt(i);
+                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1) continue;
+                int dist = Math.abs(cx - mob.x) + Math.abs(cy - mob.y);
+                if (dist < bestDist) {
+                    best = mob;
+                    bestDist = dist;
+                }
+            }
+        } catch (Exception e) {}
+        return best;
+    }
 
     /**
      * Tim con quai song xa nhat de ghost move den.

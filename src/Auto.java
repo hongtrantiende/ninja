@@ -489,13 +489,13 @@ public abstract class Auto {
                 if (this.gameAL()) {
                     Service.gI().gameAK("khu " + this.zoneID);
                 }
-                // Doi zone load xong (toi da 3 giay)
-                for (int w = 0; w < 15; w++) {
+                // Doi zone load xong (toi da 2 giay)
+                for (int w = 0; w < 10; w++) {
                     if (TileMap.zoneID == this.zoneID) break;
                     Auto.Sleep(200);
                 }
                 // Dem quai song
-                Auto.Sleep(500); // doi vMob cap nhat
+                Auto.Sleep(300); // doi vMob cap nhat
                 int mobCount = countAliveMobs();
                 if (mobCount >= 10) {
                     GameScr.gameAC("Khu " + this.zoneID + ": " + mobCount + " quai. OK!");
@@ -628,6 +628,17 @@ public abstract class Auto {
             this.gameAA(var3, var5);
             return Auto.gameAA(var1.cx, var1.cy);
         }
+
+        // === Smart zone: khu < 10 quai song => chuyen khu luon ===
+        if (var5 && Char.ChuyenMapHetQuai && Code.gameAV) {
+            int aliveMobs = countAliveMobs();
+            if (aliveMobs > 0 && aliveMobs < 10) {
+                GameScr.gameAC("Khu " + TileMap.zoneID + ": " + aliveMobs + " quai (<10). Chuyen!");
+                this.gameAM();
+                return null;
+            }
+        }
+
         int var6 = var3;
         int var7 = var2;
         var3 = var1.cy;
