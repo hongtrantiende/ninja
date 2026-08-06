@@ -456,30 +456,31 @@ public class AutoSanBoss implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    // Xin server load danh sach ban be neu vFriend chua co du lieu
-                    if (GameScr.vFriend == null || GameScr.vFriend.size() == 0) {
-                        try {
-                            Service.gI().gameAT(); // Packet 83: Request friend list
-                        } catch (Exception e) {}
-                        sleep(2000); // Tang len 2 giay de server co thoi gian phan hoi
+                    // Load danh sach ban be tu server
+                    try {
+                        Service.gI().gameAT();
+                    } catch (Exception e) {}
+                    // Doi server tra ve (toi da 3 giay, break ngay khi co)
+                    for (int w = 0; w < 30; w++) {
+                        if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) break;
+                        sleep(100);
                     }
 
                     int invitedCount = 0;
                     String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
 
-                    // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI)
+                    // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI) — KHONG DELAY
                     if (Code.gameAI != null && Code.gameAI.size() > 0) {
                         for (int i = 0; i < Code.gameAI.size(); i++) {
                             String name = (String) Code.gameAI.elementAt(i);
                             if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
                                 Service.gI().gameAF(name);
                                 invitedCount++;
-                                sleep(250);
                             }
                         }
                     }
 
-                    // 2. Moi ban be trong GameScr.vFriend
+                    // 2. Moi ban be trong GameScr.vFriend — KHONG DELAY
                     if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
                         for (int i = 0; i < GameScr.vFriend.size(); i++) {
                             try {
@@ -488,7 +489,6 @@ public class AutoSanBoss implements Runnable {
                                         && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
                                     Service.gI().gameAF(f.friendName);
                                     invitedCount++;
-                                    sleep(250);
                                 }
                             } catch (Exception ex) {}
                         }
@@ -503,7 +503,6 @@ public class AutoSanBoss implements Runnable {
                                         && !c.cName.equals(myName) && !isAlreadyInParty(c.cName)) {
                                     Service.gI().gameAF(c.cName);
                                     invitedCount++;
-                                    sleep(250);
                                 }
                             } catch (Exception ex) {}
                         }

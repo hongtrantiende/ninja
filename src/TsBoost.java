@@ -154,6 +154,12 @@ public class TsBoost implements Runnable {
         lastMobCount = -1;
         lastMobChangeTime = System.currentTimeMillis();
         statsStartTime = System.currentTimeMillis();
+        long lastTrackedExp = -1;
+        int lastTrackedYen = -1;
+        int pendingKills = 0;
+        long lastMobDropTime = 0;
+        long lastAttackTime = 0;
+        final int ATTACK_KILL_WINDOW_MS = 600; // Quai chet trong 600ms sau khi minh danh = minh giet
 
         while (isRunning) {
             try {
@@ -192,13 +198,17 @@ public class TsBoost implements Runnable {
                     int currentMobCount = mobs.size();
                     long now2 = System.currentTimeMillis();
 
-                    // === KILL TRACKING: dem quai giet ===
+                    // === KILL TRACKING: Quai giam + minh vua danh trong 600ms ===
                     if (lastMobCount >= 0 && currentMobCount < lastMobCount) {
-                        int killed = (lastMobCount - currentMobCount);
-                        totalKills += killed;
-                        sessionKills += killed;
-                        ThongKe.addKills(killed);
-                        lastMobChangeTime = now2; // Cap nhat moc thoi gian DIET quai!
+                        int dropped = lastMobCount - currentMobCount;
+                        if (now2 - lastAttackTime < ATTACK_KILL_WINDOW_MS) {
+                            // Minh vua danh gan day -> tinh la minh giet
+                            totalKills += dropped;
+                            sessionKills += dropped;
+                            ThongKe.addKills(dropped);
+                            lastMobChangeTime = now2;
+                        }
+                        // Nguoi khac giet -> bo qua, khong tinh
                     }
                     if (lastMobChangeTime == 0) {
                         lastMobChangeTime = now2;
@@ -209,12 +219,12 @@ public class TsBoost implements Runnable {
                         // === ANTI-STUCK: BO QUA khi dang danh boss / ak ===
                         boolean hasBoss = hasBossOnMap();
 
-                        // === ANTI-STUCK LỚP 2 (30s): 30s khong DIỆT duoc quai -> Tu sat ve lang ===
+                        // === ANTI-STUCK (30s): 30s khong DIỆT duoc quai -> Tu sat ve lang ===
                         if (!hasBoss
                                 && lastMobChangeTime > 0
                                 && now2 - lastMobChangeTime > SUICIDE_STUCK_TIMEOUT_MS
                                 && currentMobCount > 0) {
-                            GameScr.gameAC("Ts Pro: KẸT 30s (Diệt không tăng)! Tự sát về làng...");
+                            GameScr.gameAC("Ts Pro: K\u1eb8T 30s (Di\u1ec7t kh\u00f4ng t\u0103ng)! T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng...");
                             suicideAndReturn();
                             lastMobChangeTime = now2;
                             lastMobCount = -1;
@@ -222,19 +232,7 @@ public class TsBoost implements Runnable {
                             continue;
                         }
 
-                        // === ANTI-STUCK LỚP 1 (10s): 10s khong DIỆT duoc quai -> Reload zone ===
-                        if (!hasBoss
-                                && lastMobChangeTime > 0
-                                && now2 - lastMobChangeTime > STUCK_TIMEOUT_MS
-                                && currentMobCount > 0) {
-                            GameScr.gameAC("Ts Pro: KẸT 10s (Diệt không tăng)! Reload zone...");
-                            reloadZone();
-                            lastMobChangeTime = now2;
-                            lastMobCount = -1;
-                            sleep(2000);
-                            continue;
-                        }
-
+                        // (Đã xóa Anti-stuck lớp 1 - 10s theo yêu cầu, chỉ giữ lại 30s)
                         // Removed Smart Zone
                     } // end !isBossHunting
 
@@ -275,19 +273,15 @@ public class TsBoost implements Runnable {
 
                     // === ATTACK: danh TAT CA quai voi skill AOE tot nhat ===
                     fireAttack(myChar, mobs);
+                    lastAttackTime = System.currentTimeMillis();
                     sleep(ATTACK_DELAY_MS);
                 } else {
                     // Het quai tren map
                     lastMobCount = 0;
                     lastMobChangeTime = System.currentTimeMillis();
                     
-                    if (!isBossHunting && Char.ChuyenMapHetQuai && Code.gameAB != null) {
-                        try { Code.gameAB.gameAM(); } catch (Exception e) {}
-                        sleep(500);
-                    } else {
-                        // San boss hoac khong bat chuyen khu -> doi respawn
-                        sleep(IDLE_DELAY_MS);
-                    }
+                    // Da xoa tinh nang chuyen khu -> chi doi respawn
+                    sleep(IDLE_DELAY_MS);
                 }
 
             } catch (Exception e) {
@@ -362,54 +356,7 @@ public class TsBoost implements Runnable {
         } catch (Exception e) {}
     }
 
-    /**
-     * Reload zone: chuyen khu de server load lai quai moi.
-     * Giong nhu tu sat roi hoi sinh — force reload toan bo mob.
-     */
-    private static void reloadZone() {
-        try {
-            int zone = TileMap.zoneID;
-            // Re-enter cung zone = force reload mob
-            Service.gI().gameAA(zone, -1);
-        } catch (Exception e) {}
-    }
-
-    /**
-     * Smart Zone Switch: Thu chuyen khu, doi quai xuat hien.
-     * Neu 3s khong co quai -> chuyen khu khac (thu toi da 5 lan).
-     * Tranh spam cung 1 zone khong co quai.
-     */
-    private static void smartZoneSwitch() {
-        for (int retry = 0; retry < MAX_ZONE_RETRIES && isRunning; retry++) {
-            try {
-                Code.gameAB.gameAM();
-            } catch (Exception e) { return; }
-
-            // Doi quai xuat hien trong ZONE_WAIT_MOB_MS
-            long waitStart = System.currentTimeMillis();
-            boolean hasMobs = false;
-            while (System.currentTimeMillis() - waitStart < ZONE_WAIT_MOB_MS && isRunning) {
-                sleep(200);
-                MyVector mobs = collectAllAliveMobs();
-                if (mobs.size() >= 5) {
-                    hasMobs = true;
-                    break;
-                }
-            }
-
-            if (hasMobs) {
-                GameScr.gameAC("Khu " + TileMap.zoneID + " có quái! Farm...");
-                lastMobCount = -1;
-                lastMobChangeTime = System.currentTimeMillis();
-                return;
-            }
-            // Zone nay it quai -> thu zone tiep theo
-            GameScr.gameAC("Khu " + TileMap.zoneID + " ít quái, thử khu khác...");
-        }
-        // Het 5 lan thu -> dung lai doi respawn
-        lastMobCount = -1;
-        lastMobChangeTime = System.currentTimeMillis();
-    }
+    // (Da xoa tinh nang chuyen khu theo yeu cau)
 
     /**
      * Kiem tra co boss tren map khong.
