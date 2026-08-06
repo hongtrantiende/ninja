@@ -26,6 +26,10 @@ public final class GhostBoss implements Runnable {
     private static final int BOSS_ID_M63 = 211;     // ID boss map 63
     private static final int HITS_PER_PACKET = 3;
 
+    // === REUSABLE VECTORS (tranh tao moi moi frame = giam GC/RAM) ===
+    private static final MyVector reusableMobs = new MyVector();
+    private static final MyVector reusableChars = new MyVector();
+
     // Toa do boss spawn — {mapId, x, y}
     private static final int[][] BOSS_POSITIONS = {
         {63, 1124, 264},
@@ -119,24 +123,24 @@ public final class GhostBoss implements Runnable {
                     try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
                 }
 
-                // Gui attack cho TAT CA mob trong vMob
-                MyVector mobs = new MyVector();
+                // Gui attack cho TAT CA mob trong vMob (reuse vector, khong tao moi)
+                reusableMobs.removeAllElements();
                 try {
                     for (int i = 0; i < GameScr.vMob.size(); i++) {
                         Object o = GameScr.vMob.elementAt(i);
                         if (o instanceof Mob) {
                             Mob mob = (Mob) o;
                             if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
-                                mobs.addElement(mob);
+                                reusableMobs.addElement(mob);
                             }
                         }
                     }
                 } catch (Exception e) {}
 
-                if (mobs.size() > 0) {
-                    MyVector chars = new MyVector();
+                if (reusableMobs.size() > 0) {
+                    reusableChars.removeAllElements();
                     int sType = bestSkillId >= 0 ? 2 : 1;
-                    Service.gI().gameAA(mobs, chars, sType);
+                    Service.gI().gameAA(reusableMobs, reusableChars, sType);
                 }
 
                 sleep(ATTACK_DELAY_MS);

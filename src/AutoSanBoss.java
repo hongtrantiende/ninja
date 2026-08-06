@@ -326,33 +326,22 @@ public class AutoSanBoss implements Runnable {
             // Gui pkm va moi ban be vao nhom
             if (partyMode) {
                 boolean isLeader = false;
-                boolean alreadyHasParty = false;
                 try {
                     Char myChar = Char.getMyChar();
-                    if (GameScr.vParty.size() > 1) {
-                        // Da co nhom >= 2 nguoi
-                        Party first = (Party) GameScr.vParty.firstElement();
-                        if (first != null && myChar != null && first.charId == myChar.charID) {
-                            isLeader = true;
-                            alreadyHasParty = true;
-                        }
-                    } else if (GameScr.vParty.size() == 1) {
-                        // Chi co minh ta trong party (size == 1, chua ai join)
+                    if (GameScr.vParty != null && GameScr.vParty.size() > 0) {
                         Party first = (Party) GameScr.vParty.firstElement();
                         if (first != null && myChar != null && first.charId == myChar.charID) {
                             isLeader = true;
                         }
                     } else {
-                        isLeader = true; // Chua co nhom -> Tu moi
+                        isLeader = true; // Chua co nhom -> Tu moi (se thanh nhom truong)
                     }
                 } catch (Exception e) {}
                 
                 if (isLeader && !eventHuntMode) {
-                    // CHI moi khi CHUA co nhom, hoac nhom chi co 1 minh
-                    // Neu DA co nhom >= 2 nguoi thi KHONG moi lai (tranh out nhom roi moi lai)
-                    if (!alreadyHasParty) {
-                        autoInviteFriends();
-                    }
+                    // Moi ban be / thanh vien chua co trong nhom (KHONG roi nhom hien tai)
+                    autoInviteFriends();
+                    
                     // Gui pkm de khoi dong member (du da co nhom hay chua)
                     try { Service.gI().gameAK("pkm " + (treoMode ? -2 : -1)); } catch (Exception e) {}
                 }
@@ -470,49 +459,48 @@ public class AutoSanBoss implements Runnable {
      * Tu dong moi danh sach thanh vien (Code.gameAI) va ban be (GameScr.vFriend) vao nhom.
      * Su dung Service.gI().gameAF(name) (Packet 79 - Party Invite chuan Ninja School).
      */
+    private static Thread inviteThread = null;
+
     public static void autoInviteFriends() {
-        new Thread(new Runnable() {
+        // Cancel thread invite cu (neu dang chay) de tranh leak thread
+        if (inviteThread != null && inviteThread.isAlive()) {
+            inviteThread.interrupt();
+            inviteThread = null;
+        }
+        inviteThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    // === CHECK TRUOC: Neu da co nhom >= 2 nguoi, kiem tra xem co ai can moi them khong ===
-                    // Tranh moi lai nguoi da co trong nhom (gay out nhom roi tao lai)
-                    if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
-                        // Da co nhom roi — dem xem con ai thieu khong
-                        int missingCount = 0;
-                        String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
-                        
-                        // Check gameAI (danh sach thanh vien da luu)
-                        if (Code.gameAI != null) {
-                            for (int i = 0; i < Code.gameAI.size(); i++) {
-                                String name = (String) Code.gameAI.elementAt(i);
-                                if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
-                                    missingCount++;
-                                }
-                            }
-                        }
-                        
-                        if (missingCount == 0) {
-                            // Tat ca thanh vien da co trong nhom — KHONG moi lai
-                            GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi, kh\u00f4ng c\u1ea7n m\u1eddi l\u1ea1i!");
-                            return;
-                        }
-                        // Con nguoi thieu -> chi moi nhung nguoi thieu thoi
-                    }
-                    
-                    // Load danh sach ban be tu server
+                    String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
+
+                    // Load danh sach ban be tu server TRUOC khi dem
                     try {
                         Service.gI().gameAT();
                     } catch (Exception e) {}
-                    // Doi server tra ve (toi da 3 giay, break ngay khi co)
                     for (int w = 0; w < 30; w++) {
                         if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) break;
                         sleep(100);
                     }
 
-                    int invitedCount = 0;
-                    String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
+                    // Dem xem co ai chua co trong nhom khong (chi tu gameAI - DS thanh vien da luu)
+                    int missingCount = 0;
+                    if (Code.gameAI != null) {
+                        for (int i = 0; i < Code.gameAI.size(); i++) {
+                            String name = (String) Code.gameAI.elementAt(i);
+                            if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
+                                missingCount++;
+                            }
+                        }
+                    }
 
-                    // 1. Moi danh sach thanh vien nhom da luu (Code.gameAI) — KHONG DELAY
+                    // Neu da co nhom va tat ca thanh vien da luu da o trong nhom -> KHONG moi lai
+                    if (GameScr.vParty != null && GameScr.vParty.size() > 1 && missingCount == 0) {
+                        GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi, kh\u00f4ng c\u1ea7n m\u1eddi l\u1ea1i!");
+                        return;
+                    }
+
+                    int invitedCount = 0;
+
+                    // 1. Moi thanh vien da luu (Code.gameAI) chua co trong nhom
                     if (Code.gameAI != null && Code.gameAI.size() > 0) {
                         for (int i = 0; i < Code.gameAI.size(); i++) {
                             String name = (String) Code.gameAI.elementAt(i);
@@ -523,31 +511,35 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
-                    // 2. Moi ban be trong GameScr.vFriend — KHONG DELAY
-                    if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
-                        for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                            try {
-                                Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                                if (f != null && f.friendName != null && f.friendName.length() > 0
-                                        && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
-                                    Service.gI().gameAF(f.friendName);
-                                    invitedCount++;
-                                }
-                            } catch (Exception ex) {}
+                    // 2. Neu KHONG co DS thanh vien da luu -> fallback moi ban be
+                    if (invitedCount == 0 && (Code.gameAI == null || Code.gameAI.size() == 0)) {
+                        if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
+                            for (int i = 0; i < GameScr.vFriend.size(); i++) {
+                                try {
+                                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
+                                    if (f != null && f.friendName != null && f.friendName.length() > 0
+                                            && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
+                                        Service.gI().gameAF(f.friendName);
+                                        invitedCount++;
+                                    }
+                                } catch (Exception ex) {}
+                            }
                         }
                     }
 
-                    // 3. Da xoa chuc nang moi random nguoi tren map vi no se moi nham nguoi la vao nhom săn boss
-
                     if (invitedCount > 0) {
                         GameScr.gameAC("\u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
+                    } else if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                        GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi!");
                     } else {
-                        GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (DS b\u1ea1n b\u00e8 tr\u1ed1ng)");
+                        GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (Th\u00eam b\u1ea1n b\u00e8 ho\u1eb7c d\u00f9ng 'addn')");
                     }
                 } catch (Exception e) {}
             }
-        }).start();
+        });
+        inviteThread.start();
     }
+
 
     private static boolean isAlreadyInParty(String name) {
         try {

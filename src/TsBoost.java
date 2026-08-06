@@ -324,7 +324,17 @@ public class TsBoost implements Runnable {
             String expStr = formatNumber(gainExp);
             String yenStr = formatNumber(gainYen);
             String xuStr = formatNumber(gainXu);
-            int aliveMobs = collectAllAliveMobs().size();
+            int aliveMobs = 0;
+            try {
+                int sz = GameScr.vMob.size();
+                for (int i = 0; i < sz; i++) {
+                    Object o = GameScr.vMob.elementAt(i);
+                    if (o instanceof Mob) {
+                        Mob m = (Mob) o;
+                        if (m.hp > 0 && m.status != 0 && m.status != 1) aliveMobs++;
+                    }
+                }
+            } catch (Exception e) {}
 
             GameScr.gameAC("Up (" + timeStr + "): " + sessionKills + " Quái | Quái map: " + aliveMobs + " | Exp: +" + expStr + " | Yên: +" + yenStr + " | Xu: +" + xuStr + " | Lượng: +" + gainLuong);
         } catch (Exception e) {}
