@@ -21,11 +21,20 @@ def pack_jar(output_name="Aeharuna.jar"):
         manifest_path = os.path.join(build_dir, 'META-INF', 'MANIFEST.MF')
         if os.path.exists(manifest_path):
             zf.write(manifest_path, 'META-INF/MANIFEST.MF')
+        skipped_javax = 0
         for root, dirs, files in os.walk(build_dir):
             for f in files:
                 rel = os.path.relpath(os.path.join(root, f), build_dir)
-                if rel != 'META-INF/MANIFEST.MF':
-                    zf.write(os.path.join(root, f), rel)
+                if rel == 'META-INF/MANIFEST.MF':
+                    continue
+                # Skip javax/ stubs — J2ME Loader provides these at runtime.
+                # Including them causes DEX conversion conflict → ClassNotFoundException.
+                if rel.startswith('javax/') or rel.startswith('javax\\'):
+                    skipped_javax += 1
+                    continue
+                zf.write(os.path.join(root, f), rel)
+        if skipped_javax:
+            print(f"⚠️ Đã bỏ qua {skipped_javax} file javax/ stub (J2ME Loader tự cung cấp)")
                     
     print(f"✅ Đóng gói thành công {output_path}! (Kích thước: {os.path.getsize(output_path)} bytes)")
     

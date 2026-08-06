@@ -182,7 +182,8 @@ public final class AutoBossEvent implements Runnable {
                     GameScr.gameAC("TSBoss: Xong luot dau, gui nhom ve farm!");
                     sendParty("pkm -5");
                     sleep(3000L);
-                    AutoSanBoss.autoInviteFriends();
+                    // Khong moi lai nhom — thanh vien dang travel ve map cu
+                    // Auto party manager (Code.java) se tu dong xu ly party reconnect
                     AutoSanBoss.isPartyMode = false;
                     GameScr.gameAC("TSBoss: Leader quet tiep 10 phut...");
                 }
@@ -203,6 +204,7 @@ public final class AutoBossEvent implements Runnable {
         if (!disabledByUser) GameScr.gameAC("TSBoss: Ket thuc, quay lai TS");
         returnAndResume();
         sleep(2000L);
+        // Moi lai cac thanh vien bi thieu (neu co)
         AutoSanBoss.autoInviteFriends();
         if (disableAfterTest) {
             disableAfterTest = false;

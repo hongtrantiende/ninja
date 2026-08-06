@@ -131,7 +131,7 @@ public class ChatRouter {
             AutoSanBoss.toggleVM();
             return true;
         }
-        if (text.equals("tspkbmn") || text.equals("mn")) {
+        if (text.equals("tspkbmn")) {
             AutoSanBoss.toggleMN();
             return true;
         }
@@ -167,7 +167,7 @@ public class ChatRouter {
             AutoPickup.toggle();
             return true;
         }
-        if (text.equals("moinhom") || text.equals("mnb")) {
+        if (text.equals("moinhom") || text.equals("mnb") || text.equals("mn")) {
             AutoSanBoss.autoInviteFriends();
             return true;
         }

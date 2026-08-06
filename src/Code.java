@@ -2072,7 +2072,7 @@ implements Runnable {
                                     AutoSanBoss.toggleVM();
                                     return true;
                                 }
-                                if (var31.equals("tspkbmn") || var31.equals("mn")) {
+                                if (var31.equals("tspkbmn")) {
                                     AutoSanBoss.toggleMN();
                                     return true;
                                 }
@@ -2080,7 +2080,7 @@ implements Runnable {
                                     AutoPickup.toggle();
                                     return true;
                                 }
-                                if (var31.equals("moinhom") || var31.equals("mnb")) {
+                                if (var31.equals("moinhom") || var31.equals("mnb") || var31.equals("mn")) {
                                     AutoSanBoss.autoInviteFriends();
                                     return true;
                                 }
