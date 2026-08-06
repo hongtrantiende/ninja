@@ -71,19 +71,23 @@ public final class AutoBossEvent implements Runnable {
     }
 
     public static void saveMemberState() {
-        if (!inEvent) {
-            saveLocalState();
-            inEvent = true;
-            GameScr.gameAC("TSBoss: Da luu M" + savedMap + " K" + savedZone);
-        }
+        // Luon cap nhat savedMap/Zone/Auto moi nhat (ke ca khi inEvent da true)
+        saveLocalState();
+        inEvent = true;
+        GameScr.gameAC("TSBoss: Da luu M" + savedMap + " K" + savedZone);
     }
 
     public static void returnMemberState() {
-        // Lenient: cho phep ve ngay ca khi inEvent bi reset (vi du nhan Tat Auto)
-        // Chi skip neu THAT SU khong co gi de lam
-        if (!inEvent && savedMap < 0 && savedAuto == null) return;
+        // LUON dung party boss mode truoc
         AutoSanBoss.stopPartyMemberFully();
-        returnAndResume();
+        // Neu co savedMap -> ve map cu
+        if (savedMap >= 0 || savedAuto != null) {
+            returnAndResume();
+        } else {
+            // Khong co state da luu -> chi dung auto, khong travel
+            inEvent = false;
+            GameScr.gameAC("TSBoss: Khong co map cu de quay ve!");
+        }
     }
 
     private static void saveLocalState() {
@@ -147,7 +151,9 @@ public final class AutoBossEvent implements Runnable {
         while (isEnabled) {
             try {
                 int key = currentWindowKey();
-                if (!inEvent && key >= 0 && key != lastWindowKey) {
+                // CHI leader moi tu dong bat event khi den gio boss
+                // Thanh vien chi nhan lenh tu truong nhom qua pkm -4/-5
+                if (!inEvent && key >= 0 && key != lastWindowKey && isLeader()) {
                     lastWindowKey = key;
                     beginLeaderEvent();
                 }
@@ -165,6 +171,25 @@ public final class AutoBossEvent implements Runnable {
         AutoSanBoss.autoInviteFriends();
         sleep(1000L);
         sendParty("pkm -4");
+
+        // Auto re-invite moi 1 phut khi nhom chua du 6 nguoi
+        new Thread(new Runnable() {
+            public void run() {
+                while (isEnabled && inEvent && !membersSentBack) {
+                    sleep(60000L); // 1 phut
+                    if (!isEnabled || !inEvent || membersSentBack) break;
+                    int partySize = 0;
+                    try {
+                        if (GameScr.vParty != null) partySize = GameScr.vParty.size();
+                    } catch (Exception e) {}
+                    if (partySize < 6) {
+                        GameScr.gameAC("TSBoss: Nh\u00f3m ch\u01b0a \u0111\u1ee7 (" + partySize + "/6), m\u1eddi l\u1ea1i...");
+                        AutoSanBoss.autoInviteFriends();
+                    }
+                }
+            }
+        }).start();
+
         boolean huntAll = forceAllNext;
         forceAllNext = false;
         if (huntAll) AutoSanBoss.startEventHuntAll();

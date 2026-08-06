@@ -22,6 +22,8 @@ public class ChatRouter {
         if (AutoSanBoss.isRunning) AutoSanBoss.stop();
         TsBoost.onTsStopped();
         AutoPickup.stop();
+        // Khoi phuc hieu ung skill
+        Code.timBG = false;
         Code.gameAF();
         GameScr.gameAC("Da tat toan bo Auto!");
     }
@@ -240,21 +242,29 @@ public class ChatRouter {
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
+            boolean isAk = text.equals("ak");
             boolean hadAuto = Code.gameAB != null;
             boolean handled = Code.gameAF(text);
             if (handled) {
                 if (Code.gameAB != null) {
                     AutoPickup.start();
-                    TsBoost.onTsStarted();
-                    GameScr.gameAC("H\u00FAt VP ON!" + (TsBoost.isRunning ? " + Ts Pro!" : ""));
+                    // Tat hieu ung skill de giam lag
+                    Code.timBG = true;
+                    if (!isAk) {
+                        TsBoost.onTsStarted();
+                    }
+                    GameScr.gameAC("H\u00FAt VP ON!" + (!isAk && TsBoost.isRunning ? " + Ts Pro!" : ""));
                 } else if (hadAuto) {
-                    TsBoost.onTsStopped();
+                    TsBoost.stop();
                     AutoPickup.stop();
+                    // Khoi phuc hieu ung skill
+                    Code.timBG = false;
                     GameScr.gameAC("H\u00FAt VP OFF!");
                 } else {
-                    // ts tao TanSat tre — doi roi bat
                     AutoPickup.syncAfterAutoCommand();
-                    TsBoost.syncAfterTs();
+                    if (!isAk) {
+                        TsBoost.syncAfterTs();
+                    }
                 }
             }
             return handled;

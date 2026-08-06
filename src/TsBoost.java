@@ -1,49 +1,42 @@
 /**
- * TsBoost — Ket hop ts goc + gb all + ghost move xa.
+ * TsBoost — Bo sung tang toc cho TS/AK goc.
  *
- * Khi bat: chay song song voi ts thuong.
- * - Ts goc (Code.gameAB): xu ly target, di chuyen, heal, nhat do, hoi sinh
- * - TsBoost: spam attack TAT CA quai trong vMob (KHONG gioi han range)
- *   + multi-skill (cycle qua tat ca skill attack)
- *   + auto buff
- *   + ghost move den quai xa khi het quai gan (giong tsxa + hut VP xa)
+ * Chay song song voi TanSat (Code.gameAB):
+ * - TS goc: xu ly target, di chuyen, heal, nhat do, hoi sinh, next map
+ * - TsBoost: spam attack AoE tat ca quai trong range + auto buff + map watchdog
  *
  * Lenh: tsp (bat/tat mode boost)
  * Khi mode ON, moi lan bat ts/ak se tu dong kich hoat TsBoost.
- * Khi tat ts/ak se tu dong tat TsBoost.
  */
 public class TsBoost implements Runnable {
-    public static boolean modeEnabled = true;   // Mac dinh ON, giong hut VP
+    public static boolean modeEnabled = true;   // Mac dinh ON
     public static boolean isRunning = false;
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int ATTACK_DELAY_MS = 50;    // Delay giua moi lan attack (50ms giam lag)
-    private static final int IDLE_DELAY_MS = 200;      // Delay khi het quai
-    private static final int BUFF_INTERVAL_MS = 15000; // Buff moi 15 giay
-    private static final int NEARBY_RANGE = 150;       // Quai < 150px = gan
-    private static final int GHOST_MOVE_DELAY_MS = 50;  // Delay sau ghost move
-    private static final int ZONE_WAIT_MOB_MS = 3000;  // Doi 3s xem zone moi co quai khong
-    private static final int MAX_ZONE_RETRIES = 3;     // Thu toi da 3 zone
-    private static final int STUCK_TIMEOUT_MS = 10000; // 10 giay khong giet quai = reload zone
-    private static final int SUICIDE_STUCK_TIMEOUT_MS = 30000; // 30 giay khong giet quai = tu sat ve lang
-    private static final int STATS_INTERVAL_MS = 30000; // Hien stats moi 30 giay
-    private static final int IDLE_NUDGE_MS = 5000;     // 5 giay dung im = nudge
+    private static final int ATTACK_DELAY_MS = 50;     // Delay giua moi lan attack
+    private static final int IDLE_DELAY_MS = 200;       // Delay khi het quai
+    private static final int BUFF_INTERVAL_MS = 15000;  // Buff moi 15 giay
+    private static final int MAX_ATTACK_RANGE = 400;    // Range danh toi da (px)
+    private static final int STATS_INTERVAL_MS = 30000;  // Stats moi 30 giay
+    private static final int WRONG_MAP_TIMEOUT_MS = 6000; // 6s sai map = retry GoMap
+    private static final int SKILL_RESELECT_MS = 5000;   // Chon lai skill moi 5s
+    private static final int ATTACK_KILL_WINDOW_MS = 600; // Quai chet trong 600ms = minh giet
 
-    // === REUSABLE VECTORS (tranh tao moi moi frame = giam GC/lag) ===
+    // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
     private static final MyVector reusableChars = new MyVector();
 
-    // Luu vi tri ban dau de quay ve khi het quai
-    private static int homeX = 0;
-    private static int homeY = 0;
+    // === STATE ===
     private static long lastBuffTime = 0;
+    private static long wrongMapSince = 0;
+    private static int cachedSkillId = -1;
+    private static long lastSkillSelectTime = 0;
 
-    // === FULL STATS TRACKING ===
+    // === KILL TRACKING ===
     private static int totalKills = 0;
     private static int sessionKills = 0;
     private static int lastMobCount = -1;
-    private static long lastMobChangeTime = 0;
     private static long statsStartTime = 0;
     private static long sessionStartTime = 0;
     private static long startExp = 0;
@@ -51,17 +44,18 @@ public class TsBoost implements Runnable {
     private static int startXu = 0;
     private static int startLuong = 0;
 
-    // === IDLE DETECTION ===
-    private static int lastPosX = 0;
-    private static int lastPosY = 0;
-    private static long lastMoveTime = 0;
+    // === SKILL EFFECTS ===
+    private static boolean savedTimBG = false;
+
+    // =============================================
+    // LIFECYCLE
+    // =============================================
 
     /** Toggle mode on/off. */
     public static void toggleMode() {
         modeEnabled = !modeEnabled;
         if (modeEnabled) {
-            GameScr.gameAC("Ts Pro: ON! Danh ALL quai + ghost xa!");
-            // Neu ts dang chay, bat luon
+            GameScr.gameAC("Ts Pro: ON!");
             if (Code.gameAB != null && !isRunning) {
                 start();
             }
@@ -71,15 +65,13 @@ public class TsBoost implements Runnable {
         }
     }
 
-    /** Bat boost thread. Goi khi ts/ak duoc bat va mode dang ON. */
+    /** Bat boost thread. */
     public static void start() {
         if (isRunning) return;
         if (!modeEnabled) return;
 
         Char myChar = Char.getMyChar();
         if (myChar != null) {
-            homeX = myChar.cx;
-            homeY = myChar.cy;
             startExp = myChar.cEXP;
             startYen = myChar.yen;
             startXu = myChar.xu;
@@ -91,6 +83,11 @@ public class TsBoost implements Runnable {
 
         isRunning = true;
         lastBuffTime = 0;
+        wrongMapSince = 0;
+        cachedSkillId = -1;
+        lastMobCount = -1;
+        savedTimBG = Code.timBG;
+        Code.timBG = true; // Tat hieu ung skill giam lag
         thread = new Thread(new TsBoost());
         thread.start();
     }
@@ -99,24 +96,20 @@ public class TsBoost implements Runnable {
     public static void stop() {
         isRunning = false;
         thread = null;
+        Code.timBG = false; // Luon khoi phuc hieu ung
     }
 
     /** Hook: goi khi ts/ak bat. */
     public static void onTsStarted() {
-        if (!modeEnabled) return;
-        if (isRunning) return;
+        if (!modeEnabled || isRunning) return;
         if (Code.gameAB != null) {
             start();
         } else {
-            // ts tao TanSat tre — doi TanSat xuat hien roi bat
             syncAfterTs();
         }
     }
 
-    /**
-     * Doi TanSat xuat hien (toi da 30 giay) roi bat TsBoost.
-     * Giong AutoPickup.syncAfterAutoCommand().
-     */
+    /** Doi TanSat xuat hien (toi da 30s) roi bat. */
     public static void syncAfterTs() {
         if (!modeEnabled) return;
         new Thread(new Runnable() {
@@ -141,29 +134,26 @@ public class TsBoost implements Runnable {
         stop();
     }
 
+    // =============================================
+    // MAIN LOOP
+    // =============================================
+
     public void run() {
         sleep(500);
 
-        // Doi Code.gameAB xuat hien (ts tao TanSat tre)
+        // Doi Code.gameAB xuat hien
         for (int wait = 0; wait < 20 && isRunning && Code.gameAB == null; wait++) {
             sleep(500);
         }
 
-        // Reset tracking
         totalKills = 0;
         lastMobCount = -1;
-        lastMobChangeTime = System.currentTimeMillis();
         statsStartTime = System.currentTimeMillis();
-        long lastTrackedExp = -1;
-        int lastTrackedYen = -1;
-        int pendingKills = 0;
-        long lastMobDropTime = 0;
         long lastAttackTime = 0;
-        final int ATTACK_KILL_WINDOW_MS = 600; // Quai chet trong 600ms sau khi minh danh = minh giet
 
         while (isRunning) {
             try {
-                // Ts goc da tat thi minh cung tat
+                // TS goc da tat -> dung
                 if (Code.gameAB == null) {
                     sleep(1000);
                     if (Code.gameAB == null) break;
@@ -175,112 +165,64 @@ public class TsBoost implements Runnable {
                     continue;
                 }
 
-                // Dang chet thi doi ts goc hoi sinh
+                // Dang chet -> doi TS goc hoi sinh
                 if (myChar.statusMe == 14 || myChar.cHP <= 0) {
+                    wrongMapSince = 0;
                     sleep(500);
                     continue;
                 }
 
-                // Auto buff moi 15 giay
+                // === MAP WATCHDOG ===
+                if (!isBossHuntingMode()) {
+                    Auto currentAuto = Code.gameAB;
+                    if (currentAuto != null && currentAuto.mapID >= 0
+                            && TileMap.mapID != currentAuto.mapID) {
+                        if (wrongMapSince == 0) {
+                            wrongMapSince = System.currentTimeMillis();
+                        } else if (System.currentTimeMillis() - wrongMapSince > WRONG_MAP_TIMEOUT_MS) {
+                            GameScr.gameAC("Ts Pro: Sai map! (" + TileMap.mapID + " -> " + currentAuto.mapID + ") Retry...");
+                            try { GameCanvas.endDlg(); } catch (Exception e) {}
+                            try { LockGame.gameBK(); } catch (Exception e) {}
+                            try { TileMap.GoMap(currentAuto.mapID); } catch (Exception e) {}
+                            wrongMapSince = System.currentTimeMillis();
+                            sleep(2000);
+                            continue;
+                        }
+                    } else {
+                        wrongMapSince = 0;
+                    }
+                }
+
+                // === AUTO BUFF ===
                 long now = System.currentTimeMillis();
                 if (now - lastBuffTime > BUFF_INTERVAL_MS) {
                     autoBuff(myChar);
                     lastBuffTime = now;
                 }
 
-                // Lay tat ca mob song
-                MyVector mobs = collectAllAliveMobs();
-
-                // === KHI DANG SAN BOSS: chi attack, KHONG can thiep di chuyen ===
-                boolean isBossHunting = AutoSanBoss.isRunning;
+                // === COLLECT MOBS TRONG RANGE ===
+                MyVector mobs = collectMobsInRange(myChar);
 
                 if (mobs.size() > 0) {
+                    // Kill tracking
                     int currentMobCount = mobs.size();
                     long now2 = System.currentTimeMillis();
-
-                    // === KILL TRACKING: Quai giam + minh vua danh trong 600ms ===
                     if (lastMobCount >= 0 && currentMobCount < lastMobCount) {
                         int dropped = lastMobCount - currentMobCount;
                         if (now2 - lastAttackTime < ATTACK_KILL_WINDOW_MS) {
-                            // Minh vua danh gan day -> tinh la minh giet
                             totalKills += dropped;
                             sessionKills += dropped;
                             ThongKe.addKills(dropped);
-                            lastMobChangeTime = now2;
                         }
-                        // Nguoi khac giet -> bo qua, khong tinh
-                    }
-                    if (lastMobChangeTime == 0) {
-                        lastMobChangeTime = now2;
                     }
                     lastMobCount = currentMobCount;
 
-                    if (!isBossHunting) {
-                        // === ANTI-STUCK: BO QUA khi dang danh boss / ak ===
-                        boolean hasBoss = hasBossOnMap();
-
-                        // === ANTI-STUCK (30s): 30s khong DIỆT duoc quai -> Tu sat ve lang ===
-                        if (!hasBoss
-                                && lastMobChangeTime > 0
-                                && now2 - lastMobChangeTime > SUICIDE_STUCK_TIMEOUT_MS
-                                && currentMobCount > 0) {
-                            GameScr.gameAC("Ts Pro: K\u1eb8T 30s (Di\u1ec7t kh\u00f4ng t\u0103ng)! T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng...");
-                            suicideAndReturn();
-                            lastMobChangeTime = now2;
-                            lastMobCount = -1;
-                            sleep(3000);
-                            continue;
-                        }
-
-                        // (Đã xóa Anti-stuck lớp 1 - 10s theo yêu cầu, chỉ giữ lại 30s)
-                        // Removed Smart Zone
-                    } // end !isBossHunting
-
-                    // === STATS: Da hien thi qua 3 dong HUD goc man hinh ===
-                    if (now2 - statsStartTime > STATS_INTERVAL_MS) {
-                        statsStartTime = now2;
-                    }
-
-                    if (!isBossHunting) {
-                        // === IDLE NUDGE: dung im 5s co quai => ghost move den quai gan ===
-                        long now3 = System.currentTimeMillis();
-                        if (myChar.cx != lastPosX || myChar.cy != lastPosY) {
-                            lastPosX = myChar.cx;
-                            lastPosY = myChar.cy;
-                            lastMoveTime = now3;
-                        } else if (now3 - lastMoveTime > IDLE_NUDGE_MS && currentMobCount > 0) {
-                            Mob nearest = findNearestMob(myChar.cx, myChar.cy);
-                            if (nearest != null) {
-                                Char.gameAC(nearest.x, nearest.y);
-                                myChar.cx = nearest.x;
-                                myChar.cy = nearest.y;
-                                lastMoveTime = now3;
-                            }
-                        }
-
-                        // === GHOST MOVE: bay den cum quai xa neu het quai gan ===
-                        int nearbyCount = countNearbyMobs(myChar.cx, myChar.cy);
-                        if (nearbyCount == 0) {
-                            Mob farMob = findFarMob(myChar.cx, myChar.cy);
-                            if (farMob != null) {
-                                Char.gameAC(farMob.x, farMob.y);
-                                myChar.cx = farMob.x;
-                                myChar.cy = farMob.y;
-                                sleep(GHOST_MOVE_DELAY_MS);
-                            }
-                        }
-                    } // end !isBossHunting
-
-                    // === ATTACK: danh TAT CA quai voi skill AOE tot nhat ===
+                    // Attack AoE
                     fireAttack(myChar, mobs);
                     lastAttackTime = System.currentTimeMillis();
                     sleep(ATTACK_DELAY_MS);
                 } else {
-                    // Het quai tren map
                     lastMobCount = 0;
-                    lastMobChangeTime = System.currentTimeMillis();
-                    
-                    // Da xoa tinh nang chuyen khu -> chi doi respawn
                     sleep(IDLE_DELAY_MS);
                 }
 
@@ -288,20 +230,110 @@ public class TsBoost implements Runnable {
                 sleep(500);
             }
         }
+        // Khoi phuc hieu ung skill khi thoat
+        Code.timBG = false;
         isRunning = false;
     }
 
     // =============================================
-    // ANTI-STUCK — tu sat ve lang & reload zone
+    // ATTACK
     // =============================================
 
+    /** Thu thap mob song trong MAX_ATTACK_RANGE. */
+    private static MyVector collectMobsInRange(Char myChar) {
+        reusableMobs.removeAllElements();
+        try {
+            int cx = myChar.cx;
+            int cy = myChar.cy;
+            int size = GameScr.vMob.size();
+            for (int i = 0; i < size; i++) {
+                Object o = GameScr.vMob.elementAt(i);
+                if (o instanceof Mob) {
+                    Mob mob = (Mob) o;
+                    if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
+                        if (Math.abs(cx - mob.x) + Math.abs(cy - mob.y) <= MAX_ATTACK_RANGE) {
+                            reusableMobs.addElement(mob);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return reusableMobs;
+    }
+
+    /** Chon skill AOE tot nhat va danh 1 lan. */
+    private static void fireAttack(Char myChar, MyVector mobs) {
+        try {
+            long now = System.currentTimeMillis();
+            if (cachedSkillId < 0 || now - lastSkillSelectTime > SKILL_RESELECT_MS) {
+                cachedSkillId = pickBestAoeSkill(myChar);
+                if (cachedSkillId >= 0) {
+                    Service.gI().gameAG(cachedSkillId);
+                }
+                lastSkillSelectTime = now;
+            }
+
+            reusableChars.removeAllElements();
+            if (cachedSkillId >= 0) {
+                Service.gI().gameAA(mobs, reusableChars, 2); // Skill attack
+            } else {
+                Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Tim skill AOE tot nhat: type 3 > type 1 > type 0. */
+    private static int pickBestAoeSkill(Char myChar) {
+        if (myChar.vSkillFight == null) return -1;
+
+        Skill bestAoe = null;
+        Skill bestChieu = null;
+        Skill bestNormal = null;
+
+        int size = myChar.vSkillFight.size();
+        for (int i = 0; i < size; i++) {
+            try {
+                Skill s = (Skill) myChar.vSkillFight.elementAt(i);
+                if (s == null || s.template == null) continue;
+                int type = s.template.type;
+                if (type == 3 && bestAoe == null) bestAoe = s;
+                else if (type == 1 && bestChieu == null) bestChieu = s;
+                else if (type == 0 && bestNormal == null) bestNormal = s;
+            } catch (Exception e) {}
+        }
+
+        if (bestAoe != null) return bestAoe.template.id;
+        if (bestChieu != null) return bestChieu.template.id;
+        if (bestNormal != null) return bestNormal.template.id;
+        return -1;
+    }
+
     // =============================================
-    // FULL STATS DISPLAY — Hien thi 5 chi so Up
+    // AUTO BUFF
     // =============================================
 
-    /**
-     * Hien thi bang thong ke day du 5 chi so (Quai, Exp, Yen, Xu, Luong).
-     */
+    /** Tu dong dung tat ca skill type 2 (buff/support). */
+    private static void autoBuff(Char myChar) {
+        try {
+            if (myChar.vSkillFight == null) return;
+            int size = myChar.vSkillFight.size();
+            for (int i = 0; i < size; i++) {
+                Skill s = (Skill) myChar.vSkillFight.elementAt(i);
+                if (s == null || s.template == null) continue;
+                if (s.template.type == 2) {
+                    Service.gI().gameAG(s.template.id);
+                    Service.gI().gameAR();
+                    sleep(50);
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    // =============================================
+    // STATS
+    // =============================================
+
+    /** Hien thi thong ke. */
     public static void showFullStats() {
         try {
             Char myChar = Char.getMyChar();
@@ -320,10 +352,6 @@ public class TsBoost implements Runnable {
             int gainLuong = myChar.luong - startLuong;
             if (gainLuong < 0) gainLuong = 0;
 
-            String timeStr = formatTime(sec);
-            String expStr = formatNumber(gainExp);
-            String yenStr = formatNumber(gainYen);
-            String xuStr = formatNumber(gainXu);
             int aliveMobs = 0;
             try {
                 int sz = GameScr.vMob.size();
@@ -336,7 +364,7 @@ public class TsBoost implements Runnable {
                 }
             } catch (Exception e) {}
 
-            GameScr.gameAC("Up (" + timeStr + "): " + sessionKills + " Quái | Quái map: " + aliveMobs + " | Exp: +" + expStr + " | Yên: +" + yenStr + " | Xu: +" + xuStr + " | Lượng: +" + gainLuong);
+            GameScr.gameAC("Up (" + formatTime(sec) + "): " + sessionKills + " Qu\u00e1i | Map: " + aliveMobs + " | Exp: +" + formatNumber(gainExp) + " | Y\u00ean: +" + formatNumber(gainYen) + " | Xu: +" + formatNumber(gainXu) + " | L\u01b0\u1ee3ng: +" + gainLuong);
         } catch (Exception e) {}
     }
 
@@ -356,213 +384,12 @@ public class TsBoost implements Runnable {
         return s + "s";
     }
 
-    /**
-     * Tu sat ve lang (giong nut Tu Sat / Ve Lang trong menu Auto).
-     */
-    private static void suicideAndReturn() {
-        try {
-            Service.gI().gameAK();
-            TileMap.gameAF();
-        } catch (Exception e) {}
-    }
-
-    // (Da xoa tinh nang chuyen khu theo yeu cau)
-
-    /**
-     * Kiem tra co boss tren map khong.
-     * Dung Auto.gameAN (boss vector) + quet mob.isBoss / levelBoss.
-     * Khi co boss -> bo qua anti-stuck de tranh tu sat/reload giua chung danh boss.
-     */
-    private static boolean hasBossOnMap() {
-        try {
-            // Check boss vector cua Auto
-            if (Auto.gameAN != null && Auto.gameAN.size() > 0) return true;
-
-            // Quet vMob xem co boss nao khong
-            int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
-                Object o = GameScr.vMob.elementAt(i);
-                if (o instanceof Mob) {
-                    Mob mob = (Mob) o;
-                    if (mob.hp > 0 && (mob.isBoss || mob.levelBoss > 0)) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {}
-        return false;
-    }
-
     // =============================================
-    // GHOST MOVE — bay den quai xa giong tsxa + hut VP
+    // HELPERS
     // =============================================
 
-    /**
-     * Tim con quai song GAN nhat (dung cho idle nudge).
-     */
-    private static Mob findNearestMob(int cx, int cy) {
-        Mob best = null;
-        int bestDist = Integer.MAX_VALUE;
-        try {
-            int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
-                Mob mob = (Mob) GameScr.vMob.elementAt(i);
-                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1) continue;
-                int dist = Math.abs(cx - mob.x) + Math.abs(cy - mob.y);
-                if (dist < bestDist) {
-                    best = mob;
-                    bestDist = dist;
-                }
-            }
-        } catch (Exception e) {}
-        return best;
-    }
-
-    /**
-     * Tim con quai song xa nhat de ghost move den.
-     */
-    private static Mob findFarMob(int cx, int cy) {
-        Mob best = null;
-        int bestDist = 0;
-        try {
-            int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
-                Mob mob = (Mob) GameScr.vMob.elementAt(i);
-                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1) continue;
-                int dist = Math.abs(cx - mob.x) + Math.abs(cy - mob.y);
-                if (dist > NEARBY_RANGE && dist > bestDist) {
-                    best = mob;
-                    bestDist = dist;
-                }
-            }
-        } catch (Exception e) {}
-        return best;
-    }
-
-    /**
-     * Dem quai song gan vi tri hien tai.
-     */
-    private static int countNearbyMobs(int cx, int cy) {
-        int count = 0;
-        try {
-            int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
-                Mob mob = (Mob) GameScr.vMob.elementAt(i);
-                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1) continue;
-                if (Math.abs(cx - mob.x) + Math.abs(cy - mob.y) <= NEARBY_RANGE) {
-                    count++;
-                }
-            }
-        } catch (Exception e) {}
-        return count;
-    }
-
-    // =============================================
-    // ATTACK — danh tat ca quai, multi-skill
-    // =============================================
-
-    /**
-     * Thu thap TAT CA mob song trong GameScr.vMob.
-     * Khong gioi han range — giong gb all.
-     */
-    private static MyVector collectAllAliveMobs() {
-        reusableMobs.removeAllElements();
-        try {
-            int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
-                Object o = GameScr.vMob.elementAt(i);
-                if (o instanceof Mob) {
-                    Mob mob = (Mob) o;
-                    if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
-                        reusableMobs.addElement(mob);
-                    }
-                }
-            }
-        } catch (Exception e) {}
-        return reusableMobs;
-    }
-
-    /**
-     * Chon skill AOE tot nhat (uu tien type 3 > 1 > 0) va danh 1 lan.
-     * KHONG cycle qua tat ca skill moi frame — de server xu ly splash/lan tu nhien!
-     */
-    private static int cachedSkillId = -1;
-    private static long lastSkillSelectTime = 0;
-    private static final int SKILL_RESELECT_MS = 5000; // Chon lai skill moi 5 giay
-
-    private static void fireAttack(Char myChar, MyVector mobs) {
-        try {
-            // Chon skill AOE tot nhat (chi select lai moi 5s, ko spam select)
-            long now = System.currentTimeMillis();
-            if (cachedSkillId < 0 || now - lastSkillSelectTime > SKILL_RESELECT_MS) {
-                cachedSkillId = pickBestAoeSkill(myChar);
-                if (cachedSkillId >= 0) {
-                    Service.gI().gameAG(cachedSkillId);
-                }
-                lastSkillSelectTime = now;
-            }
-
-            // Gui 1 attack packet duy nhat — reuse vector tranh tao moi
-            reusableChars.removeAllElements();
-            if (cachedSkillId >= 0) {
-                Service.gI().gameAA(mobs, reusableChars, 2); // Skill attack
-            } else {
-                Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
-            }
-        } catch (Exception e) {}
-    }
-
-    /**
-     * Tim skill attack co dien lan/AOE tot nhat.
-     * Uu tien: type 3 (AOE) > type 1 (chieu) > type 0 (thuong)
-     */
-    private static int pickBestAoeSkill(Char myChar) {
-        if (myChar.vSkillFight == null) return -1;
-
-        Skill bestAoe = null;   // type 3
-        Skill bestChieu = null; // type 1
-        Skill bestNormal = null;// type 0
-
-        int size = myChar.vSkillFight.size();
-        for (int i = 0; i < size; i++) {
-            try {
-                Skill s = (Skill) myChar.vSkillFight.elementAt(i);
-                if (s == null || s.template == null) continue;
-                int type = s.template.type;
-                if (type == 3 && bestAoe == null) bestAoe = s;
-                else if (type == 1 && bestChieu == null) bestChieu = s;
-                else if (type == 0 && bestNormal == null) bestNormal = s;
-            } catch (Exception e) {}
-        }
-
-        // Uu tien AOE > Chieu > Thuong
-        if (bestAoe != null) return bestAoe.template.id;
-        if (bestChieu != null) return bestChieu.template.id;
-        if (bestNormal != null) return bestNormal.template.id;
-        return -1;
-    }
-
-    // =============================================
-    // AUTO BUFF
-    // =============================================
-
-    /**
-     * Auto buff — tu dong dung tat ca skill type 2 (buff/support).
-     */
-    private static void autoBuff(Char myChar) {
-        try {
-            if (myChar.vSkillFight == null) return;
-            int size = myChar.vSkillFight.size();
-            for (int i = 0; i < size; i++) {
-                Skill s = (Skill) myChar.vSkillFight.elementAt(i);
-                if (s == null || s.template == null) continue;
-                if (s.template.type == 2) {
-                    Service.gI().gameAG(s.template.id);
-                    Service.gI().gameAR();
-                    sleep(50);
-                }
-            }
-        } catch (Exception e) {}
+    private static boolean isBossHuntingMode() {
+        return AutoSanBoss.isRunning || AutoBossEvent.isEnabled;
     }
 
     private static void sleep(long ms) {

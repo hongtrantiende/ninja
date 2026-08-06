@@ -60,7 +60,7 @@ implements Runnable {
     public static long gameBC;
     public static long gameBD;
     public static boolean gameBE = true;
-    public static boolean timBG = true;
+    public static boolean timBG = false;
     public static boolean gameBG;
     public static int gameBH;
     public static boolean gameBI;
@@ -166,11 +166,11 @@ implements Runnable {
         gameBC = 0L;
         gameBD = 0L;
         gameBE = true;
-        timBG = true;
+        timBG = false;
         gameBG = false;
         gameBH = 5;
         gameBI = true;
-        gameBJ = 10;
+        gameBJ = 50;
         gameBK = true;
         gameBL = 50;
         gameBM = false;
@@ -178,7 +178,7 @@ implements Runnable {
         gameBO = false;
         gameCR = false;
         HoiSinhLuong = false;
-        Char.speedGame = 20;
+        Char.speedGame = 27;
         Char.DungHp = true;
         Char.aHpValue = 20;
         Char.DungMp = true;
@@ -247,7 +247,6 @@ implements Runnable {
         var0.reAB = gameAB;
         gameAB = var0;
         AutoPickup.start();
-        TsBoost.onTsStarted();
     }
 
     public static void gameAC() {

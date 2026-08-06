@@ -470,69 +470,39 @@ public class AutoSanBoss implements Runnable {
         inviteThread = new Thread(new Runnable() {
             public void run() {
                 try {
+                    // === Dung DUNG co che cua lenh "pt" trong Code.java ===
+
+                    // Check nhom truong: Code.gameAH = ten nhom truong da luu bang "sn"
                     String myName = Char.getMyChar() != null ? Char.getMyChar().cName : "";
-
-                    // Load danh sach ban be tu server TRUOC khi dem
-                    try {
-                        Service.gI().gameAT();
-                    } catch (Exception e) {}
-                    for (int w = 0; w < 30; w++) {
-                        if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) break;
-                        sleep(100);
+                    if (Code.gameAH != null && Code.gameAH.length() > 0
+                            && !myName.equals(Code.gameAH)) {
+                        GameScr.gameAC("B\u1ea1n kh\u00f4ng l\u00e0 nh\u00f3m tr\u01b0\u1edfng");
+                        return;
                     }
 
-                    // Dem xem co ai chua co trong nhom khong (chi tu gameAI - DS thanh vien da luu)
-                    int missingCount = 0;
-                    if (Code.gameAI != null) {
-                        for (int i = 0; i < Code.gameAI.size(); i++) {
-                            String name = (String) Code.gameAI.elementAt(i);
-                            if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
-                                missingCount++;
-                            }
-                        }
-                    }
-
-                    // Neu da co nhom va tat ca thanh vien da luu da o trong nhom -> KHONG moi lai
-                    if (GameScr.vParty != null && GameScr.vParty.size() > 1 && missingCount == 0) {
-                        GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi, kh\u00f4ng c\u1ea7n m\u1eddi l\u1ea1i!");
+                    // Check co danh sach thanh vien da luu khong
+                    if (Code.gameAI == null || Code.gameAI.size() == 0) {
+                        GameScr.gameAC("Ch\u01b0a l\u01b0u nh\u00f3m! D\u00f9ng 'addn' th\u00eam t\u1eebng ng\u01b0\u1eddi ho\u1eb7c 'sn' l\u01b0u nh\u00f3m hi\u1ec7n t\u1ea1i.");
                         return;
                     }
 
                     int invitedCount = 0;
-
-                    // 1. Moi thanh vien da luu (Code.gameAI) chua co trong nhom
-                    if (Code.gameAI != null && Code.gameAI.size() > 0) {
-                        for (int i = 0; i < Code.gameAI.size(); i++) {
-                            String name = (String) Code.gameAI.elementAt(i);
-                            if (name != null && name.length() > 0 && !name.equals(myName) && !isAlreadyInParty(name)) {
-                                Service.gI().gameAF(name);
-                                invitedCount++;
-                            }
-                        }
-                    }
-
-                    // 2. Neu KHONG co DS thanh vien da luu -> fallback moi ban be
-                    if (invitedCount == 0 && (Code.gameAI == null || Code.gameAI.size() == 0)) {
-                        if (GameScr.vFriend != null && GameScr.vFriend.size() > 0) {
-                            for (int i = 0; i < GameScr.vFriend.size(); i++) {
-                                try {
-                                    Friend f = (Friend) GameScr.vFriend.elementAt(i);
-                                    if (f != null && f.friendName != null && f.friendName.length() > 0
-                                            && !f.friendName.equals(myName) && !isAlreadyInParty(f.friendName)) {
-                                        Service.gI().gameAF(f.friendName);
-                                        invitedCount++;
-                                    }
-                                } catch (Exception ex) {}
-                            }
+                    // Duyet gameAI, check Code.gameAD(name) = da trong party chua
+                    for (int i = 0; i < Code.gameAI.size(); i++) {
+                        String name = (String) Code.gameAI.elementAt(i);
+                        if (name == null || name.length() == 0) continue;
+                        // Code.gameAD(name) = true neu name DA trong party -> skip
+                        if (!Code.gameAD(name)) {
+                            Service.gI().gameAF(name);
+                            invitedCount++;
+                            sleep(300);
                         }
                     }
 
                     if (invitedCount > 0) {
                         GameScr.gameAC("\u0110\u00e3 m\u1eddi " + invitedCount + " ng\u01b0\u1eddi v\u00e0o nh\u00f3m!");
-                    } else if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
-                        GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi!");
                     } else {
-                        GameScr.gameAC("Kh\u00f4ng c\u00f3 ai \u0111\u1ec3 m\u1eddi! (Th\u00eam b\u1ea1n b\u00e8 ho\u1eb7c d\u00f9ng 'addn')");
+                        GameScr.gameAC("Nh\u00f3m \u0111\u00e3 \u0111\u1ee7 ng\u01b0\u1eddi!");
                     }
                 } catch (Exception e) {}
             }
