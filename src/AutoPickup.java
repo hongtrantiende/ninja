@@ -1,70 +1,82 @@
 /**
- * AutoPickup v4 — Toi uu cho 20 instances treo cung may.
+ * AutoPickup v3.2 — Ghost Move voi delay de hut xa ma khong flood server.
  *
- * Thread nen: moi 300ms quet 1 luot, ghost move + nhat.
- * grabOnce (boss): nhat sach toan map.
+ * Thread nen: moi 200ms, ghost move den tung item + nhat, delay 50ms/item.
+ * grabOnce (boss): ghost move nhanh (3ms/item), nhat sach toan map.
  *
- * v4: Giam CPU — 1 pass/scan, tang interval 100->300ms, tang ghost settle.
+ * Lenh: "nhat" toggle on/off.
+ * Cung tu bat khi ts/tsn/ak active.
  */
 public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // === CONFIG (toi uu 20 instances) ===
-    private static final int SCAN_INTERVAL_MS = 300;    // 300ms giua moi vong quet
+    // === CONFIG ===
+    private static final int SCAN_INTERVAL_MS = 200;    // 200ms giua moi vong quet
     private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
     private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
-    private static final int THREAD_DELAY_MS = 80;      // 80ms/item trong thread nen
-    private static final int GRAB_DELAY_MS = 5;         // 5ms/item trong grabOnce
-    private static final int GHOST_SETTLE_MS = 50;      // 50ms doi server nhan vi tri
+    private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
+    private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
 
     /**
-     * Lenh hut VP — chay 1 lan, nhat sach roi dung.
+     * Toggle hut VP on/off.
      */
     public static void toggle() {
         if (isRunning) {
-            GameScr.gameAC("\u0110ang h\u00FAt...");
-            return;
+            stop();
+            GameScr.gameAC("T\u1eaft h\u00FAt VP!");
+        } else {
+            start();
+            GameScr.gameAC("B\u1eadt h\u00FAt VP!");
         }
-        // Chay 1 lan trong thread rieng
+    }
+
+    public static void start() {
+        if (isRunning) return;
+        isRunning = true;
+        thread = new Thread(new AutoPickup());
+        thread.start();
+    }
+
+    public static void syncAfterAutoCommand() {
         new Thread(new Runnable() {
             public void run() {
-                isRunning = true;
-                Code.gameAQ = true;
-                GameScr.gameAC("H\u00FAt VP...");
-                grabOnce();
-                isRunning = false;
+                for (int i = 0; i < 120; i++) {
+                    if (Code.gameAB instanceof TanSat) {
+                        boolean wasOff = !isRunning;
+                        start();
+                        if (wasOff) GameScr.gameAC("H\u00FAt VP ON theo TS!");
+                        return;
+                    }
+                    try { Thread.sleep(250L); } catch (Exception e) {}
+                }
             }
         }).start();
     }
 
-    public static void start() {
-        // Giu lai cho backward compat — khong lam gi
-    }
-
     public static void stop() {
         isRunning = false;
+        thread = null;
     }
 
     /**
      * Hut toan bo VP 1 lan (dung cho AutoSanBoss sau boss chet).
+     * Ghost move NHANH — pham vi toan map, nhat sach.
      */
     public static void grabOnce() {
         try {
             Char myChar = Char.getMyChar();
             if (myChar == null) return;
-            int initSize = getItems().size();
+            int initSize = GameScr.vItemMap.size();
             if (initSize == 0) return;
 
-            Code.gameAQ = true;
-
             for (int pass = 0; pass < BURST_ROUNDS + 2; pass++) {
-                if (getItems().size() == 0) break;
+                if (GameScr.vItemMap.size() == 0) break;
                 blastPickupSmart(GRAB_DELAY_MS);
-                try { Thread.sleep(150); } catch (Exception e) {} // 150ms thay 100ms
+                try { Thread.sleep(100); } catch (Exception e) {}
             }
 
-            int picked = initSize - getItems().size();
+            int picked = initSize - GameScr.vItemMap.size();
             if (picked > 0) {
                 GameScr.gameAC("H\u00FAt " + picked + "/" + initSize + " VP!");
             }
@@ -72,9 +84,23 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Ghost move + nhat item toan map.
-     * Tele den item → nhat → quay ve vi tri goc.
-     * Duyet NGUOC de tranh lech index.
+     * Blast NHANH — chi gui gameAQ, KHONG ghost move.
+     * Nhat item trong tam server (~30-50px).
+     */
+    private static void blastPickupFast() {
+        int size = GameScr.vItemMap.size();
+        for (int i = 0; i < size; i++) {
+            try {
+                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                Service.gI().gameAQ(item.itemMapID);
+            } catch (Exception e) {}
+        }
+    }
+
+    /**
+     * Blast + Ghost Move — nhat item toan map.
+     * Gui packet vi tri den item, nhat, roi quay ve vi tri goc.
+     * @param delayMs delay giua moi item (ms) de tranh flood server
      */
     private static void blastPickupSmart(int delayMs) {
         Char myChar = Char.getMyChar();
@@ -82,20 +108,19 @@ public class AutoPickup implements Runnable {
         int origCx = myChar.cx;
         int origCy = myChar.cy;
 
-        MyVector items = getItems();
-        int size = items.size();
-        for (int i = size - 1; i >= 0; i--) {
+        int size = GameScr.vItemMap.size();
+        for (int i = 0; i < size; i++) {
             try {
-                if (i >= items.size()) continue;
-                ItemMap item = (ItemMap) items.elementAt(i);
+                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
 
                 // Bo qua trang bi (type 0-15)
                 if (item.template != null && item.template.gameAA()) continue;
 
-                // Ghost move den item
                 int dx = Math.abs(origCx - item.xEnd);
                 int dy = Math.abs(origCy - item.yEnd);
+
                 if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
+                    // Ghost: gui packet vi tri den item
                     Char.gameAC(item.xEnd, item.yEnd);
                 }
 
@@ -107,20 +132,27 @@ public class AutoPickup implements Runnable {
             } catch (Exception e) {}
         }
 
-        // Quay ve vi tri goc
+        // Quay ve vi tri goc — nhan vat khong giat
         Char.gameAC(origCx, origCy);
         myChar.cx = origCx;
         myChar.cy = origCy;
     }
 
-    // Thread run — khong dung nua (one-shot via toggle)
-    public void run() {}
+    /**
+     * Thread chinh — chay nen SONG SONG voi danh quai.
+     * Dung ghost move voi delay 50ms/item de hut xa ma khong flood.
+     */
+    public void run() {
+        try { Thread.sleep(300); } catch (Exception e) {}
 
-    /** Lay vector item thuc te — dung realItemMap khi an VP. */
-    private static MyVector getItems() {
-        if (Code.hideItemDrop && Code.realItemMap != null) {
-            return Code.realItemMap;
+        while (isRunning) {
+            try {
+                if (GameScr.vItemMap.size() > 0) {
+                    blastPickupSmart(0);
+                }
+            } catch (Exception e) {}
+
+            try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
         }
-        return GameScr.vItemMap;
     }
 }

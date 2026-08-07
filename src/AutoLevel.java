@@ -169,8 +169,8 @@ public class AutoLevel implements Runnable {
             // Bat TanSat: truyen mapID muc tieu, game se tu di chuyen
             Code.gameAA(-1, mapID);
 
-            // Bat che do nhat do game goc
-            Code.gameAQ = true;
+
+            // Khong bat nhat do game goc (tranh tele)
         } catch (Exception e) {}
     }
 
