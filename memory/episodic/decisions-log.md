@@ -221,3 +221,19 @@
   3. Reset `var6 = null` khi quái mục tiêu vượt quá tầm đánh (`Res.abs(cx - xFirst) > dx + 30`) để tránh vòng lặp khóa mục tiêu kẹt vị trí.
 - **Tác dụng:** Loại bỏ hoàn toàn hiện tượng nhân vật đứng chôn chân ở khu mà không đánh quái khi treo game lâu.
 - **Files thay đổi:** `src/Auto.java`, `Aeharuna.jar`
+
+## 2026-08-07: Restore AutoPickup v3.2 từ GitHub, Xóa static block tự start
+- **Quyết định:** Khôi phục `AutoPickup.java` về đúng phiên bản v3.2 trên GitHub (commit `df13724`). Xóa `static { start(); }` gây auto-start khi class load.
+- **Lý do:** Bản local bị sửa quá nhiều, thêm static block khiến hút VP bật ngay khi vào game dù chưa gõ lệnh. V3.2 GitHub là baseline ổn định.
+- **Files:** `src/AutoPickup.java`, `src/NamMod.java`, `src/ChatRouter.java`
+
+## 2026-08-07: Xóa Code.gameAQ=true khỏi AutoLevel + AutoPickup
+- **Quyết định:** Xóa mọi dòng `Code.gameAQ = true` trong `AutoLevel.java` và `AutoPickup.java`.
+- **Lý do:** `gameAQ = true` (default trong `gameAP()`) = hút VP gần chân, KHÔNG tele. `gameAQ = false` = nhặt xa, CÓ tele. Nếu set `gameAQ = true` trong các class khác → conflict khi game gốc đang ở mode nhặt xa. Để `gameAP()` init duy nhất.
+- **Files:** `src/AutoLevel.java`, `src/AutoPickup.java`
+
+## 2026-08-07: VIP Watcher → Thread Riêng, Không Nằm Trong while(gameCA)
+- **Quyết định:** Di chuyển VIP map check từ `while(gameCA)` loop → thread riêng `startVipMapWatcher()` trong Code.java.
+- **Lý do:** `while(gameCA)` CHỈ chạy khi TS active. Sau disconnect/reconnect, `gameCA = false` → loop dừng → VIP check chết. Thread riêng chạy `while(DungMapVip)` độc lập.
+- **Auto-restart:** Thêm restart logic trong `gameAP()` (init method, gọi khi reconnect) để watcher tự sống lại.
+- **Files:** `src/Code.java`, `src/NamMod.java`

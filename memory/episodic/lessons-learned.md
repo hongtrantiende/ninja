@@ -427,7 +427,6 @@ Khi TS ở map VIP (cần thẻ vào), nếu chết/mất kết nối → respaw
 - **`TanSat.mapid`** = ID nội bộ của TanSat (VD: **134** cho map VIP)
 - **`TileMap.mapID`** = ID map thực tế game (VD: **195** cho map VIP)
 - **KHÔNG THỂ** so sánh trực tiếp hai ID này — luôn khác nhau kể cả khi đúng map
-- ⇒ Dùng cờ `mapVipUsed` (one-shot per death) thay vì check map ID liên tục
 
 ### NPC Shop Goshu — Slot Calculation
 - **Grid:** 6 cột × 8 hàng = 48 slot (index 0-47)
@@ -437,12 +436,66 @@ Khi TS ở map VIP (cần thẻ vào), nếu chết/mất kết nối → respaw
 - **API:** `Service.gI().gameAB(14, slot, 1)` — menuId=14 (Goshu)
 - **Giá:** 100 lượng/thẻ
 
-### Cơ chế One-Shot
-- `mapVipUsed = false` khi init + khi chết (`statusMe==14 || cHP<=0`)
-- Trigger: `DungMapVip && !mapVipUsed && TileMap.mapID != TanSat.mapid && cooldown 5s`
-- Sau dùng thẻ → `mapVipUsed = true` → dừng mua/dùng cho đến lần chết tiếp
+### VIP Watcher — Kiến Trúc Thread Độc Lập (BẮT BUỘC)
+- **SAI:** Đặt VIP check trong `while (gameCA)` loop — loop này CHỈ chạy khi TS active. Sau disconnect, `gameCA = false` → loop dừng → VIP check chết.
+- **ĐÚNG:** Thread RIÊNG `startVipMapWatcher()` chạy `while (DungMapVip)`.
+- **Khởi tạo:** NamMod toggle ON → `Code.startVipMapWatcher()` + auto-restart trong `gameAP()` (init method gọi khi reconnect).
+- **gameAP()** là init method, gọi mỗi khi game khởi tạo/reconnect → restart watcher nếu `DungMapVip` còn ON.
+- **Logic:** Track `prevMap`. Map KHÔNG đổi (stuck/failed) → mua+dùng thẻ. Map đổi → reset `justBought`.
+- **Sau mua+dùng:** `Thread.sleep(10000)` chờ game xử lý, update `prevMap`.
+- **Kill old thread:** Trong gameAP(), `vipWatcherThread.interrupt()` + set null trước khi start mới.
 
 ### Files
-- **Code.java:** VIP map check block + `mapVipUsed` field + death reset
-- **NamMod.java:** Toggle "Dùng thẻ map vip" + "Mua thẻ map vip"
+- **Code.java:** `startVipMapWatcher()` + restart trong `gameAP()` + fields: `vipWatcherThread`, `DungMapVip`, `MuaMapVip`, `lastVipMapId`
+- **NamMod.java:** Toggle "Dùng thẻ map vip" → `startVipMapWatcher()`, Toggle "Mua thẻ map vip"
+
+---
+
+## 2026-08-07: Code.gameAQ — Cơ Chế Nhặt VP Game Gốc (QUAN TRỌNG)
+
+### Hai chế độ nhặt VP (lệnh `cnhat` toggle)
+| `gameAQ` | Tên | Hành vi | Tele? |
+|----------|-----|---------|-------|
+| `true` | **Hút VP** | Nhặt item gần chân (≤100px), 1 item/tick | **KHÔNG** |
+| `false` | **Nhặt xa** | `Auto.gameAH/gameAC()` TELE đến item → nhặt → quay về | **CÓ** |
+
+### Default
+- `gameAQ = true` (init tại `gameAP()` line 175) → **hút VP** mode, KHÔNG tele
+- Lệnh `cnhat` toggle giữa 2 mode
+
+### Nơi set `gameAQ = true` cần CHÚ Ý
+- `AutoPickup.java` — đã XÓA (tránh conflict)
+- `AutoLevel.java` — đã XÓA (tránh tele)
+- `Code.java` init — giữ `true`
+
+---
+
+## 2026-08-07: AutoPickup v3.2 — Bản Ổn Định (GitHub baseline)
+
+### Architecture
+- Thread liên tục (`Runnable`), scan 200ms/vòng
+- `blastPickupSmart(0)` = ghost move + `Service.gI().gameAQ()` cho mỗi item
+- Lưu `origCx/origCy` → ghost move → nhặt → quay về vị trí gốc
+- `toggle()` = bật/tắt từ NamMod menu + lệnh `nhat`
+- `start()/stop()` = hook từ ChatRouter khi TS bật/tắt
+
+### Quy tắc KHÔNG được phá
+- **KHÔNG có `static { start(); }`** — tránh auto-start khi class load
+- **KHÔNG set `Code.gameAQ = true`** — tránh conflict với game gốc
+- **KHÔNG refactor toggle logic** — `toggle()` + `start()/stop()` đã hoạt động
+
+---
+
+## 2026-08-07: while(gameCA) — Scope Giới Hạn (BẮT BUỘC NHỚ)
+
+### `gameCA` lifecycle
+- `gameCA = true` khi `gameAA()` gọi (bắt đầu auto/TS)
+- `gameCA = false` khi `gameAB()` gọi HOẶC disconnect/reconnect
+- `while (gameCA)` loop trong `Code.run()` → **CHỈ chạy khi TS/auto active**
+
+### Quy tắc
+- **KHÔNG đặt logic cần chạy 24/7** trong `while (gameCA)` (VD: VIP watcher, reconnect handler)
+- Dùng **thread riêng** cho logic cần chạy liên tục bất kể TS
+- `gameAP()` = init method, chạy khi game khởi tạo → nơi restart các watcher thread
+
 
