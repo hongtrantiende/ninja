@@ -61,6 +61,12 @@ implements Runnable {
     public static long gameBD;
     public static boolean gameBE = true;
     public static boolean timBG = false;
+    public static boolean hideItemDrop = false;
+    public static MyVector realItemMap = null;
+    public static boolean MuaMapVip = false;
+    public static boolean DungMapVip = false;
+    private static long lastVipDebugTime = 0;
+    private static boolean mapVipUsed = false; // true = da dung card, doi chet moi reset
     public static boolean gameBG;
     public static int gameBH;
     public static boolean gameBI;
@@ -255,19 +261,26 @@ implements Runnable {
     }
 
     public static void gameAA(int var0, int var1) {
+        // Xoa TuDanh khoi stack truoc khi push TS — tranh TS pop ra TuDanh
+        if (gameAB == gameCD) {
+            gameAB = null;
+        }
         gameCC.gameAA(var0, var1, Char.TsMapTrong ? -1 : (int)TileMap.zoneID);
         Code.gameAA(gameCC);
+        timBG = true; // Tat hieu ung skill giam lag khi TS
     }
 
     private static void gameAC(int var0, int var1) {
         gameAC.gameAA(var0, var1, Char.TsMapTrong ? -1 : (int)TileMap.zoneID, false, false);
         Code.gameAA(gameAC);
+        timBG = true; // Tat hieu ung skill giam lag khi AK
     }
 
     private static void gameAA(boolean var0, boolean var1) {
         gameAC.gameAA(-1, (int)TileMap.mapID, (int)TileMap.zoneID, var0, var1);
         Code.gameAC.gameAA = true;
         Code.gameAA(gameAC);
+        timBG = true; // Tat hieu ung skill giam lag khi AK
     }
 
     public static void gameAD() {
@@ -281,6 +294,8 @@ implements Runnable {
     }
 
     private static void gameAQ() {
+        // Block TuDanh khi dang chay TS/AK — tranh TsBoost spam skill trigger tu danh
+        if (gameAB == gameCC || gameAB == gameAC) return;
         gameCD.gameAC();
         Code.gameAA(gameCD);
     }
@@ -310,6 +325,7 @@ implements Runnable {
             } catch (Exception e) {}
         }
         gameAB = null;
+        timBG = false; // Khoi phuc hieu ung skill khi tat auto
     }
 
     private static void gameAT() {
@@ -422,6 +438,8 @@ implements Runnable {
             while (gameCA) {
                 long var1 = System.currentTimeMillis();
                 try {
+                    // Kiem tra TsBoost treo — thay watchdog thread rieng
+                    TsBoost.checkHang();
                     int var23;
                     int var6;
                     int var5;
@@ -459,6 +477,29 @@ implements Runnable {
                             }
                             gameBD -= var8 - gameBC;
                             gameBC = var8;
+                        }
+                        // === Auto dung the map vip khi sai map (5s cooldown) ===
+                        if (DungMapVip && !mapVipUsed
+                                && TileMap.mapID != TanSat.mapid
+                                && System.currentTimeMillis() - lastVipDebugTime > 5000L) {
+                            lastVipDebugTime = System.currentTimeMillis();
+                            int mvIdx = Char.gameAI(906);
+                            if (mvIdx >= 0) {
+                                Service.gI().useItem(mvIdx);
+                                mapVipUsed = true;
+                            } else if (MuaMapVip && var3.luong >= 100) {
+                                Service.gI().gameAB(14, 34, 1);
+                                LockGame.gameAG();
+                                mvIdx = Char.gameAI(906);
+                                if (mvIdx >= 0) {
+                                    Service.gI().useItem(mvIdx);
+                                    mapVipUsed = true;
+                                }
+                            }
+                        }
+                        // Reset khi chet
+                        if (var3.statusMe == 14 || var3.cHP <= 0) {
+                            mapVipUsed = false;
                         }
                         gameAB.gameAK();
                         if (var3.isHuman == Auto.gameAK && (var3.myskill == null || var3.myskill.template.id != Auto.skill1.template.id)) {
@@ -547,6 +588,7 @@ implements Runnable {
                         if (SetAuto.dungx2) {
                             Code.gameAB(248);
                         }
+
                         TileMap.gameBZ[138] = new short[]{(short)TanSat.mapid};
                         if (gameCO.size() > 0) {
                             int[] var20 = new int[]{150000, 247500, 408375, 673819, 1111801, 2056832, 4010822, 7420021, 12243035};
@@ -774,7 +816,45 @@ implements Runnable {
                 if (Char.getMyChar().isCaptcha) {
                     LockGame.gameAI();
                 }
-                Auto.Sleep((var1 = System.currentTimeMillis() - var1) < 100L ? 100L - var1 : 0L);
+                // Toi uu: khi dang auto, tang sleep va giam render
+                long loopMs = System.currentTimeMillis() - var1;
+                // An vat pham roi tren map (giam render)
+                if (hideItemDrop) {
+                    try {
+                        if (realItemMap == null) realItemMap = new MyVector();
+                        // Copy item moi tu vItemMap vao realItemMap
+                        for (int hi = 0; hi < GameScr.vItemMap.size(); hi++) {
+                            Object obj = GameScr.vItemMap.elementAt(hi);
+                            if (!realItemMap.contains(obj)) {
+                                realItemMap.addElement(obj);
+                            }
+                        }
+                        // Xoa item da nhat khoi realItemMap
+                        for (int hi = realItemMap.size() - 1; hi >= 0; hi--) {
+                            ItemMap im = (ItemMap) realItemMap.elementAt(hi);
+                            if (!GameScr.vItemMap.contains(im)) {
+                                realItemMap.removeElementAt(hi);
+                            }
+                        }
+                        GameScr.vItemMap.removeAllElements();
+                    } catch (Exception e2) {}
+                } else if (realItemMap != null) {
+                    realItemMap = null;
+                }
+                if (timBG) {
+                    // Xoa hieu ung render thua khi auto (ke ca tu Buff.class)
+                    try { GameScr.vMobSoul.removeAllElements(); } catch (Exception e2) {}
+                    try {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            me.effPaints = null;
+                            me.skillPaint = null;
+                        }
+                    } catch (Exception e2) {}
+                    Auto.Sleep(loopMs < 200L ? 200L - loopMs : 0L);
+                } else {
+                    Auto.Sleep(loopMs < 100L ? 100L - loopMs : 0L);
+                }
             }
         }
         catch (Exception exception) {

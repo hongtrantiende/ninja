@@ -417,4 +417,32 @@ for (Mob mob : GameScr.vMob) {
 
 ### Giải pháp
 Thêm `countAliveMobs() < 3` vào **TẤT CẢ 3** call sites. Nếu chỉ sửa 1 chỗ, 2 chỗ còn lại vẫn trigger chuyển khu sớm.
+
+## 2026-08-07: Auto Map VIP — Mua + Dùng Thẻ Map VIP Khi TS
+
+### Vấn đề
+Khi TS ở map VIP (cần thẻ vào), nếu chết/mất kết nối → respawn ở ngoài → không tự vào lại map VIP.
+
+### Phát hiện quan trọng: TanSat.mapid ≠ TileMap.mapID
+- **`TanSat.mapid`** = ID nội bộ của TanSat (VD: **134** cho map VIP)
+- **`TileMap.mapID`** = ID map thực tế game (VD: **195** cho map VIP)
+- **KHÔNG THỂ** so sánh trực tiếp hai ID này — luôn khác nhau kể cả khi đúng map
+- ⇒ Dùng cờ `mapVipUsed` (one-shot per death) thay vì check map ID liên tục
+
+### NPC Shop Goshu — Slot Calculation
+- **Grid:** 6 cột × 8 hàng = 48 slot (index 0-47)
+- **Công thức:** `slot = (row - 1) × 6 + (col - 1)` (1-indexed)
+- **Thẻ Map VIP (ID 906):** Cột 5, Hàng 6 → **slot = 34**
+- **Cổ lệnh (ID 490):** slot = 28
+- **API:** `Service.gI().gameAB(14, slot, 1)` — menuId=14 (Goshu)
+- **Giá:** 100 lượng/thẻ
+
+### Cơ chế One-Shot
+- `mapVipUsed = false` khi init + khi chết (`statusMe==14 || cHP<=0`)
+- Trigger: `DungMapVip && !mapVipUsed && TileMap.mapID != TanSat.mapid && cooldown 5s`
+- Sau dùng thẻ → `mapVipUsed = true` → dừng mua/dùng cho đến lần chết tiếp
+
+### Files
+- **Code.java:** VIP map check block + `mapVipUsed` field + death reset
+- **NamMod.java:** Toggle "Dùng thẻ map vip" + "Mua thẻ map vip"
 

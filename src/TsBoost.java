@@ -1,27 +1,28 @@
 /**
- * TsBoost — Bo sung tang toc cho TS/AK goc.
+ * TsBoost v2 — Bo sung tang toc cho TS/AK goc. Toi uu cho 20 instances.
  *
  * Chay song song voi TanSat (Code.gameAB):
  * - TS goc: xu ly target, di chuyen, heal, nhat do, hoi sinh, next map
  * - TsBoost: spam attack AoE tat ca quai trong range + auto buff + map watchdog
  *
+ * v2: Toi uu CPU/RAM — gop watchdog vao main loop, tang delay, giam thread.
+ *
  * Lenh: tsp (bat/tat mode boost)
- * Khi mode ON, moi lan bat ts/ak se tu dong kich hoat TsBoost.
  */
 public class TsBoost implements Runnable {
     public static boolean modeEnabled = true;   // Mac dinh ON
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // === CONFIG ===
-    private static final int ATTACK_DELAY_MS = 50;     // Delay giua moi lan attack
-    private static final int IDLE_DELAY_MS = 200;       // Delay khi het quai
-    private static final int BUFF_INTERVAL_MS = 15000;  // Buff moi 15 giay
-    private static final int MAX_ATTACK_RANGE = 400;    // Range danh toi da (px)
-    private static final int STATS_INTERVAL_MS = 30000;  // Stats moi 30 giay
-    private static final int WRONG_MAP_TIMEOUT_MS = 6000; // 6s sai map = retry GoMap
-    private static final int SKILL_RESELECT_MS = 5000;   // Chon lai skill moi 5s
-    private static final int ATTACK_KILL_WINDOW_MS = 600; // Quai chet trong 600ms = minh giet
+    // === CONFIG (toi uu cho 20 instances) ===
+    private static final int ATTACK_DELAY_MS = 150;     // 150ms/attack (giam tu 50)
+    private static final int IDLE_DELAY_MS = 500;        // 500ms khi het quai (giam tu 200)
+    private static final int BUFF_INTERVAL_MS = 30000;   // Buff moi 30s (giam tu 15s)
+    private static final int MAX_ATTACK_RANGE = 400;     // Range danh toi da (px)
+    private static final int WRONG_MAP_TIMEOUT_MS = 8000; // 8s sai map
+    private static final int SKILL_RESELECT_MS = 15000;   // Chon lai skill moi 15s (giam tu 5s)
+    private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
+    private static final int HANG_TIMEOUT_MS = 30000;      // 30s treo = tu sat
 
     // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
@@ -32,20 +33,17 @@ public class TsBoost implements Runnable {
     private static long wrongMapSince = 0;
     private static int cachedSkillId = -1;
     private static long lastSkillSelectTime = 0;
+    private static long lastLoopTime = 0; // Watchdog tich hop
 
     // === KILL TRACKING ===
     private static int totalKills = 0;
     private static int sessionKills = 0;
     private static int lastMobCount = -1;
-    private static long statsStartTime = 0;
     private static long sessionStartTime = 0;
     private static long startExp = 0;
     private static int startYen = 0;
     private static int startXu = 0;
     private static int startLuong = 0;
-
-    // === SKILL EFFECTS ===
-    private static boolean savedTimBG = false;
 
     // =============================================
     // LIFECYCLE
@@ -86,17 +84,18 @@ public class TsBoost implements Runnable {
         wrongMapSince = 0;
         cachedSkillId = -1;
         lastMobCount = -1;
-        savedTimBG = Code.timBG;
+        lastLoopTime = System.currentTimeMillis();
         Code.timBG = true; // Tat hieu ung skill giam lag
         thread = new Thread(new TsBoost());
         thread.start();
+        // Khong tao watchdog thread rieng — tich hop trong main loop
     }
 
     /** Tat boost thread. */
     public static void stop() {
         isRunning = false;
         thread = null;
-        Code.timBG = false; // Luon khoi phuc hieu ung
+        Code.timBG = false;
     }
 
     /** Hook: goi khi ts/ak bat. */
@@ -114,7 +113,7 @@ public class TsBoost implements Runnable {
         if (!modeEnabled) return;
         new Thread(new Runnable() {
             public void run() {
-                for (int i = 0; i < 120; i++) {
+                for (int i = 0; i < 60; i++) { // 60x500ms = 30s (giam so vong)
                     if (!modeEnabled) return;
                     if (Code.gameAB != null) {
                         if (!isRunning) {
@@ -123,7 +122,7 @@ public class TsBoost implements Runnable {
                         }
                         return;
                     }
-                    try { Thread.sleep(250L); } catch (Exception e) {}
+                    try { Thread.sleep(500L); } catch (Exception e) {} // 500ms thay 250ms
                 }
             }
         }).start();
@@ -135,7 +134,7 @@ public class TsBoost implements Runnable {
     }
 
     // =============================================
-    // MAIN LOOP
+    // MAIN LOOP (tich hop watchdog)
     // =============================================
 
     public void run() {
@@ -148,44 +147,69 @@ public class TsBoost implements Runnable {
 
         totalKills = 0;
         lastMobCount = -1;
-        statsStartTime = System.currentTimeMillis();
         long lastAttackTime = 0;
 
         while (isRunning) {
             try {
+                long loopStart = System.currentTimeMillis();
+                lastLoopTime = loopStart;
+
                 // TS goc da tat -> dung
                 if (Code.gameAB == null) {
-                    sleep(1000);
+                    sleep(1500); // 1.5s thay 1s
                     if (Code.gameAB == null) break;
                 }
 
                 Char myChar = Char.getMyChar();
                 if (myChar == null || myChar.cName == null) {
-                    sleep(1000);
+                    sleep(1500);
                     continue;
                 }
 
                 // Dang chet -> doi TS goc hoi sinh
                 if (myChar.statusMe == 14 || myChar.cHP <= 0) {
-                    wrongMapSince = 0;
-                    sleep(500);
+                    sleep(1000);
                     continue;
                 }
 
-                // === MAP WATCHDOG ===
-                if (!isBossHuntingMode()) {
+                // === MAP WATCHDOG (luon check, ke ca boss mode) ===
+                {
                     Auto currentAuto = Code.gameAB;
                     if (currentAuto != null && currentAuto.mapID >= 0
                             && TileMap.mapID != currentAuto.mapID) {
                         if (wrongMapSince == 0) {
-                            wrongMapSince = System.currentTimeMillis();
-                        } else if (System.currentTimeMillis() - wrongMapSince > WRONG_MAP_TIMEOUT_MS) {
-                            GameScr.gameAC("Ts Pro: Sai map! (" + TileMap.mapID + " -> " + currentAuto.mapID + ") Retry...");
+                            wrongMapSince = loopStart;
+                            GameScr.gameAC("Ts Pro: Sai map (" + TileMap.mapID + " != " + currentAuto.mapID + "), doi...");
+                        } else if (loopStart - wrongMapSince > WRONG_MAP_TIMEOUT_MS) {
+                            GameScr.gameAC("Ts Pro: Sai map " + ((loopStart - wrongMapSince) / 1000) + "s! GoMap " + currentAuto.mapID);
                             try { GameCanvas.endDlg(); } catch (Exception e) {}
                             try { LockGame.gameBK(); } catch (Exception e) {}
+
+                            // Map VIP (195): can dung the map vip truoc
+                            if (currentAuto.mapID == 195 && Code.DungMapVip) {
+                                int mvIdx = Char.gameAI(906);
+                                if (mvIdx >= 0) {
+                                    GameScr.gameAC("Dung the map vip de vao map 195...");
+                                    Service.gI().useItem(mvIdx);
+                                    sleep(2000);
+                                } else if (Code.MuaMapVip && Char.getMyChar().luong >= 10) {
+                                    GameScr.gameAC("Mua the map vip...");
+                                    Service.gI().gameAB(14, 28, 1);
+                                    LockGame.gameAG();
+                                    sleep(2000);
+                                    mvIdx = Char.gameAI(906);
+                                    if (mvIdx >= 0) {
+                                        Service.gI().useItem(mvIdx);
+                                        sleep(2000);
+                                    }
+                                } else {
+                                    GameScr.gameAC("Khong co the map vip trong tui!");
+                                }
+                            }
+
                             try { TileMap.GoMap(currentAuto.mapID); } catch (Exception e) {}
-                            wrongMapSince = System.currentTimeMillis();
-                            sleep(2000);
+                            wrongMapSince = loopStart;
+                            sleep(3000);
                             continue;
                         }
                     } else {
@@ -194,22 +218,20 @@ public class TsBoost implements Runnable {
                 }
 
                 // === AUTO BUFF ===
-                long now = System.currentTimeMillis();
-                if (now - lastBuffTime > BUFF_INTERVAL_MS) {
+                if (loopStart - lastBuffTime > BUFF_INTERVAL_MS) {
                     autoBuff(myChar);
-                    lastBuffTime = now;
+                    lastBuffTime = loopStart;
                 }
 
                 // === COLLECT MOBS TRONG RANGE ===
                 MyVector mobs = collectMobsInRange(myChar);
 
                 if (mobs.size() > 0) {
-                    // Kill tracking
+                    // Kill tracking (gon nhe)
                     int currentMobCount = mobs.size();
-                    long now2 = System.currentTimeMillis();
                     if (lastMobCount >= 0 && currentMobCount < lastMobCount) {
                         int dropped = lastMobCount - currentMobCount;
-                        if (now2 - lastAttackTime < ATTACK_KILL_WINDOW_MS) {
+                        if (loopStart - lastAttackTime < ATTACK_KILL_WINDOW_MS) {
                             totalKills += dropped;
                             sessionKills += dropped;
                             ThongKe.addKills(dropped);
@@ -227,12 +249,38 @@ public class TsBoost implements Runnable {
                 }
 
             } catch (Exception e) {
-                sleep(500);
+                sleep(1000);
             }
         }
-        // Khoi phuc hieu ung skill khi thoat
         Code.timBG = false;
         isRunning = false;
+    }
+
+    /**
+     * Kiem tra hang — goi tu ben ngoai (vi du Code.run loop).
+     * Neu lastLoopTime qua cu (>30s) = treo, tu sat ve lang.
+     */
+    public static void checkHang() {
+        if (!isRunning || lastLoopTime == 0) return;
+        long elapsed = System.currentTimeMillis() - lastLoopTime;
+        if (elapsed > HANG_TIMEOUT_MS) {
+            GameScr.gameAC("Ts Pro: TREO " + (elapsed / 1000) + "s! Tu sat ve lang...");
+            // Kill thread
+            try {
+                Thread oldThread = thread;
+                if (oldThread != null) oldThread.interrupt();
+            } catch (Exception e) {}
+            isRunning = false;
+            thread = null;
+            Code.timBG = false;
+            // Tu sat ve lang
+            try {
+                GameCanvas.endDlg();
+                GameScr.gameAB(5, 0, 0);
+                Service.gI().gameAK();
+                TileMap.gameAF();
+            } catch (Exception e) {}
+        }
     }
 
     // =============================================
@@ -323,7 +371,7 @@ public class TsBoost implements Runnable {
                 if (s.template.type == 2) {
                     Service.gI().gameAG(s.template.id);
                     Service.gI().gameAR();
-                    sleep(50);
+                    sleep(80); // 80ms thay 50ms
                 }
             }
         } catch (Exception e) {}

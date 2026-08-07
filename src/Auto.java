@@ -435,6 +435,8 @@ public abstract class Auto {
     }
 
     public static void gameAA(SkillPaint var0) {
+        // Skip hieu ung khi dang auto (giam lag)
+        if (Code.timBG) return;
         if (reAE.size() > 0 || reAF.size() > 0) {
             int var2;
             EffectPaint[] var1 = new EffectPaint[reAE.size() + reAF.size()];
@@ -802,7 +804,9 @@ public abstract class Auto {
                         Service.gI().gameAX(var11.charId);
                         var10.lastTimeUseThisSkill = System.currentTimeMillis();
                         var10.paintCanNotUseSkill = true;
-                        var3.gameAB(GameScr.sks[var10.template.id], 0);
+                        if (!Code.timBG) {
+                            var3.gameAB(GameScr.sks[var10.template.id], 0);
+                        }
                         try {
                             Thread.sleep(100L);
                             return;

@@ -19,6 +19,9 @@ public final class NamMod implements IActionListener {
     private static final int TREO_MN = 120119;
     private static final int TS_BOSS = 120120;
     private static final int BOSS_RADAR = 120121;
+    private static final int HIDE_ITEM_DROP = 120122;
+    private static final int MUA_MAP_VIP = 120123;
+    private static final int DUNG_MAP_VIP = 120124;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -50,6 +53,7 @@ public final class NamMod implements IActionListener {
 
         // === H\u00FAt VP ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
+        items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
 
         // === Auto Level ===
         String lvStatus = AutoLevel.isRunning
@@ -58,6 +62,8 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
         // === Ti\u1ec7n \u00edch ===
+        items.addElement(command("Mua th\u1ebb map vip: " + onOff(Code.MuaMapVip), MUA_MAP_VIP));
+        items.addElement(command("D\u00f9ng th\u1ebb map vip: " + onOff(Code.DungMapVip), DUNG_MAP_VIP));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
         items.addElement(command("T\u00e1ch \u0111\u1ed3 l\u1ebb", TACH_LE));
         items.addElement(command("Th\u00f4ng tin Nam Mod", THONG_TIN));
@@ -125,12 +131,24 @@ public final class NamMod implements IActionListener {
             case HUT_VP:
                 AutoPickup.toggle();
                 return;
+            case HIDE_ITEM_DROP:
+                Code.hideItemDrop = !Code.hideItemDrop;
+                GameScr.gameAC(Code.hideItemDrop ? "\u1ea8n VP r\u01a1i: ON" : "\u1ea8n VP r\u01a1i: OFF");
+                return;
             case AUTO_LEVEL:
                 if (AutoLevel.isRunning) {
                     AutoLevel.stop();
                 } else {
                     openAutoLevelInput();
                 }
+                return;
+            case MUA_MAP_VIP:
+                Code.MuaMapVip = !Code.MuaMapVip;
+                GameScr.gameAC(Code.MuaMapVip ? "Mua th\u1ebb map vip: ON" : "Mua th\u1ebb map vip: OFF");
+                return;
+            case DUNG_MAP_VIP:
+                Code.DungMapVip = !Code.DungMapVip;
+                GameScr.gameAC(Code.DungMapVip ? "D\u00f9ng th\u1ebb map vip: ON" : "D\u00f9ng th\u1ebb map vip: OFF");
                 return;
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();
