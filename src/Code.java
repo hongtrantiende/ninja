@@ -66,7 +66,8 @@ implements Runnable {
     public static boolean MuaMapVip = false;
     public static boolean DungMapVip = false;
     private static long lastVipDebugTime = 0;
-    private static boolean mapVipUsed = false; // true = da dung card, doi chet moi reset
+    private static boolean mapVipUsed = false;
+    private static int lastVipMapId = -1; // true = da dung card, doi chet moi reset
     public static boolean gameBG;
     public static int gameBH;
     public static boolean gameBI;
@@ -88,6 +89,67 @@ implements Runnable {
     private static long gameCS;
     private static final Random gameCT;
     private static long gameCU;
+    private static Thread vipWatcherThread;
+
+    /** Thread doc lap: khi MuaMapVip ON, mua the khi can */
+    public static void startVipMapWatcher() {
+        if (vipWatcherThread != null && vipWatcherThread.isAlive()) return;
+        vipWatcherThread = new Thread(new Runnable() {
+            public void run() {
+                // Doi game load xong
+                try { Thread.sleep(5000); } catch (Exception e) {}
+                GameScr.gameAC("[VIP] Watcher started");
+                int prevMap = TileMap.mapID;
+                boolean justBought = false;
+                while (DungMapVip) {
+                    try {
+                        Thread.sleep(3000);
+                        Char myChar = Char.getMyChar();
+                        if (myChar == null || Service.gI() == null) continue;
+
+                        // Khi map thay doi → reset
+                        if (TileMap.mapID != prevMap) {
+                            GameScr.gameAC("[VIP] Map doi: " + prevMap + " -> " + TileMap.mapID);
+                            prevMap = TileMap.mapID;
+                            justBought = false;
+                            continue;
+                        }
+
+                        if (justBought) continue;
+
+                        // Tim the trong tui
+                        int mvIdx = Char.gameAI(906);
+                        if (mvIdx >= 0) {
+                            GameScr.gameAC("[VIP] Dung the...");
+                            Service.gI().useItem(mvIdx);
+                            justBought = true;
+                            Thread.sleep(10000);
+                            prevMap = TileMap.mapID;
+                            continue;
+                        }
+
+                        // Mua the
+                        if (MuaMapVip && myChar.luong >= 100) {
+                            GameScr.gameAC("[VIP] Mua the...");
+                            Service.gI().gameAB(14, 34, 1);
+                            LockGame.gameAG();
+                            Thread.sleep(2000);
+                            mvIdx = Char.gameAI(906);
+                            if (mvIdx >= 0) {
+                                GameScr.gameAC("[VIP] Dung the vua mua...");
+                                Service.gI().useItem(mvIdx);
+                            }
+                            justBought = true;
+                            Thread.sleep(10000);
+                            prevMap = TileMap.mapID;
+                        }
+                    } catch (Exception e) {}
+                }
+                GameScr.gameAC("[VIP] Watcher stopped");
+            }
+        });
+        vipWatcherThread.start();
+    }
 
     private static void gameAP() {
         int var0;
@@ -226,6 +288,15 @@ implements Runnable {
             catch (NumberFormatException numberFormatException) {
                 // empty catch block
             }
+        }
+        // Auto restart VIP watcher khi reconnect
+        if (DungMapVip) {
+            // Kill thread cu neu con
+            if (vipWatcherThread != null) {
+                try { vipWatcherThread.interrupt(); } catch (Exception e) {}
+                vipWatcherThread = null;
+            }
+            startVipMapWatcher();
         }
     }
 
@@ -477,29 +548,6 @@ implements Runnable {
                             }
                             gameBD -= var8 - gameBC;
                             gameBC = var8;
-                        }
-                        // === Auto dung the map vip khi sai map (5s cooldown) ===
-                        if (DungMapVip && !mapVipUsed
-                                && TileMap.mapID != TanSat.mapid
-                                && System.currentTimeMillis() - lastVipDebugTime > 5000L) {
-                            lastVipDebugTime = System.currentTimeMillis();
-                            int mvIdx = Char.gameAI(906);
-                            if (mvIdx >= 0) {
-                                Service.gI().useItem(mvIdx);
-                                mapVipUsed = true;
-                            } else if (MuaMapVip && var3.luong >= 100) {
-                                Service.gI().gameAB(14, 34, 1);
-                                LockGame.gameAG();
-                                mvIdx = Char.gameAI(906);
-                                if (mvIdx >= 0) {
-                                    Service.gI().useItem(mvIdx);
-                                    mapVipUsed = true;
-                                }
-                            }
-                        }
-                        // Reset khi chet
-                        if (var3.statusMe == 14 || var3.cHP <= 0) {
-                            mapVipUsed = false;
                         }
                         gameAB.gameAK();
                         if (var3.isHuman == Auto.gameAK && (var3.myskill == null || var3.myskill.template.id != Auto.skill1.template.id)) {

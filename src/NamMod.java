@@ -148,6 +148,9 @@ public final class NamMod implements IActionListener {
                 return;
             case DUNG_MAP_VIP:
                 Code.DungMapVip = !Code.DungMapVip;
+                if (Code.DungMapVip) {
+                    Code.startVipMapWatcher();
+                }
                 GameScr.gameAC(Code.DungMapVip ? "D\u00f9ng th\u1ebb map vip: ON" : "D\u00f9ng th\u1ebb map vip: OFF");
                 return;
             case MOI_NHOM:
