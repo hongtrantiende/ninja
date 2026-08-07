@@ -247,21 +247,18 @@ public class ChatRouter {
             boolean handled = Code.gameAF(text);
             if (handled) {
                 if (Code.gameAB != null) {
-                    AutoPickup.start();
                     // Tat hieu ung skill de giam lag
                     Code.timBG = true;
                     if (!isAk) {
                         TsBoost.onTsStarted();
                     }
-                    GameScr.gameAC("H\u00FAt VP ON!" + (!isAk && TsBoost.isRunning ? " + Ts Pro!" : ""));
+                    GameScr.gameAC(!isAk && TsBoost.isRunning ? "TS + Ts Pro!" : "TS ON!");
                 } else if (hadAuto) {
                     TsBoost.stop();
-                    AutoPickup.stop();
                     // Khoi phuc hieu ung skill
                     Code.timBG = false;
-                    GameScr.gameAC("H\u00FAt VP OFF!");
+                    GameScr.gameAC("TS OFF!");
                 } else {
-                    AutoPickup.syncAfterAutoCommand();
                     if (!isAk) {
                         TsBoost.syncAfterTs();
                     }

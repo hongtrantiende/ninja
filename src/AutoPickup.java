@@ -19,49 +19,31 @@ public class AutoPickup implements Runnable {
     private static final int GHOST_SETTLE_MS = 50;      // 50ms doi server nhan vi tri
 
     /**
-     * Toggle hut VP on/off.
+     * Lenh hut VP — chay 1 lan, nhat sach roi dung.
      */
     public static void toggle() {
         if (isRunning) {
-            stop();
-            GameScr.gameAC("T\u1eaft h\u00FAt VP!");
-        } else {
-            start();
-            GameScr.gameAC("B\u1eadt h\u00FAt VP!");
+            GameScr.gameAC("\u0110ang h\u00FAt...");
+            return;
         }
-    }
-
-    static {
-        start();
-    }
-
-    public static void start() {
-        if (isRunning) return;
-        isRunning = true;
-        Code.gameAQ = true;
-        thread = new Thread(new AutoPickup());
-        thread.start();
-    }
-
-    public static void syncAfterAutoCommand() {
+        // Chay 1 lan trong thread rieng
         new Thread(new Runnable() {
             public void run() {
-                for (int i = 0; i < 60; i++) { // 60x500ms = 30s
-                    if (Code.gameAB instanceof TanSat) {
-                        boolean wasOff = !isRunning;
-                        start();
-                        if (wasOff) GameScr.gameAC("H\u00FAt VP ON theo TS!");
-                        return;
-                    }
-                    try { Thread.sleep(500L); } catch (Exception e) {} // 500ms thay 250ms
-                }
+                isRunning = true;
+                Code.gameAQ = true;
+                GameScr.gameAC("H\u00FAt VP...");
+                grabOnce();
+                isRunning = false;
             }
         }).start();
     }
 
+    public static void start() {
+        // Giu lai cho backward compat — khong lam gi
+    }
+
     public static void stop() {
         isRunning = false;
-        thread = null;
     }
 
     /**
@@ -131,22 +113,8 @@ public class AutoPickup implements Runnable {
         myChar.cy = origCy;
     }
 
-    /**
-     * Thread chinh — 1 pass/scan, delay 300ms.
-     */
-    public void run() {
-        try { Thread.sleep(500); } catch (Exception e) {}
-
-        while (isRunning) {
-            try {
-                if (getItems().size() > 0) {
-                    blastPickupSmart(THREAD_DELAY_MS);
-                }
-            } catch (Exception e) {}
-
-            try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
-        }
-    }
+    // Thread run — khong dung nua (one-shot via toggle)
+    public void run() {}
 
     /** Lay vector item thuc te — dung realItemMap khi an VP. */
     private static MyVector getItems() {
