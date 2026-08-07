@@ -1,11 +1,12 @@
 /**
- * TsBoost v2 — Bo sung tang toc cho TS/AK goc. Toi uu cho 20 instances.
+ * TsBoost v3 — Bo sung tang toc cho TS/AK goc. Toi uu cho 20 instances.
  *
  * Chay song song voi TanSat (Code.gameAB):
  * - TS goc: xu ly target, di chuyen, heal, nhat do, hoi sinh, next map
  * - TsBoost: spam attack AoE tat ca quai trong range + auto buff + map watchdog
  *
- * v2: Toi uu CPU/RAM — gop watchdog vao main loop, tang delay, giam thread.
+ * v3: Anti-stuck HP+MP. Moi 30s hien thong bao check.
+ *     HP va MP khong doi 30s = ket => tu sat ve nha.
  *
  * Lenh: tsp (bat/tat mode boost)
  */
@@ -22,7 +23,7 @@ public class TsBoost implements Runnable {
     private static final int WRONG_MAP_TIMEOUT_MS = 8000; // 8s sai map
     private static final int SKILL_RESELECT_MS = 15000;   // Chon lai skill moi 15s (giam tu 5s)
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
-    private static final int HANG_TIMEOUT_MS = 30000;      // 30s treo = tu sat
+    private static final int STUCK_CHECK_INTERVAL_MS = 30000; // Check stuck moi 30s
 
     // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
@@ -34,6 +35,17 @@ public class TsBoost implements Runnable {
     private static int cachedSkillId = -1;
     private static long lastSkillSelectTime = 0;
     private static long lastLoopTime = 0; // Watchdog tich hop
+
+    // === STUCK DETECTION ===
+    private static long lastStuckCheckTime = 0;  // Thoi diem check stuck gan nhat
+    private static int prevCheckYen = 0;          // Yen snapshot
+    private static int attacksSent = 0;           // Tong attack gui session nay
+    private static int prevCheckAttacks = 0;      // Attack snapshot
+    private static int prevCx = 0;                // Vi tri X snapshot
+    private static int prevCy = 0;                // Vi tri Y snapshot
+    private static int prevHp = 0;                // HP snapshot
+    private static int prevMp = 0;                // MP snapshot (tin hieu chinh)
+    private static boolean hadMobsInPeriod = false; // Co mob song trong 30s qua?
 
     // === KILL TRACKING ===
     private static int totalKills = 0;
@@ -85,10 +97,21 @@ public class TsBoost implements Runnable {
         cachedSkillId = -1;
         lastMobCount = -1;
         lastLoopTime = System.currentTimeMillis();
-        Code.timBG = true; // Tat hieu ung skill giam lag
+        // Reset stuck detection
+        lastStuckCheckTime = System.currentTimeMillis();
+        attacksSent = 0;
+        prevCheckAttacks = 0;
+        if (myChar != null) {
+            prevCheckYen = myChar.yen;
+            prevCx = myChar.cx;
+            prevCy = myChar.cy;
+            prevHp = myChar.cHP;
+            prevMp = myChar.cMP;
+        }
+        hadMobsInPeriod = false;
+        Code.timBG = true;
         thread = new Thread(new TsBoost());
         thread.start();
-        // Khong tao watchdog thread rieng — tich hop trong main loop
     }
 
     /** Tat boost thread. */
@@ -148,6 +171,8 @@ public class TsBoost implements Runnable {
         totalKills = 0;
         lastMobCount = -1;
         long lastAttackTime = 0;
+        short prevMapID = TileMap.mapID;
+        byte prevZoneID = TileMap.zoneID;
 
         while (isRunning) {
             try {
@@ -217,6 +242,33 @@ public class TsBoost implements Runnable {
                     }
                 }
 
+                // === STUCK DETECTION (moi 30s) ===
+                if (loopStart - lastStuckCheckTime >= STUCK_CHECK_INTERVAL_MS) {
+                    if (checkProgress(myChar, loopStart)) {
+                        // KET! Da tu sat, reset timer va tiep tuc loop
+                        // (nhan vat se chet -> TS goc hoi sinh -> quay lai danh)
+                        lastStuckCheckTime = loopStart;
+                        sleep(3000); // Cho hoi sinh
+                        continue;
+                    }
+                    lastStuckCheckTime = loopStart;
+                }
+
+                // === RESET STUCK KHI CHUYEN MAP/KHU ===
+                if (TileMap.mapID != prevMapID || TileMap.zoneID != prevZoneID) {
+                    prevMapID = TileMap.mapID;
+                    prevZoneID = TileMap.zoneID;
+                    // Chuyen map/khu = co tien trien, reset stuck
+                    lastStuckCheckTime = loopStart;
+                    prevCheckYen = myChar.yen;
+                    prevCheckAttacks = attacksSent;
+                    prevCx = myChar.cx;
+                    prevCy = myChar.cy;
+                    prevHp = myChar.cHP;
+                    prevMp = myChar.cMP;
+                    hadMobsInPeriod = false;
+                }
+
                 // === AUTO BUFF ===
                 if (loopStart - lastBuffTime > BUFF_INTERVAL_MS) {
                     autoBuff(myChar);
@@ -227,6 +279,7 @@ public class TsBoost implements Runnable {
                 MyVector mobs = collectMobsInRange(myChar);
 
                 if (mobs.size() > 0) {
+                    hadMobsInPeriod = true; // Ghi nhan co mob
                     // Kill tracking (gon nhe)
                     int currentMobCount = mobs.size();
                     if (lastMobCount >= 0 && currentMobCount < lastMobCount) {
@@ -257,15 +310,14 @@ public class TsBoost implements Runnable {
     }
 
     /**
-     * Kiem tra hang — goi tu ben ngoai (vi du Code.run loop).
-     * Neu lastLoopTime qua cu (>30s) = treo, tu sat ve lang.
+     * Backup: check thread TsBoost bi freeze (deadlock).
+     * Goi tu Code.run loop. Neu thread khong chay >60s = treo cung.
      */
     public static void checkHang() {
         if (!isRunning || lastLoopTime == 0) return;
         long elapsed = System.currentTimeMillis() - lastLoopTime;
-        if (elapsed > HANG_TIMEOUT_MS) {
-            GameScr.gameAC("Ts Pro: TREO " + (elapsed / 1000) + "s! Tu sat ve lang...");
-            // Kill thread
+        if (elapsed > 60000) { // 60s thread freeze = treo cung
+            GameScr.gameAC("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
             try {
                 Thread oldThread = thread;
                 if (oldThread != null) oldThread.interrupt();
@@ -273,14 +325,101 @@ public class TsBoost implements Runnable {
             isRunning = false;
             thread = null;
             Code.timBG = false;
-            // Tu sat ve lang
-            try {
-                GameCanvas.endDlg();
-                GameScr.gameAB(5, 0, 0);
-                Service.gI().gameAK();
-                TileMap.gameAF();
-            } catch (Exception e) {}
+            suicideAndReturn();
+            // Tu khoi dong lai sau 3s
+            new Thread(new Runnable() {
+                public void run() {
+                    try { Thread.sleep(3000); } catch (Exception e) {}
+                    if (modeEnabled && Code.gameAB != null && !isRunning) {
+                        start();
+                    }
+                }
+            }).start();
         }
+    }
+
+    // =============================================
+    // STUCK DETECTION
+    // =============================================
+
+    /**
+     * Check progress moi 30s.
+     * TIN HIEU CHINH (quyet dinh ket hay khong):
+     *   - HP thay doi: bi danh/hoi mau = dang chien dau
+     *   - MP thay doi: dung skill = dang chien dau (CHUAN NHAT)
+     *   => Neu HP KHONG doi VA MP KHONG doi trong 30s = KET
+     *
+     * TIN HIEU PHU (hien thi de debug):
+     *   - Yen, Attack count, Vi tri, Mob
+     *
+     * Boss mode -> bo qua.
+     */
+    private static boolean checkProgress(Char myChar, long now) {
+        // Boss mode -> bo qua stuck check
+        if (isBossHuntingMode()) {
+            GameScr.gameAC("TsPro: 30s \u2014 Boss mode, bo qua");
+            resetSnapshots(myChar);
+            return false;
+        }
+
+        // === TIN HIEU CHINH ===
+        int dHp = myChar.cHP - prevHp;
+        int dMp = myChar.cMP - prevMp;
+        boolean hpChanged = (dHp != 0);
+        boolean mpChanged = (dMp != 0);
+
+        // === TIN HIEU PHU (chi de hien thi) ===
+        int dYen = myChar.yen - prevCheckYen;
+        int dAtk = attacksSent - prevCheckAttacks;
+        boolean moved = (myChar.cx != prevCx || myChar.cy != prevCy);
+        boolean hasMobs = hadMobsInPeriod;
+
+        // HP hoac MP phai thay doi => dang chien dau
+        // Ca 2 khong doi => KET
+        boolean hasProgress = (hpChanged || mpChanged);
+
+        // Xay dung thong bao chi tiet
+        String info = "HP:" + (dHp >= 0 ? "+" : "") + dHp
+            + " MP:" + (dMp >= 0 ? "+" : "") + dMp
+            + " Y:" + (dYen >= 0 ? "+" : "") + dYen
+            + " A:+" + (attacksSent - prevCheckAttacks)
+            + (moved ? " Di" : " Dung")
+            + (hasMobs ? " M:Co" : " M:0");
+
+        // Reset snapshots
+        resetSnapshots(myChar);
+
+        if (hasProgress) {
+            GameScr.gameAC("TsPro: 30s OK | " + info);
+            return false;
+        } else {
+            // KET! HP va MP khong doi 30s
+            GameScr.gameAC("TsPro: KET 30s! HP/MP=0 " + info + " => Tu sat!");
+            suicideAndReturn();
+            return true;
+        }
+    }
+
+    /** Reset tat ca snapshot ve gia tri hien tai. */
+    private static void resetSnapshots(Char myChar) {
+        prevCheckYen = myChar.yen;
+        prevCheckAttacks = attacksSent;
+        prevCx = myChar.cx;
+        prevCy = myChar.cy;
+        prevHp = myChar.cHP;
+        prevMp = myChar.cMP;
+        hadMobsInPeriod = false;
+    }
+
+    /** Tu sat va ve lang. Khong dung TsBoost — de TS goc hoi sinh roi TsBoost tu chay lai. */
+    private static void suicideAndReturn() {
+        try { GameCanvas.endDlg(); } catch (Exception e) {}
+        try { LockGame.gameBK(); } catch (Exception e) {} // Mo khoa neu bi lock
+        try {
+            GameScr.gameAB(5, 0, 0);
+            Service.gI().gameAF();
+            TileMap.gameAF();
+        } catch (Exception e) {}
     }
 
     // =============================================
@@ -327,6 +466,7 @@ public class TsBoost implements Runnable {
             } else {
                 Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
             }
+            attacksSent++; // Dem attack da gui cho stuck detection
         } catch (Exception e) {}
     }
 

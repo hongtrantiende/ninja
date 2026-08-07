@@ -236,4 +236,18 @@
 - **Quyết định:** Di chuyển VIP map check từ `while(gameCA)` loop → thread riêng `startVipMapWatcher()` trong Code.java.
 - **Lý do:** `while(gameCA)` CHỈ chạy khi TS active. Sau disconnect/reconnect, `gameCA = false` → loop dừng → VIP check chết. Thread riêng chạy `while(DungMapVip)` độc lập.
 - **Auto-restart:** Thêm restart logic trong `gameAP()` (init method, gọi khi reconnect) để watcher tự sống lại.
-- **Files:** `src/Code.java`, `src/NamMod.java`
+- **Files:** `src/Code.java`, `src/NamMod.java`
+
+## 2026-08-08: TsBoost v3 — Anti-Stuck HP+MP (Thay Thế checkHang() Cũ)
+- **Quyết định:** Rewrite hệ thống anti-stuck trong TsBoost. Bỏ `checkHang()` dựa trên `lastLoopTime` (chỉ detect thread freeze), thay bằng `checkProgress()` dựa trên HP+MP thay đổi.
+- **Lý do:** `checkHang()` cũ KHÔNG BAO GIỜ trigger vì `lastLoopTime` luôn được update mỗi vòng lặp (thread không bao giờ freeze). Nhân vật kẹt vị trí/terrain/hết quái nhưng thread vẫn chạy → checkHang pass → không tự sát.
+- **Giải pháp v3:**
+  - **Tín hiệu chính:** `myChar.cHP` (HP) và `myChar.cMP` (MP). Khi đánh quái: HP giảm (bị đánh) + MP giảm (dùng skill). Nếu CẢ 2 không đổi 30s = KẸT.
+  - **Tín hiệu phụ (debug):** Yen, Attack count, Vị trí (cx/cy), Mob count — hiển thị trong thông báo.
+  - **Mỗi 30s:** Hiện thông báo chi tiết: `TsPro: 30s OK | HP:-500 MP:-200 Y:+1500 A:+30 Di M:Co`
+  - **Kẹt:** `TsPro: KET 30s! HP/MP=0 ... => Tu sat!` → tự sát về nhà.
+  - **Boss mode:** Bỏ qua (boss HP cao, đánh lâu là bình thường).
+  - **Chuyển map/khu:** Reset snapshot (tránh false positive).
+- **Tín hiệu đã loại bỏ:** EXP (user tắt nhận EXP), Kill count (không chính xác — nhiều khi không tăng dù đang đánh).
+- **checkHang() giữ làm backup:** Nâng timeout lên 60s, chỉ detect thread freeze thực sự (deadlock). Tự restart sau 3s.
+- **Files:** `src/TsBoost.java`
