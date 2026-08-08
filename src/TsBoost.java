@@ -22,7 +22,7 @@ public class TsBoost implements Runnable {
     private static final int IDLE_DELAY_MS = 500;        // 500ms khi het quai (giam tu 200)
     private static final int BUFF_INTERVAL_MS = 30000;   // Buff moi 30s (giam tu 15s)
     private static final int MAX_ATTACK_RANGE = 400;     // Range danh toi da (px)
-    private static final int WRONG_MAP_TIMEOUT_MS = 8000; // 8s sai map
+    private static final int WRONG_MAP_TIMEOUT_MS = 30000; // 30s sai map
     private static final int SKILL_RESELECT_MS = 15000;   // Chon lai skill moi 15s (giam tu 5s)
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
     private static final int STUCK_CHECK_INTERVAL_MS = 30000; // Check stuck moi 30s
