@@ -66,13 +66,13 @@ public class TsBoost implements Runnable {
     public static void toggleMode() {
         modeEnabled = !modeEnabled;
         if (modeEnabled) {
-            GameScr.gameAC("Ts Pro: ON!");
+            safeNotify("Ts Pro: ON!");
             if (Code.gameAB != null && !isRunning) {
                 start();
             }
         } else {
             stop();
-            GameScr.gameAC("Ts Pro: OFF");
+            safeNotify("Ts Pro: OFF");
         }
     }
 
@@ -142,7 +142,7 @@ public class TsBoost implements Runnable {
                     if (Code.gameAB != null) {
                         if (!isRunning) {
                             start();
-                            GameScr.gameAC("Ts Pro ON theo TS!");
+                            safeNotify("Ts Pro ON theo TS!");
                         }
                         return;
                     }
@@ -205,9 +205,9 @@ public class TsBoost implements Runnable {
                             && TileMap.mapID != currentAuto.mapID) {
                         if (wrongMapSince == 0) {
                             wrongMapSince = loopStart;
-                            GameScr.gameAC("Ts Pro: Sai map (" + TileMap.mapID + " != " + currentAuto.mapID + "), doi...");
+                            safeNotify("Ts Pro: Sai map (" + TileMap.mapID + " != " + currentAuto.mapID + "), doi...");
                         } else if (loopStart - wrongMapSince > WRONG_MAP_TIMEOUT_MS) {
-                            GameScr.gameAC("Ts Pro: Sai map " + ((loopStart - wrongMapSince) / 1000) + "s! GoMap " + currentAuto.mapID);
+                            safeNotify("Ts Pro: Sai map " + ((loopStart - wrongMapSince) / 1000) + "s! GoMap " + currentAuto.mapID);
                             try { GameCanvas.endDlg(); } catch (Exception e) {}
                             try { LockGame.gameBK(); } catch (Exception e) {}
 
@@ -215,11 +215,11 @@ public class TsBoost implements Runnable {
                             if (currentAuto.mapID == 195 && Code.DungMapVip) {
                                 int mvIdx = Char.gameAI(906);
                                 if (mvIdx >= 0) {
-                                    GameScr.gameAC("Dung the map vip de vao map 195...");
+                                    safeNotify("Dung the map vip de vao map 195...");
                                     Service.gI().useItem(mvIdx);
                                     sleep(2000);
                                 } else if (Code.MuaMapVip && Char.getMyChar().luong >= 10) {
-                                    GameScr.gameAC("Mua the map vip...");
+                                    safeNotify("Mua the map vip...");
                                     Service.gI().gameAB(14, 28, 1);
                                     LockGame.gameAG();
                                     sleep(2000);
@@ -229,7 +229,7 @@ public class TsBoost implements Runnable {
                                         sleep(2000);
                                     }
                                 } else {
-                                    GameScr.gameAC("Khong co the map vip trong tui!");
+                                    safeNotify("Khong co the map vip trong tui!");
                                 }
                             }
 
@@ -318,7 +318,7 @@ public class TsBoost implements Runnable {
         if (lastLoopTime > 0) {
             long elapsed = now - lastLoopTime;
             if (elapsed > 60000) { // 60s thread khong chay = treo cung
-                GameScr.gameAC("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
+                safeNotify("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
                 restartThread();
                 return;
             }
@@ -393,12 +393,7 @@ public class TsBoost implements Runnable {
     private static boolean checkProgress(Char myChar, long now) {
         // Boss mode -> bo qua stuck check
         if (isBossHuntingMode()) {
-            resetSnapshots(myChar);
-            return false;
-        }
-
-        // Khong co mob trong 30s -> dang o lang/cho chuyen khu -> KHONG phai ket
-        if (!hadMobsInPeriod) {
+            safeNotify("TsPro: 30s Boss mode, bo qua");
             resetSnapshots(myChar);
             return false;
         }
@@ -413,6 +408,7 @@ public class TsBoost implements Runnable {
         int dYen = myChar.yen - prevCheckYen;
         int dAtk = attacksSent - prevCheckAttacks;
         boolean moved = (myChar.cx != prevCx || myChar.cy != prevCy);
+        boolean hasMobs = hadMobsInPeriod;
 
         // HP hoac MP phai thay doi => dang chien dau
         // Ca 2 khong doi => KET
@@ -423,17 +419,18 @@ public class TsBoost implements Runnable {
             + " MP:" + (dMp >= 0 ? "+" : "") + dMp
             + " Y:" + (dYen >= 0 ? "+" : "") + dYen
             + " A:+" + (attacksSent - prevCheckAttacks)
-            + (moved ? " Di" : " Dung");
+            + (moved ? " Di" : " Dung")
+            + (hasMobs ? " M:Co" : " M:0");
 
         // Reset snapshots
         resetSnapshots(myChar);
 
         if (hasProgress) {
-            GameScr.gameAC("TsPro: 30s OK | " + info);
+            safeNotify("TsPro: 30s OK | " + info);
             return false;
         } else {
-            // KET! HP va MP khong doi 30s MA co mob
-            GameScr.gameAC("TsPro: KET 30s! " + info + " => Tu sat!");
+            // KET! HP va MP khong doi 30s
+            safeNotify("TsPro: KET 30s! HP/MP=0 " + info + " => Tu sat!");
             suicideAndReturn();
             return true;
         }
@@ -591,7 +588,7 @@ public class TsBoost implements Runnable {
                 }
             } catch (Exception e) {}
 
-            GameScr.gameAC("Up (" + formatTime(sec) + "): " + sessionKills + " Qu\u00e1i | Map: " + aliveMobs + " | Exp: +" + formatNumber(gainExp) + " | Y\u00ean: +" + formatNumber(gainYen) + " | Xu: +" + formatNumber(gainXu) + " | L\u01b0\u1ee3ng: +" + gainLuong);
+            safeNotify("Up (" + formatTime(sec) + "): " + sessionKills + " Qu\u00e1i | Map: " + aliveMobs + " | Exp: +" + formatNumber(gainExp) + " | Y\u00ean: +" + formatNumber(gainYen) + " | Xu: +" + formatNumber(gainXu) + " | L\u01b0\u1ee3ng: +" + gainLuong);
         } catch (Exception e) {}
     }
 
@@ -621,5 +618,15 @@ public class TsBoost implements Runnable {
 
     private static void sleep(long ms) {
         try { Thread.sleep(ms); } catch (InterruptedException e) {}
+    }
+
+    /** Thong bao an toan — GameScr.gameAC co the crash (ArrayIndexOutOfBounds). */
+    private static void safeNotify(String msg) {
+        System.out.println("[TsPro] " + msg);
+        try {
+            GameScr.gameAC(msg);
+        } catch (Exception e) {
+            // gameAC crash — thong bao da in ra System.out
+        }
     }
 }
