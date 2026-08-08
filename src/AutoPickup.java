@@ -14,12 +14,13 @@ public class AutoPickup implements Runnable {
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 200;    // 200ms giua moi vong quet
+    private static final int SCAN_INTERVAL_MS = 50;     // 50ms giua moi vong quet
     private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
-    private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
-    private static final int TS_PICKUP_RANGE = 200;     // Khi TS bat: nhat item trong 200px (ko ghost)
+    private static final int GHOST_RANGE = 50;          // Item > 50px ngang thi ghost move
+    private static final int GHOST_Y_LIMIT = 300;       // Cho phep ghost chieu cao <= 300px
     private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
     private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
+    private static final int GHOST_PICK_INTERVAL_MS = 100;  // 100ms giua moi lan ghost pick
 
     /**
      * Toggle hut VP on/off.
@@ -89,25 +90,59 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Blast trong 200px — chi gui gameAQ, KHONG ghost move.
-     * Dung khi TS bat de tranh lech vi tri server.
+     * Blast toan map — chi gui gameAQ, KHONG ghost move.
+     * Server chap nhan pickup toan map ma khong can ghost move.
+     * An toan khi TS bat vi KHONG gui Char.gameAC (khong doi vi tri).
      */
     private static void blastPickupFast() {
-        Char myChar = Char.getMyChar();
-        if (myChar == null) return;
-        int cx = myChar.cx;
-        int cy = myChar.cy;
         int size = GameScr.vItemMap.size();
         for (int i = 0; i < size; i++) {
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
-                // Chi nhat item trong 200px
-                if (Math.abs(cx - item.xEnd) <= TS_PICKUP_RANGE
-                        && Math.abs(cy - item.yEnd) <= TS_PICKUP_RANGE) {
+                Service.gI().gameAQ(item.itemMapID);
+            } catch (Exception e) {}
+        }
+    }
+
+    /**
+     * Ghost move den 1 item xa CUNG TANG, nhat, quay ve ngay.
+     * Chi pick item co Y gan (cung tang/platform) de tranh loi TS.
+     * Chi 1 item/lan (~140ms lech vi tri).
+     */
+    private static boolean ghostPickOne() {
+        Char myChar = Char.getMyChar();
+        if (myChar == null || Code.gameAB == null) return false;
+        int origCx = myChar.cx;
+        int origCy = myChar.cy;
+
+        int size = GameScr.vItemMap.size();
+        for (int i = 0; i < size; i++) {
+            try {
+                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                // Bo qua trang bi
+                if (item.template != null && item.template.gameAA()) continue;
+
+                int dx = Math.abs(origCx - item.xEnd);
+                int dy = Math.abs(origCy - item.yEnd);
+
+                // CHI ghost move item gan theo chieu cao (dy <= 150)
+                if (dx > GHOST_RANGE && dy <= GHOST_Y_LIMIT) {
+                    // Ghost move den item (chi gui server, AN hieu ung)
+                    Char.gameAC(item.xEnd, item.yEnd);
+                    myChar.cx = origCx; // Giu visual tai cho
+                    myChar.cy = origCy;
                     Service.gI().gameAQ(item.itemMapID);
+                    try { Thread.sleep(50); } catch (Exception e2) {}
+                    // Quay ve (chi gui server, AN hieu ung)
+                    Char.gameAC(origCx, origCy);
+                    myChar.cx = origCx;
+                    myChar.cy = origCy;
+                    try { Thread.sleep(50); } catch (Exception e2) {}
+                    return true;
                 }
             } catch (Exception e) {}
         }
+        return false;
     }
 
     /**
@@ -162,18 +197,26 @@ public class AutoPickup implements Runnable {
 
     /**
      * Thread chinh — chay nen SONG SONG voi danh quai.
-     * v3.4: TS bat = blastPickupFast (nhat gan), TS tat = blastPickupSmart (nhat xa).
-     *       Ghost move khi TS bat = KHONG KHA THI (da test, bi loi).
+     * v3.5: TS bat = blastPickupFast (gan, lien tuc) + ghostPickOne (1 item xa, moi 3s).
      */
     public void run() {
         try { Thread.sleep(300); } catch (Exception e) {}
+
+        long lastGhostTime = 0;
 
         while (isRunning) {
             try {
                 if (GameScr.vItemMap.size() > 0) {
                     if (Code.gameAB != null) {
-                        // TS bat: chi nhat item gan, KHONG ghost move
+                        // TS bat: nhat gan lien tuc
                         blastPickupFast();
+
+                        // Moi 4s: ghost pick 1 item xa CUNG TANG
+                        long now = System.currentTimeMillis();
+                        if (now - lastGhostTime >= GHOST_PICK_INTERVAL_MS) {
+                            ghostPickOne();
+                            lastGhostTime = now;
+                        }
                     } else {
                         // Ko TS: ghost move nhat toan map
                         blastPickupSmart(0);

@@ -52,7 +52,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(3), TREO_MN));
 
         // === H\u00FAt VP ===
-        items.addElement(command("H\u00FAt VP KC 200: " + onOff(AutoPickup.isRunning), HUT_VP));
+        items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
 
         // === Auto Level ===

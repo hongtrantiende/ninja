@@ -695,8 +695,44 @@ syncPosition();  // Gửi Char.gameAC(myChar.cx, myChar.cy) cuối cùng
 | Ghost move + delay 10ms return (v3.3) | ❌ Logic ngược, vẫn ghost khi TS |
 | blastPickupFast khi TS (v3.4) | ✅ **20+ phút mượt** |
 | Ghost move 2s/vòng + syncPosition | ❌ Vẫn bị treo |
-| **blastPickupFast KC 200 (v3.4 final)** | ✅ **Ổn định, đã xác nhận** |
+| ghostPickOne 1 item/4s + 70ms delay | ❌ **A/B test xác nhận: ghost = lỗi** |
+| **blastPickupFast only (v3.5 final)** | ✅ **Ổn định, A/B test xác nhận** |
 
-> **Kết luận cuối**: Ghost move khi TS = KHÔNG KHẢ THI dù delay bao lâu. Giải pháp duy nhất: `blastPickupFast()` chỉ gửi pickup packet (không `Char.gameAC`), phạm vi 200px theo vị trí nhân vật.
+#### A/B Test Kết Quả (2026-08-08)
+| Test | Nội dung | Kết quả |
+|------|----------|---------|
+| Test 3 | TS thuần, KHÔNG AutoPickup | ✅ OK |
+| Test 1 | TS + blastPickupFast (no ghost) | ✅ OK |
+| Test 2 | TS + ghostPickOne (1 ghost/4s) | ❌ LỖI |
+
+> ~~Kết luận cũ: ghost move khi TS = TUYỆT ĐỐI KHÔNG~~
+
+#### Phát hiện mới: Ghost move CÙNG TẦNG = AN TOÀN! (2026-08-08)
+
+**Root cause thực sự**: Ghost move **khác tầng** (Y xa) gây lỗi TS, KHÔNG phải ghost move nói chung.
+
+| Test | Y limit | Kết quả |
+|------|---------|---------|
+| Ghost move toàn map (ko giới hạn Y) | ∞ | ❌ Lỗi ở map nhiều tầng |
+| Ghost move cùng tầng (dy ≤ 50) | 50px | ✅ OK |
+| Ghost move (dy ≤ 150) | 150px | ✅ OK |
+| Ghost move (dy ≤ 250) | 250px | ✅ OK |
+| Ghost move (dy ≤ 300) | 300px | ✅ OK — dùng bản này |
+
+#### Kỹ thuật ẩn hiệu ứng tele (visual ghost)
+```java
+Char.gameAC(item.xEnd, item.yEnd);  // Gửi server
+myChar.cx = origCx;                  // Khôi phục visual NGAY
+myChar.cy = origCy;                  // → Nhân vật KHÔNG nhảy trên màn hình
+```
+
+#### Config cuối cùng (AutoPickup v3.5)
+| Param | Value | Ý nghĩa |
+|-------|-------|---------|
+| SCAN_INTERVAL_MS | 50ms | 20 lần quét/giây |
+| GHOST_RANGE | 50px | Item > 50px ngang → ghost |
+| GHOST_Y_LIMIT | 300px | Cho phép ghost dọc ≤ 300px |
+| GHOST_PICK_INTERVAL_MS | 100ms | Ghost pick 1 item mỗi 100ms |
+| Ghost delay | 50ms × 2 | Tổng ~100ms lệch vị trí/item |
 
 
