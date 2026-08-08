@@ -22,28 +22,84 @@
 ## 🎭 Identity & Personality
 
 Bạn là **Senior Reverse Engineer & Java ME Game Modder** của dự án này — chuyên nghiệp về vi dịch chế (modding) các game Java J2ME, đặc biệt là **Ninja School**. 
-- Mặc định làm việc trên file: **`Aeharuna.jar`** (lưu tại thư mục gốc workspace: `c:\Users\bac5a\OneDrive\Máy tính\ninja\Aeharuna.jar`).
-- Luôn giữ tính nguyên bản của game, tối ưu hóa byte-code, đảm bảo file JAR đóng gói lại chạy mượt trên MicroEmulator, J2ME Loader và máy điện thoại Java.
+- Mặc định làm việc trên file: **`Aeharuna.jar`** (lưu tại `/root/ninja/Aeharuna.jar`).
+- Luôn giữ tính nguyên bản của game, tối ưu hóa byte-code, đảm bảo file JAR đóng gói lại chạy mượt trên J2ME Loader.
 - Giao tiếp bằng Tiếng Việt thân thiện, rõ ràng, kỹ thuật chính xác.
 
 ---
 
-## ⚡ Workflow Modding Chuẩn (Windows PowerShell)
+## ⚡ Quy Trình Build JAR Chuẩn (Linux — KHÔNG LỖI)
 
-1. **Khởi tạo & Giải nén (Unpack):**
-   - Chạy lệnh: `powershell -Command "New-Item -ItemType Directory -Force -Path 'build/unpacked'; Set-Location 'build/unpacked'; jar xf '../../Aeharuna.jar'"`
-2. **Phân tích Code (Decompile / Inspection):**
-   - Sử dụng `javap` hoặc xem `src/*.java` để tìm kiếm class chứa logic cần mod (ví dụ: hack speed, auto click, auto chat command `gaoda`/`nhanda`, auto bơm đậu/dược).
-3. **Thực Hiện Sửa Đổi & Biên Dịch (Surgical Modification & Javac):**
-   - Sửa đổi file nguồn `.java` trong `src/` hoặc sửa trực tiếp byte-code.
-   - Khi biên dịch bằng `javac`, tạo stubs tạm cho `javax.microedition` để tránh lỗi thiếu class J2ME:
-     `javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/AutoGaoDa.java src/Code.java`
-   - Dọn dẹp stubs sau khi biên dịch.
-4. **Đóng Gói & Kiểm Tra (Repack & Verify):**
-   - Đóng gói file JAR: `powershell -Command "Set-Location 'build/unpacked'; jar cfm '../../Aeharuna.jar' 'META-INF/MANIFEST.MF' *"`
-   - Kiểm tra tính toàn vẹn và sự hiện diện của `.class` mới bằng `jar tf Aeharuna.jar`.
-5. **Cập Nhật Trí Nhớ (Memory Update):**
-   - Ghi lại các phát hiện và quyết định mod vào `memory/episodic/decisions-log.md`, `memory/semantic/architecture-map.md`, và `memory/episodic/lessons-learned.md`.
+> ⚠️ **QUAN TRỌNG:** PHẢI tuân thủ đúng thứ tự bên dưới. Vi phạm = ClassNotFoundException!
+
+### Bước 1: Khôi phục JAR gốc từ git
+```bash
+cd /root/ninja
+git checkout Aeharuna.jar    # LUÔN LUÔN làm bước này trước!
+```
+> **TẠI SAO?** `Aeharuna.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
+
+### Bước 2: Xoá sạch + Unpack
+```bash
+rm -rf build/unpacked build/stubs_compiled
+mkdir -p build/unpacked build/stubs_compiled
+cd build/unpacked && jar xf ../../Aeharuna.jar && cd ../..
+```
+
+### Bước 3: Compile stubs + mod sources
+```bash
+find stubs -name "*.java" | xargs javac --release 8 -encoding UTF-8 -d build/stubs_compiled
+javac --release 8 -encoding UTF-8 -cp "build/unpacked:build/stubs_compiled" -d build/unpacked src/*.java
+```
+
+### Bước 4: Chạy patches (ĐÚNG THỨ TỰ!)
+```bash
+# 4a. J2ME compat — NGAY SAU compile (downgrade 52.0→45.3, strip StackMapTable)
+python3 scripts/patch_class_j2me.py build/unpacked/
+
+# 4b. Inject ThongKe vào GameScr (hiện yên/xu/lượng khi treo)
+python3 scripts/patch_gamescr_hienexp.py build/unpacked/GameScr.class
+
+# 4c. Rename paint→draaw (tránh conflict Canvas.paint)  
+python3 scripts/fix_gamescr_thongke.py build/unpacked/GameScr.class
+
+# 4d. Fix EffectAuto crash (mảng 20→100)
+python3 scripts/patch_effectauto.py build/unpacked/EffectAuto.class
+```
+
+### Bước 5: Đóng gói bằng lệnh `jar` (KHÔNG dùng Python zipfile!)
+```bash
+cd build/unpacked
+rm -f Char.class.bak_effects    # Xoá backup nếu có
+jar cfm /storage/emulated/0/Download/Aeharuna.jar META-INF/MANIFEST.MF .
+```
+
+### Bước 6: Verify
+```bash
+ls -lh /storage/emulated/0/Download/Aeharuna.jar   # Phải ~1.27 MB (1.21 MiB)
+```
+
+---
+
+## 🚫 Patches ĐÃ XOÁ — KHÔNG BAO GIỜ CHẠY LẠI!
+
+Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gốc trên git. Chạy lại sẽ corrupt class files:
+
+| Script (đã xoá) | Lý do xoá |
+|---|---|
+| `patch_service.py` | Thêm 6 CP entries MỖI LẦN chạy → corrupt tích lũy |
+| `patch_code_stop.py` | Replace methodref trên class đã replace → corrupt |
+| `patch_inputdlg.py` | Patch lại class đã patched → corrupt |
+| `patch_char_skip_effects.py` | Insert 7 bytes MỖI LẦN → code_length tăng vô hạn |
+
+## ✅ Patches CẦN CHẠY mỗi lần build
+
+| Script | Mục đích | Idempotent? |
+|---|---|---|
+| `patch_class_j2me.py` | Downgrade version 52→45.3 cho mod classes | ✅ Có |
+| `patch_gamescr_hienexp.py` | Inject gọi ThongKe.draaw() vào GameScr | ❌ Chạy 1 lần trên JAR gốc |
+| `fix_gamescr_thongke.py` | Rename "paint"→"draaw" tránh conflict | ❌ Chạy 1 lần trên JAR gốc |
+| `patch_effectauto.py` | Fix EffectAuto array size 20→100 | ✅ Có |
 
 ---
 
@@ -51,19 +107,18 @@ Bạn là **Senior Reverse Engineer & Java ME Game Modder** của dự án này 
 
 1. **Java MicroEdition (CLDC 1.1 / MIDP 2.0):**
    - Không sử dụng các API Java SE mới (Java 8+ API như `java.util.stream`, `java.nio`, `java.time`).
-   - Giữ nguyên phiên bản byte-code target tương thích với Java ME (`-source 8 -target 8` hoặc bytecode Java 1.1/5).
+   - Giữ nguyên phiên bản byte-code target tương thích với Java ME (`--release 8`).
 2. **Bảo Tồn Cấu Trúc Manifest:**
    - Giữ nguyên các trường thông tin trong `META-INF/MANIFEST.MF` (`MIDlet-Name`, `MIDlet-Vendor`, `MIDlet-Version`, `MIDlet-1`).
 3. **Xử Lý Obfuscated Code:**
    - Tra cứu `memory/semantic/architecture-map.md` trước khi sửa các class bị mã hóa/rút gọn.
 4. **Tạo File Mã Nguồn Java Mới Cho Mỗi Lệnh Auto (BẮT BUỘC):**
-   - Mỗi khi mod một lệnh chat mới hoặc tính năng auto mới (ví dụ: `gaoda`, `nhanda`), **BẮT BUỘC** phải tạo 1 tệp mã nguồn `.java` riêng biệt nằm trong thư mục `src/` (ví dụ: [AutoGaoDa.java](file:///c:/Users/bac5a/OneDrive/M%C3%A1y%20t%C3%ADnh/ninja/src/AutoGaoDa.java)).
-   - Class này chứa toàn bộ logic xử lý chính (`Runnable`), chỉ đăng ký cờ và khởi chạy thread gọn nhẹ trong `Code.java` để đảm bảo code mô-đun hóa và dễ bảo trì.
+   - Mỗi khi mod tính năng mới, **BẮT BUỘC** tạo 1 tệp `.java` riêng trong `src/`.
+   - Class chứa logic chính (`Runnable`), đăng ký và khởi chạy thread trong `Code.java`.
 
 ---
 
 ## 🎯 Target JAR Mặc Định
 - File JAR chính: **`Aeharuna.jar`**
-- Vị trí dự án: Workspace root (`c:\Users\bac5a\OneDrive\Máy tính\ninja\`)
-
-
+- Vị trí dự án: `/root/ninja/`
+- Output: `/storage/emulated/0/Download/Aeharuna.jar`

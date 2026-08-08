@@ -543,4 +543,62 @@ TsBoost bị stuck khi chuyển khu (GoMap):
 - `wrongMapRetries`: Đếm GoMap thất bại liên tiếp
 - `wrongMapStartTime`: Thời điểm bắt đầu sai map (cho watchdog 60s)
 
+## 2026-08-08: Build Corruption — ClassNotFoundException & NoClassDefFoundError
+
+### Triệu chứng
+```
+java.lang.ClassNotFoundException: Didn't find class "GameMidlet" on path:
+DexPathList[,nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
+```
+Game không khởi động được. DEX conversion fail hoàn toàn.
+
+### Nguyên nhân 1: Patch chồng patch (Double-patching)
+JAR trên git (`Aeharuna.jar`) đã **bake sẵn** các bytecode patches từ lần build trước (vì `pack_jar.py` ghi đè JAR gốc). Khi unpack và patch lại:
+- `patch_service.py`: Thêm 6 CP entries MỖI LẦN chạy → CP tăng: 351→357→363→369→375... → corrupt
+- `patch_code_stop.py`: Replace methodref trên class đã bị replace → corrupt  
+- `patch_inputdlg.py`: Patch lại class đã patched → corrupt
+- `patch_char_skip_effects.py`: Insert 7 bytes MỖI LẦN → code_length 76→83→90→97→104... → corrupt
+
+### Nguyên nhân 2: JAR bị ghi đè
+`pack_jar.py` output ghi đè `Aeharuna.jar` (cùng tên với input). Lần build sau unpack từ bản đã patch → patch lại → tích lũy corruption.
+
+### Nguyên nhân 3: Thiếu patch_gamescr_hienexp
+`patch_gamescr_hienexp.py` inject gọi `ThongKe.draaw()` vào GameScr để hiện yên/xu/lượng khi treo.
+Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
+**LƯU Ý:** Patch này PHẢI chạy TRƯỚC `fix_gamescr_thongke.py` (vì fix_thongke đổi "paint"→"draaw").
+
+### Giải pháp
+1. **LUÔN `git checkout Aeharuna.jar`** trước khi build → đảm bảo JAR gốc sạch
+2. **XOÁ 4 scripts lỗi** (đã bake sẵn trong JAR):
+   - `patch_service.py` ❌
+   - `patch_code_stop.py` ❌ 
+   - `patch_inputdlg.py` ❌
+   - `patch_char_skip_effects.py` ❌
+3. **Dùng `jar cfm` để pack** thay vì Python zipfile (đúng format, đúng size)
+4. **Output JAR tên khác** hoặc ra thư mục khác, không ghi đè JAR gốc
+
+### Quy tắc VÀNG cho build
+```
+1. git checkout Aeharuna.jar          # Khôi phục JAR gốc
+2. rm -rf build/unpacked              # Xoá sạch
+3. jar xf Aeharuna.jar                # Unpack từ gốc
+4. javac src/*.java → build/unpacked  # Compile mod sources
+5. patch_class_j2me.py                # J2ME compat (NGAY SAU compile)
+6. patch_gamescr_hienexp.py           # Inject ThongKe vào GameScr
+7. fix_gamescr_thongke.py             # Rename paint→draaw
+8. patch_effectauto.py                # Fix array size 20→100
+9. jar cfm output.jar                 # Pack bằng jar command
+```
+
+### Patches AN TOÀN (có idempotency check, skip nếu đã patch):
+- `patch_gamescr_menu.py` ✅ (nhưng JAR gốc đã có)
+- `patch_gamescr_chat.py` ✅ (nhưng JAR gốc đã có)
+- `patch_mothercanvas_shortcut.py` ✅ (nhưng JAR gốc đã có)
+
+### Patches CẦN CHẠY (chưa có trong JAR gốc, hoặc cần re-apply):
+- `patch_class_j2me.py` ✅ (cần cho mod classes mới compile)
+- `patch_gamescr_hienexp.py` ✅ (inject ThongKe call)
+- `fix_gamescr_thongke.py` ✅ (rename paint→draaw)
+- `patch_effectauto.py` ✅ (fix array crash)
+
 
