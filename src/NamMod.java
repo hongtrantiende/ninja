@@ -32,6 +32,11 @@ public final class NamMod implements IActionListener {
     public static void open() {
         MyVector items = new MyVector();
 
+        // === H\u00FAt VP & \u1ea8n Skill ===
+        items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
+        items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
+        items.addElement(command("\u1ea8n skill \u0111\u00e1nh: " + onOff(Code.hideSkillEffect), HIDE_SKILL_EFFECT));
+
         // === S\u0103n Boss ===
         items.addElement(command("S\u0103n Boss: " + onOff(AutoSanBoss.isRunning), AUTO_BOSS));
         items.addElement(command("TS \u01b0u ti\u00ean Boss: " + onOff(AutoBossEvent.isEnabled), TS_BOSS));
@@ -51,11 +56,6 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Treo Th\u1ebf Gi\u1edbi: " + treoStatus(1), TREO_TG));
         items.addElement(command("Treo VDMQ: " + treoStatus(2), TREO_VM));
         items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(3), TREO_MN));
-
-        // === H\u00FAt VP ===
-        items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
-        items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
-        items.addElement(command("\u1ea8n skill \u0111\u00e1nh: " + onOff(Code.hideSkillEffect), HIDE_SKILL_EFFECT));
 
         // === Auto Level ===
         String lvStatus = AutoLevel.isRunning
