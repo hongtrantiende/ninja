@@ -393,7 +393,12 @@ public class TsBoost implements Runnable {
     private static boolean checkProgress(Char myChar, long now) {
         // Boss mode -> bo qua stuck check
         if (isBossHuntingMode()) {
-            GameScr.gameAC("TsPro: 30s \u2014 Boss mode, bo qua");
+            resetSnapshots(myChar);
+            return false;
+        }
+
+        // Khong co mob trong 30s -> dang o lang/cho chuyen khu -> KHONG phai ket
+        if (!hadMobsInPeriod) {
             resetSnapshots(myChar);
             return false;
         }
@@ -408,7 +413,6 @@ public class TsBoost implements Runnable {
         int dYen = myChar.yen - prevCheckYen;
         int dAtk = attacksSent - prevCheckAttacks;
         boolean moved = (myChar.cx != prevCx || myChar.cy != prevCy);
-        boolean hasMobs = hadMobsInPeriod;
 
         // HP hoac MP phai thay doi => dang chien dau
         // Ca 2 khong doi => KET
@@ -419,8 +423,7 @@ public class TsBoost implements Runnable {
             + " MP:" + (dMp >= 0 ? "+" : "") + dMp
             + " Y:" + (dYen >= 0 ? "+" : "") + dYen
             + " A:+" + (attacksSent - prevCheckAttacks)
-            + (moved ? " Di" : " Dung")
-            + (hasMobs ? " M:Co" : " M:0");
+            + (moved ? " Di" : " Dung");
 
         // Reset snapshots
         resetSnapshots(myChar);
@@ -429,8 +432,8 @@ public class TsBoost implements Runnable {
             GameScr.gameAC("TsPro: 30s OK | " + info);
             return false;
         } else {
-            // KET! HP va MP khong doi 30s
-            GameScr.gameAC("TsPro: KET 30s! HP/MP=0 " + info + " => Tu sat!");
+            // KET! HP va MP khong doi 30s MA co mob
+            GameScr.gameAC("TsPro: KET 30s! " + info + " => Tu sat!");
             suicideAndReturn();
             return true;
         }
