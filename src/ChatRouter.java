@@ -164,9 +164,14 @@ public class ChatRouter {
             return true;
         }
         
-        // === NHAT DO NHANH ===
+        // === NHAT DO NHANH & AN SKILL ===
         if (text.equals("nhat")) {
             AutoPickup.toggle();
+            return true;
+        }
+        if (text.equals("anskill") || text.equals("askill") || text.equals("ansk")) {
+            Code.hideSkillEffect = !Code.hideSkillEffect;
+            GameScr.gameAC(Code.hideSkillEffect ? "\u1ea8n skill \u0111\u00e1nh: ON" : "\u1ea8n skill \u0111\u00e1nh: OFF");
             return true;
         }
         if (text.equals("moinhom") || text.equals("mnb") || text.equals("mn")) {

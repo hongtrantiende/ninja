@@ -68,7 +68,6 @@ public final class NamMod implements IActionListener {
         items.addElement(command("D\u00f9ng th\u1ebb map vip: " + onOff(Code.DungMapVip), DUNG_MAP_VIP));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
         items.addElement(command("T\u00e1ch \u0111\u1ed3 l\u1ebb", TACH_LE));
-        items.addElement(command("Th\u00f4ng tin Nam Mod", THONG_TIN));
         GameCanvas.menu.gameAA(items);
     }
 
