@@ -18,12 +18,22 @@ def pack_jar(output_name="Aeharuna.jar"):
         os.remove(output_path)
         
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add META-INF/ directory entry + MANIFEST.MF
+        zf.writestr(zipfile.ZipInfo('META-INF/'), '')
         manifest_path = os.path.join(build_dir, 'META-INF', 'MANIFEST.MF')
         if os.path.exists(manifest_path):
             zf.write(manifest_path, 'META-INF/MANIFEST.MF')
         skipped_javax = 0
         for root, dirs, files in os.walk(build_dir):
-            for f in files:
+            # Add directory entries (needed for JAR structure)
+            for d in sorted(dirs):
+                rel_dir = os.path.relpath(os.path.join(root, d), build_dir) + '/'
+                if rel_dir.startswith('javax/') or rel_dir.startswith('javax\\'):
+                    continue
+                if rel_dir == 'META-INF/':
+                    continue
+                zf.writestr(zipfile.ZipInfo(rel_dir), '')
+            for f in sorted(files):
                 rel = os.path.relpath(os.path.join(root, f), build_dir)
                 if rel == 'META-INF/MANIFEST.MF':
                     continue
@@ -31,6 +41,9 @@ def pack_jar(output_name="Aeharuna.jar"):
                 # Including them causes DEX conversion conflict → ClassNotFoundException.
                 if rel.startswith('javax/') or rel.startswith('javax\\'):
                     skipped_javax += 1
+                    continue
+                # Skip backup files created by patch scripts
+                if '.bak' in f:
                     continue
                 zf.write(os.path.join(root, f), rel)
         if skipped_javax:

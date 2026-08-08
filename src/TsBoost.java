@@ -26,6 +26,8 @@ public class TsBoost implements Runnable {
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
     private static final int STUCK_CHECK_INTERVAL_MS = 30000; // Check stuck moi 30s
     private static final int MAX_MOB_PER_ATTACK = 6;  // Gioi han mob/lan danh (tranh crash)
+    private static final int MAX_GOMAP_RETRIES = 5;  // Gioi han GoMap thu lai truoc khi tu sat
+    private static final int WRONG_MAP_SUICIDE_MS = 60000; // 60s sai map lien tuc => tu sat
 
     // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
@@ -34,6 +36,8 @@ public class TsBoost implements Runnable {
     // === STATE ===
     private static long lastBuffTime = 0;
     private static long wrongMapSince = 0;
+    private static int wrongMapRetries = 0;
+    private static long wrongMapStartTime = 0;
     private static int cachedSkillId = -1;
     private static long lastSkillSelectTime = 0;
     private static long lastLoopTime = 0; // Watchdog tich hop
@@ -96,6 +100,8 @@ public class TsBoost implements Runnable {
         isRunning = true;
         lastBuffTime = 0;
         wrongMapSince = 0;
+        wrongMapRetries = 0;
+        wrongMapStartTime = 0;
         cachedSkillId = -1;
         lastMobCount = -1;
         lastLoopTime = System.currentTimeMillis();
@@ -212,15 +218,29 @@ public class TsBoost implements Runnable {
                     Auto currentAuto = Code.gameAB;
                     if (currentAuto != null && currentAuto.mapID >= 0
                             && TileMap.mapID != currentAuto.mapID) {
+                        if (wrongMapStartTime == 0) wrongMapStartTime = loopStart;
+
                         if (wrongMapSince == 0) {
                             wrongMapSince = loopStart;
+                            wrongMapRetries = 0;
                             safeNotify("Ts Pro: Sai map (" + TileMap.mapID + " != " + currentAuto.mapID + "), doi...");
                         } else if (loopStart - wrongMapSince > WRONG_MAP_TIMEOUT_MS) {
-                            safeNotify("Ts Pro: Sai map " + ((loopStart - wrongMapSince) / 1000) + "s! GoMap " + currentAuto.mapID);
+                            wrongMapRetries++;
+
+                            if (wrongMapRetries >= MAX_GOMAP_RETRIES) {
+                                safeNotify("Ts Pro: GoMap that bai " + wrongMapRetries + " lan! Tu sat...");
+                                wrongMapRetries = 0;
+                                wrongMapSince = 0;
+                                wrongMapStartTime = 0;
+                                suicideAndReturn();
+                                sleep(3000);
+                                continue;
+                            }
+
+                            safeNotify("Ts Pro: Sai map " + ((loopStart - wrongMapSince) / 1000) + "s! GoMap " + currentAuto.mapID + " (lan " + wrongMapRetries + "/" + MAX_GOMAP_RETRIES + ")");
                             try { GameCanvas.endDlg(); } catch (Exception e) {}
                             try { LockGame.gameBK(); } catch (Exception e) {}
 
-                            // Map VIP (195): can dung the map vip truoc
                             if (currentAuto.mapID == 195 && Code.DungMapVip) {
                                 int mvIdx = Char.gameAI(906);
                                 if (mvIdx >= 0) {
@@ -249,6 +269,8 @@ public class TsBoost implements Runnable {
                         }
                     } else {
                         wrongMapSince = 0;
+                        wrongMapRetries = 0;
+                        wrongMapStartTime = 0;
                     }
                 }
 
@@ -348,10 +370,10 @@ public class TsBoost implements Runnable {
 
     /**
      * Thread doc lap, chay song song, KHONG phu thuoc Code.run hay TsBoost thread.
-     * Moi 30s check HP+MP. Neu ca 2 khong doi = KET => tu sat.
+     * Moi 30s check HP+MP + vi tri + wrong map.
+     * Sai map 60s lien tuc = tu sat (ke ca HP/MP doi do regen/buff).
      */
     private static void startWatchdog() {
-        // Dung watchdog cu neu con
         try {
             Thread wd = watchdogThread;
             if (wd != null) wd.interrupt();
@@ -360,60 +382,76 @@ public class TsBoost implements Runnable {
         watchdogThread = new Thread(new Runnable() {
             public void run() {
                 System.out.println("[TsPro] Watchdog started");
-                // Doi 5s cho game on dinh
                 try { Thread.sleep(5000); } catch (Exception e) { return; }
 
-                // Khoi tao snapshot
                 Char mc = Char.getMyChar();
                 if (mc != null) {
                     prevHp = mc.cHP;
                     prevMp = mc.cMP;
+                    prevCx = mc.cx;
+                    prevCy = mc.cy;
                 }
 
                 while (isRunning && modeEnabled) {
                     try {
-                        Thread.sleep(STUCK_CHECK_INTERVAL_MS); // 30s
+                        Thread.sleep(STUCK_CHECK_INTERVAL_MS);
                     } catch (InterruptedException e) {
-                        break; // Bi interrupt = dung
+                        break;
                     }
 
                     if (!isRunning || !modeEnabled) break;
 
-                    // Bo qua boss mode
                     if (isBossHuntingMode()) {
-                        safeNotify("TsPro: 30s Boss mode, bo qua");
                         Char c = Char.getMyChar();
-                        if (c != null) { prevHp = c.cHP; prevMp = c.cMP; }
+                        if (c != null) {
+                            prevHp = c.cHP; prevMp = c.cMP;
+                            prevCx = c.cx; prevCy = c.cy;
+                        }
                         continue;
                     }
 
                     Char myChar = Char.getMyChar();
                     if (myChar == null) continue;
 
-                    // Dang chet — bo qua
                     if (myChar.statusMe == 14 || myChar.cHP <= 0) {
-                        prevHp = myChar.cHP;
-                        prevMp = myChar.cMP;
+                        prevHp = myChar.cHP; prevMp = myChar.cMP;
+                        prevCx = myChar.cx; prevCy = myChar.cy;
                         continue;
                     }
 
-                    // === CHECK HP + MP ===
+                    // CHECK 1: Sai map qua lau => tu sat
+                    if (wrongMapStartTime > 0) {
+                        long wd2 = System.currentTimeMillis() - wrongMapStartTime;
+                        if (wd2 > WRONG_MAP_SUICIDE_MS) {
+                            safeNotify("TsPro: Sai map " + (wd2/1000) + "s! Tu sat!");
+                            wrongMapStartTime = 0; wrongMapSince = 0; wrongMapRetries = 0;
+                            suicideAndReturn();
+                            prevHp = 0; prevMp = 0;
+                            continue;
+                        }
+                    }
+
+                    // CHECK 2: HP + MP + vi tri
                     int dHp = myChar.cHP - prevHp;
                     int dMp = myChar.cMP - prevMp;
                     boolean hpOK = (dHp != 0);
                     boolean mpOK = (dMp != 0);
+                    boolean posChanged = (myChar.cx != prevCx || myChar.cy != prevCy);
 
                     String info = "HP:" + (dHp >= 0 ? "+" : "") + dHp
-                        + " MP:" + (dMp >= 0 ? "+" : "") + dMp;
+                        + " MP:" + (dMp >= 0 ? "+" : "") + dMp
+                        + (posChanged ? " Moved" : " NoMove");
 
-                    // Update snapshot
-                    prevHp = myChar.cHP;
-                    prevMp = myChar.cMP;
+                    prevHp = myChar.cHP; prevMp = myChar.cMP;
+                    prevCx = myChar.cx; prevCy = myChar.cy;
 
                     if (hpOK || mpOK) {
-                        safeNotify("TsPro: 30s OK | " + info);
+                        if (!posChanged && wrongMapStartTime > 0) {
+                            safeNotify("TsPro: 30s | " + info + " | Sai map!");
+                        } else {
+                            safeNotify("TsPro: 30s OK | " + info);
+                        }
                     } else {
-                        // KET! HP va MP khong doi 30s
                         safeNotify("TsPro: KET! " + info + " => Tu sat!");
                         suicideAndReturn();
                     }

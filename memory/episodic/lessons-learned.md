@@ -498,4 +498,49 @@ Khi TS ở map VIP (cần thẻ vào), nếu chết/mất kết nối → respaw
 - Dùng **thread riêng** cho logic cần chạy liên tục bất kể TS
 - `gameAP()` = init method, chạy khi game khởi tạo → nơi restart các watcher thread
 
+## 2026-08-08: EffectAuto ArrayIndexOutOfBoundsException — Fix Crash Liên Tục
+
+### Vấn đề
+Log game spam liên tục:
+```
+Err update effauto: java.lang.ArrayIndexOutOfBoundsException: length=20; index=40
+```
+Lỗi gây lag nặng, có thể góp phần khiến game bị treo/stuck khi TS Pro.
+
+### Nguyên nhân
+`EffectAuto.class` (game gốc) khai báo `arrEffAtutoTemplate = new EffAtutoTemp[20]`.
+Server gửi effect ID lớn hơn 19 (VD: 40). Khi `this.id = 40`:
+- `gameAD()` trả `arrEffAtutoTemplate[40]` → **ArrayIndexOutOfBoundsException**
+- Method update `gameAA()` có try/catch nên không crash game, nhưng **spam error liên tục**
+- Method paint `gameAA(mGraphics)` KHÔNG có try/catch → có thể crash render
+
+### Giải pháp — Bytecode Patch
+- Script: `scripts/patch_effectauto.py`
+- Tìm `bipush 20` + `anewarray EffAtutoTemp` trong static initializer `<clinit>`
+- Thay `bipush 20` (0x10 0x14) → `bipush 100` (0x10 0x64)
+- Kết quả: `arrEffAtutoTemplate[100]` — đủ chứa effect ID lên đến 99
+- **Offset**: 6510 (0x196E) trong EffectAuto.class gốc
+
+### Quy tắc
+- **Luôn chạy `patch_effectauto.py` sau mỗi lần unpack JAR** — thêm vào build flow
+- Nếu server gửi ID > 99 → cần tăng size tiếp
+
+## 2026-08-08: TsBoost Anti-Stuck v2 — Fix Treo Tại Chuyển Khu
+
+### Vấn đề
+TsBoost bị stuck khi chuyển khu (GoMap):
+1. **GoMap loop vô hạn**: GoMap thất bại (dialog block, lock game) → lặp mỗi 8s mãi mãi
+2. **Watchdog 30s không phát hiện stuck**: HP/MP thay đổi do regen/buff → watchdog coi là OK dù nhân vật đứng im sai map
+3. **Nhân vật đứng im 1 chỗ**: Stuck ở điểm chuyển khu, đánh quái nếu có nhưng không thoát
+
+### Fix
+1. **GoMap retry limit** (`MAX_GOMAP_RETRIES = 5`): Đếm số lần GoMap thất bại liên tiếp. Sau 5 lần → tự sát về nhà thay vì loop tiếp.
+2. **Wrong map suicide** (`WRONG_MAP_SUICIDE_MS = 60000`): Watchdog thread kiểm tra: nếu sai map liên tục > 60s → tự sát ngay, BẤT KỂ HP/MP có thay đổi.
+3. **Vị trí tracking**: Watchdog thêm check `cx/cy` — nếu vị trí không đổi + sai map → cảnh báo stuck dù HP/MP thay đổi.
+4. **`wrongMapStartTime`**: Timestamp bắt đầu sai map, dùng cho cả main loop lẫn watchdog thread. Reset khi về đúng map.
+
+### State fields mới
+- `wrongMapRetries`: Đếm GoMap thất bại liên tiếp
+- `wrongMapStartTime`: Thời điểm bắt đầu sai map (cho watchdog 60s)
+
 
