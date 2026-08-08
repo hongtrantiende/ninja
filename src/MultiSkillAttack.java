@@ -58,6 +58,19 @@ public class MultiSkillAttack {
 
         // Restore UI skill
         myChar.myskill = originalSelectedSkill;
+
+        // An hieu ung skill danh khi TS hoac bat option
+        if (Code.hideSkillEffect || Code.gameAB != null) {
+            try { Effect2.vEffect2.removeAllElements(); } catch (Exception e) {}
+            try { Effect2.vAnimateEffect.removeAllElements(); } catch (Exception e) {}
+            if (myChar != null) {
+                myChar.skillPaint = null;
+                myChar.effPaints = null;
+                if (myChar.statusMe == 2 || myChar.statusMe == 3) {
+                    myChar.statusMe = 1;
+                }
+            }
+        }
     }
 
     // ========================
@@ -97,7 +110,7 @@ public class MultiSkillAttack {
                 Service.gI().gameAR();                // Buff self (KHAC v\u1edbi gameAA attack)
 
                 // V\u1ebd hi\u1ec7u \u1ee9ng
-                if (!Code.timBG && GameScr.sks != null
+                if (!Code.timBG && !Code.hideSkillEffect && Code.gameAB == null && GameScr.sks != null
                         && s.template.id >= 0 && s.template.id < GameScr.sks.length) {
                     myChar.gameAB(GameScr.sks[s.template.id], 0);
                 }
@@ -212,7 +225,8 @@ public class MultiSkillAttack {
         Service.gI().gameAA(targetMobs, reAF != null ? reAF : new MyVector(), 1);
 
         // V\u1ebd hi\u1ec7u \u1ee9ng
-        if (GameScr.sks != null && s.template.id >= 0 && s.template.id < GameScr.sks.length) {
+        if (!Code.hideSkillEffect && Code.gameAB == null && GameScr.sks != null
+                && s.template.id >= 0 && s.template.id < GameScr.sks.length) {
             myChar.gameAB(GameScr.sks[s.template.id], 0);
         }
 

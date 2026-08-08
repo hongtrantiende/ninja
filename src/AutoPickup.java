@@ -14,10 +14,10 @@ public class AutoPickup implements Runnable {
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 50;     // 50ms giua moi vong quet
+    private static final int SCAN_INTERVAL_MS = 100;    // 100ms giua moi vong quet
     private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
     private static final int GHOST_RANGE = 50;          // Item > 50px ngang thi ghost move
-    private static final int GHOST_Y_LIMIT = 300;       // Cho phep ghost chieu cao <= 300px
+    private static final int GHOST_Y_LIMIT = 200;       // Cho phep ghost chieu cao <= 200px
     private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
     private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
     private static final int GHOST_PICK_INTERVAL_MS = 100;  // 100ms giua moi lan ghost pick

@@ -62,6 +62,7 @@ implements Runnable {
     public static boolean gameBE = true;
     public static boolean timBG = false;
     public static boolean hideItemDrop = false;
+    public static boolean hideSkillEffect = false;
     public static MyVector realItemMap = null;
     public static boolean MuaMapVip = false;
     public static boolean DungMapVip = false;
@@ -889,6 +890,21 @@ implements Runnable {
                     } catch (Exception e2) {}
                 } else if (realItemMap != null) {
                     realItemMap = null;
+                }
+                if (hideSkillEffect || gameAB != null) {
+                    try { Effect2.vEffect2.removeAllElements(); } catch (Exception e2) {}
+                    try { Effect2.vAnimateEffect.removeAllElements(); } catch (Exception e2) {}
+                    try {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            me.skillPaint = null;
+                            me.effPaints = null;
+                            me.effTask = null;
+                            if (me.statusMe == 2 || me.statusMe == 3) {
+                                me.statusMe = 1;
+                            }
+                        }
+                    } catch (Exception e2) {}
                 }
                 if (timBG) {
                     // Xoa hieu ung render thua khi auto (ke ca tu Buff.class)

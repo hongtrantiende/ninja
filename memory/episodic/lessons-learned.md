@@ -729,10 +729,17 @@ myChar.cy = origCy;                  // → Nhân vật KHÔNG nhảy trên màn
 #### Config cuối cùng (AutoPickup v3.5)
 | Param | Value | Ý nghĩa |
 |-------|-------|---------|
-| SCAN_INTERVAL_MS | 50ms | 20 lần quét/giây |
+| SCAN_INTERVAL_MS | 100ms | Quét item mỗi 100ms |
 | GHOST_RANGE | 50px | Item > 50px ngang → ghost |
-| GHOST_Y_LIMIT | 300px | Cho phép ghost dọc ≤ 300px |
+| GHOST_Y_LIMIT | 200px | Cho phép ghost dọc ≤ 200px |
 | GHOST_PICK_INTERVAL_MS | 100ms | Ghost pick 1 item mỗi 100ms |
 | Ghost delay | 50ms × 2 | Tổng ~100ms lệch vị trí/item |
 
+#### Ẩn hiệu ứng skill & hoạt ảnh nhân vật đánh (2026-08-08)
+- **Root cause quầng lửa/aura trên thân nhân vật:** `myChar.gameAB(GameScr.sks[s.template.id], 0)` khi gọi trong `MultiSkillAttack.java` sẽ sinh ra mảng frame `effPaints` (chứa sprite hiệu ứng aura của skill). Nếu không chặn lệnh này, `effPaints` vẫn liên tục vẽ quầng lửa lên nhân vật.
+- **Giải pháp triệt để khi TS bật (`Code.gameAB != null`) hoặc toggle **Ẩn skill đánh: ON** (`Code.hideSkillEffect`):**
+  1. **Chặn `gameAB`:** Wrap `if (!Code.hideSkillEffect && Code.gameAB == null)` xung quanh các cuộc gọi `myChar.gameAB(GameScr.sks[...], 0)` trong `MultiSkillAttack.java` (cả `autoBuff` lẫn `fireAttackSkill`).
+  2. **Xoá effect toàn cục:** Clear `Effect2.vEffect2` & `Effect2.vAnimateEffect` trong `Code.java` main loop & `MultiSkillAttack.java`.
+  3. **Ép nhân vật đứng im:** Set `myChar.skillPaint = null`, `myChar.effPaints = null`, `myChar.effTask = null` và ép `myChar.statusMe = 1` (chế độ STAND/IDLE) trong `Code.java` main loop.
+- **Kết quả:** Nhân vật đứng yên 100%, không hiện hoạt ảnh/aura skill, quái tự động mất HP khi bị tấn công.
 

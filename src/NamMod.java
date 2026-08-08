@@ -22,6 +22,7 @@ public final class NamMod implements IActionListener {
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int MUA_MAP_VIP = 120123;
     private static final int DUNG_MAP_VIP = 120124;
+    private static final int HIDE_SKILL_EFFECT = 120125;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -54,6 +55,7 @@ public final class NamMod implements IActionListener {
         // === H\u00FAt VP ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
+        items.addElement(command("\u1ea8n skill \u0111\u00e1nh: " + onOff(Code.hideSkillEffect), HIDE_SKILL_EFFECT));
 
         // === Auto Level ===
         String lvStatus = AutoLevel.isRunning
@@ -134,6 +136,10 @@ public final class NamMod implements IActionListener {
             case HIDE_ITEM_DROP:
                 Code.hideItemDrop = !Code.hideItemDrop;
                 GameScr.gameAC(Code.hideItemDrop ? "\u1ea8n VP r\u01a1i: ON" : "\u1ea8n VP r\u01a1i: OFF");
+                return;
+            case HIDE_SKILL_EFFECT:
+                Code.hideSkillEffect = !Code.hideSkillEffect;
+                GameScr.gameAC(Code.hideSkillEffect ? "\u1ea8n skill \u0111\u00e1nh: ON" : "\u1ea8n skill \u0111\u00e1nh: OFF");
                 return;
             case AUTO_LEVEL:
                 if (AutoLevel.isRunning) {
