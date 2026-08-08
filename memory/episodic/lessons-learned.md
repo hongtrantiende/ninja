@@ -619,4 +619,84 @@ Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
 - **Chuẩn game gốc:** Nút "Tự sát" trong menu (lệnh chat `die`) gọi `Code.gameAN()` -> gửi `Service.gI().gameAE()` (Packet -27 / Tự sát). Gọi `Code.gameAN()` đảm bảo tự sát tức thì và an toàn.
 
 
+## 2026-08-08: Ghost Move Gây Lệch Vị Trí Server → TS Treo Không Gây Damage (QUAN TRỌNG)
+
+> ✅ Đã xác nhận fix v3.4 hoạt động: TS chạy 20+ phút mượt mà, không bị treo.
+
+### Quy Tắc Vàng: KHÔNG Ghost Move Khi Đang Chiến Đấu
+- **Server validate khoảng cách** khi nhận attack packet. Nếu server nghĩ nhân vật ở VỊ TRÍ A nhưng mob ở VỊ TRÍ B (xa nhau) → server **REJECT attack im lặng** (không báo lỗi).
+- Mọi lệnh `Char.gameAC(x, y)` đều gửi **movement packet** lên server → server cập nhật vị trí nhân vật tại (x, y).
+- Ghost move thay đổi vị trí SERVER → attack từ TsBoost bị reject → nhân vật treo đánh không gây damage.
+- **Khi nhảy/chạy thủ công → movement packet mới sửa lại vị trí server → hết lỗi** (đây là cách nhận biết bug này).
+
+### Triệu Chứng Nhận Biết
+- Nhân vật di chuyển bình thường trên client (cx/cy thay đổi)
+- HP:+0 MP:+0 — không chiến đấu thật (server reject attack)
+- Anti-stuck check vị trí → "Di" → báo OK SAI
+- Account khác thấy nhân vật ở vị trí sai (tít trên cùng map)
+- **Nhảy lên 1 cái → đánh bình thường** = chắc chắn là bug ghost move position
+
+### Nguyên Nhân Gốc: AutoPickup Ghost Move Trong Khi TS
+```java
+// LỖI: run() gọi blastPickupSmart(0) LIÊN TỤC mỗi 200ms
+// → Ghost move đến từng item (thay đổi vị trí server)
+// → TsBoost gửi attack ĐỒNG THỜI → server reject (vị trí sai)
+// → Return packet có thể bị nuốt trong flood
+Char.gameAC(item.xEnd, item.yEnd);  // Server: nhân vật ở item
+// ... TsBoost gửi attack ở đây → REJECT! ...
+Char.gameAC(origCx, origCy);        // Return — có thể bị nuốt
+```
+
+### Sai Lầm v3.3 (Logic Ngược — ĐỪNG LẶP LẠI!)
+```java
+// v3.3 SAI: "Chi ghost move khi TS con active"
+if (Code.gameAB == null) continue;  // ← NGƯỢC! Skip khi TS TẮT, ghost khi TS BẬT
+// Kết quả: VẪN ghost move khi đang TS → VẪN treo
+```
+> **Bài học**: `Code.gameAB != null` = TS đang bật. Khi TS bật → KHÔNG ghost move.
+
+### Fix Đúng: AutoPickup v3.4 (ĐÃ XÁC NHẬN)
+```java
+// === Trong run() thread: phân nhánh theo trạng thái TS ===
+if (Code.gameAB != null) {
+    blastPickupFast();     // TS BẬT: chỉ gửi pickup packet, KHÔNG ghost move
+} else {
+    blastPickupSmart(0);   // TS TẮT: ghost move nhặt toàn map (an toàn)
+}
+
+// === Trong blastPickupSmart: guard ghost move ===
+if (Code.gameAB != null) continue;  // ĐÚNG: skip ghost khi TS BẬT
+Char.gameAC(item.xEnd, item.yEnd);  // Chỉ ghost khi TS tắt
+
+// === Khi stop/exit: sync vị trí ===
+syncPosition();  // Gửi Char.gameAC(myChar.cx, myChar.cy) cuối cùng
+```
+
+### Phân Loại `Char.gameAC()` Trong Mod Code
+| Loại | Mô tả | Khi TS bật | Ví dụ |
+|------|--------|-----------|-------|
+| **Di chuyển thật** | Gửi packet + set `myChar.cx/cy` | ✅ An toàn | AutoNhanDa, AutoDoiDiem |
+| **Ghost move liên tục** | Gửi packet nhanh, giữ `myChar.cx/cy` | ❌ NGUY HIỂM | AutoPickup (đã fix v3.4) |
+| **Ghost move 1 lần + delay** | Ghost + sleep(500ms) + return | ⚠️ OK nếu có delay đủ | Auto.java gốc (dòng 983-999) |
+
+### Quy Tắc BẮT BUỘC Khi Viết Code Nhặt/Di Chuyển
+1. **TUYỆT ĐỐI KHÔNG ghost move khi đang TS** (`Code.gameAB != null`) — server cần vị trí đúng để accept attack
+2. **Khi TS bật**: chỉ dùng `blastPickupFast()` với `TS_PICKUP_RANGE = 200` (gửi pickup packet trong 200px, ko ghost)
+3. **Ghost move chỉ cho**: lệnh "nhat" thủ công (TS tắt), hoặc `grabOnce()` (boss chết, burst 1 lần)
+4. **LUÔN gọi `syncPosition()`** khi thread dừng / stop()
+5. **Dừng ngay** (`if (!isRunning) break`) khi stop() — tránh ghost move thêm item cuối
+6. **Check logic cẩn thận**: `Code.gameAB == null` = TS TẮT, `Code.gameAB != null` = TS BẬT
+7. **Đã xóa AutoTsXa.java** — teleport liên tục cũng gây rủi ro lệch vị trí tương tự
+
+### Các Phương Án Đã Test — KẾT QUẢ
+| Phương án | Kết quả |
+|-----------|---------|
+| Ghost move liên tục 200ms (v3.2) | ❌ Treo liên tục |
+| Ghost move + delay 10ms return (v3.3) | ❌ Logic ngược, vẫn ghost khi TS |
+| blastPickupFast khi TS (v3.4) | ✅ **20+ phút mượt** |
+| Ghost move 2s/vòng + syncPosition | ❌ Vẫn bị treo |
+| **blastPickupFast KC 200 (v3.4 final)** | ✅ **Ổn định, đã xác nhận** |
+
+> **Kết luận cuối**: Ghost move khi TS = KHÔNG KHẢ THI dù delay bao lâu. Giải pháp duy nhất: `blastPickupFast()` chỉ gửi pickup packet (không `Char.gameAC`), phạm vi 200px theo vị trí nhân vật.
+
 

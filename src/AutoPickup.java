@@ -1,11 +1,13 @@
 /**
- * AutoPickup v3.2 — Ghost Move voi delay de hut xa ma khong flood server.
+ * AutoPickup v3.4 — Fix: KHONG ghost move khi dang TS.
  *
- * Thread nen: moi 200ms, ghost move den tung item + nhat, delay 50ms/item.
+ * v3.4: Khi TS bat, chi nhat item gan (blastPickupFast, ko ghost move).
+ *       Ghost move chi khi dung lenh "nhat" thu cong hoac grabOnce (boss).
+ *       Ly do: ghost move thay doi vi tri server -> attack bi reject -> treo.
+ *
+ * Thread nen: moi 200ms nhat item.
  * grabOnce (boss): ghost move nhanh (3ms/item), nhat sach toan map.
- *
  * Lenh: "nhat" toggle on/off.
- * Cung tu bat khi ts/tsn/ak active.
  */
 public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
@@ -15,6 +17,7 @@ public class AutoPickup implements Runnable {
     private static final int SCAN_INTERVAL_MS = 200;    // 200ms giua moi vong quet
     private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
     private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
+    private static final int TS_PICKUP_RANGE = 200;     // Khi TS bat: nhat item trong 200px (ko ghost)
     private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
     private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
 
@@ -57,6 +60,8 @@ public class AutoPickup implements Runnable {
     public static void stop() {
         isRunning = false;
         thread = null;
+        // Gui sync vi tri that ve server de account khac thay dung cho
+        syncPosition();
     }
 
     /**
@@ -84,15 +89,23 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Blast NHANH — chi gui gameAQ, KHONG ghost move.
-     * Nhat item trong tam server (~30-50px).
+     * Blast trong 200px — chi gui gameAQ, KHONG ghost move.
+     * Dung khi TS bat de tranh lech vi tri server.
      */
     private static void blastPickupFast() {
+        Char myChar = Char.getMyChar();
+        if (myChar == null) return;
+        int cx = myChar.cx;
+        int cy = myChar.cy;
         int size = GameScr.vItemMap.size();
         for (int i = 0; i < size; i++) {
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
-                Service.gI().gameAQ(item.itemMapID);
+                // Chi nhat item trong 200px
+                if (Math.abs(cx - item.xEnd) <= TS_PICKUP_RANGE
+                        && Math.abs(cy - item.yEnd) <= TS_PICKUP_RANGE) {
+                    Service.gI().gameAQ(item.itemMapID);
+                }
             } catch (Exception e) {}
         }
     }
@@ -100,6 +113,8 @@ public class AutoPickup implements Runnable {
     /**
      * Blast + Ghost Move — nhat item toan map.
      * Gui packet vi tri den item, nhat, roi quay ve vi tri goc.
+     * v3.4: KHONG duoc goi tu run() khi TS bat (run() dung blastPickupFast thay the).
+     *       Chi duoc goi tu: grabOnce(), hoac run() khi TS tat.
      * @param delayMs delay giua moi item (ms) de tranh flood server
      */
     private static void blastPickupSmart(int delayMs) {
@@ -107,9 +122,11 @@ public class AutoPickup implements Runnable {
         if (myChar == null) return;
         int origCx = myChar.cx;
         int origCy = myChar.cy;
+        boolean didGhost = false;
 
         int size = GameScr.vItemMap.size();
         for (int i = 0; i < size; i++) {
+            if (!isRunning) break; // Dung ngay khi stop
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
 
@@ -120,8 +137,9 @@ public class AutoPickup implements Runnable {
                 int dy = Math.abs(origCy - item.yEnd);
 
                 if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
-                    // Ghost: gui packet vi tri den item
+                    // Ghost move den item xa — an toan vi run() da chan khi TS bat
                     Char.gameAC(item.xEnd, item.yEnd);
+                    didGhost = true;
                 }
 
                 Service.gI().gameAQ(item.itemMapID);
@@ -132,15 +150,20 @@ public class AutoPickup implements Runnable {
             } catch (Exception e) {}
         }
 
-        // Quay ve vi tri goc — nhan vat khong giat
-        Char.gameAC(origCx, origCy);
+        // Quay ve vi tri goc — delay de server nhan return packet
+        if (didGhost) {
+            try { Thread.sleep(10); } catch (Exception e) {}
+            Char.gameAC(origCx, origCy);
+            try { Thread.sleep(10); } catch (Exception e) {}
+        }
         myChar.cx = origCx;
         myChar.cy = origCy;
     }
 
     /**
      * Thread chinh — chay nen SONG SONG voi danh quai.
-     * Dung ghost move voi delay 50ms/item de hut xa ma khong flood.
+     * v3.4: TS bat = blastPickupFast (nhat gan), TS tat = blastPickupSmart (nhat xa).
+     *       Ghost move khi TS bat = KHONG KHA THI (da test, bi loi).
      */
     public void run() {
         try { Thread.sleep(300); } catch (Exception e) {}
@@ -148,11 +171,30 @@ public class AutoPickup implements Runnable {
         while (isRunning) {
             try {
                 if (GameScr.vItemMap.size() > 0) {
-                    blastPickupSmart(0);
+                    if (Code.gameAB != null) {
+                        // TS bat: chi nhat item gan, KHONG ghost move
+                        blastPickupFast();
+                    } else {
+                        // Ko TS: ghost move nhat toan map
+                        blastPickupSmart(0);
+                    }
                 }
             } catch (Exception e) {}
 
             try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
         }
+
+        // Thread dung: sync vi tri that ve server
+        syncPosition();
+    }
+
+    /** Gui packet dong bo vi tri hien tai ve server. */
+    private static void syncPosition() {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar != null) {
+                Char.gameAC(myChar.cx, myChar.cy);
+            }
+        } catch (Exception e) {}
     }
 }
