@@ -1,12 +1,13 @@
 /**
- * TsBoost v3 — Bo sung tang toc cho TS/AK goc. Toi uu cho 20 instances.
+ * TsBoost v4 — Bo sung tang toc cho TS/AK goc. Toi uu cho 20 instances.
  *
  * Chay song song voi TanSat (Code.gameAB):
  * - TS goc: xu ly target, di chuyen, heal, nhat do, hoi sinh, next map
  * - TsBoost: spam attack AoE tat ca quai trong range + auto buff + map watchdog
  *
- * v3: Anti-stuck HP+MP. Moi 30s hien thong bao check.
- *     HP va MP khong doi 30s = ket => tu sat ve nha.
+ * v4: Anti-stuck VI TRI (XY). Moi 30s luu vi tri cx/cy.
+ *     30s tiep neu dung cung cho => KET => tu sat ve nha.
+ *     HP/MP chi la thong tin phu hien thi kem.
  *
  * Lenh: tsp (bat/tat mode boost)
  */
@@ -370,8 +371,9 @@ public class TsBoost implements Runnable {
 
     /**
      * Thread doc lap, chay song song, KHONG phu thuoc Code.run hay TsBoost thread.
-     * Moi 30s check HP+MP + vi tri + wrong map.
-     * Sai map 60s lien tuc = tu sat (ke ca HP/MP doi do regen/buff).
+     * Moi 30s luu vi tri (cx/cy). 30s tiep neu dung cung cho = KET = tu sat.
+     * Vi tri la tin hieu CHINH. HP/MP chi hien thi phu.
+     * Sai map 60s lien tuc = tu sat.
      */
     private static void startWatchdog() {
         try {
@@ -407,6 +409,7 @@ public class TsBoost implements Runnable {
                             prevHp = c.cHP; prevMp = c.cMP;
                             prevCx = c.cx; prevCy = c.cy;
                         }
+                        safeNotify("TsPro: 30s | Boss mode, bo qua");
                         continue;
                     }
 
@@ -416,6 +419,7 @@ public class TsBoost implements Runnable {
                     if (myChar.statusMe == 14 || myChar.cHP <= 0) {
                         prevHp = myChar.cHP; prevMp = myChar.cMP;
                         prevCx = myChar.cx; prevCy = myChar.cy;
+                        safeNotify("TsPro: 30s | Dang chet, doi hoi sinh");
                         continue;
                     }
 
@@ -431,27 +435,27 @@ public class TsBoost implements Runnable {
                         }
                     }
 
-                    // CHECK 2: HP + MP + vi tri
+                    // CHECK 2: VI TRI (CHINH) + HP/MP (PHU)
+                    boolean posChanged = (myChar.cx != prevCx || myChar.cy != prevCy);
                     int dHp = myChar.cHP - prevHp;
                     int dMp = myChar.cMP - prevMp;
-                    boolean hpOK = (dHp != 0);
-                    boolean mpOK = (dMp != 0);
-                    boolean posChanged = (myChar.cx != prevCx || myChar.cy != prevCy);
 
-                    String info = "HP:" + (dHp >= 0 ? "+" : "") + dHp
-                        + " MP:" + (dMp >= 0 ? "+" : "") + dMp
-                        + (posChanged ? " Moved" : " NoMove");
+                    String pos = "(" + myChar.cx + "," + myChar.cy + ")";
+                    String info = pos + (posChanged ? " Di" : " Khop!")
+                        + " HP:" + (dHp >= 0 ? "+" : "") + dHp
+                        + " MP:" + (dMp >= 0 ? "+" : "") + dMp;
 
                     prevHp = myChar.cHP; prevMp = myChar.cMP;
-                    prevCx = myChar.cx; prevCy = myChar.cy;
 
-                    if (hpOK || mpOK) {
-                        if (!posChanged && wrongMapStartTime > 0) {
-                            safeNotify("TsPro: 30s | " + info + " | Sai map!");
-                        } else {
-                            safeNotify("TsPro: 30s OK | " + info);
-                        }
+                    if (posChanged) {
+                        // Vi tri thay doi = OK, luu vi tri moi
+                        prevCx = myChar.cx;
+                        prevCy = myChar.cy;
+                        safeNotify("TsPro: 30s OK | " + info);
                     } else {
+                        // Dung yen 30s, vi tri khop = KET => tu sat
+                        prevCx = myChar.cx;
+                        prevCy = myChar.cy;
                         safeNotify("TsPro: KET! " + info + " => Tu sat!");
                         suicideAndReturn();
                     }
@@ -462,14 +466,12 @@ public class TsBoost implements Runnable {
         watchdogThread.start();
     }
 
-    /** Tu sat va ve lang. Khong dung TsBoost — de TS goc hoi sinh roi TsBoost tu chay lai. */
+    /** Tu sat ve lang — dung Code.gameAN() giong nut "Tu sat" trong menu game (lenh "die"). */
     private static void suicideAndReturn() {
         try { GameCanvas.endDlg(); } catch (Exception e) {}
         try { LockGame.gameBK(); } catch (Exception e) {} // Mo khoa neu bi lock
         try {
-            GameScr.gameAB(5, 0, 0);
-            Service.gI().gameAF();
-            TileMap.gameAF();
+            Code.gameAN();  // Giong het nut Tu Sat trong menu = Service.gI().gameAE()
         } catch (Exception e) {}
     }
 

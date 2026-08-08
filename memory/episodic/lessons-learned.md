@@ -601,4 +601,22 @@ Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
 - `fix_gamescr_thongke.py` ✅ (rename paint→draaw)
 - `patch_effectauto.py` ✅ (fix array crash)
 
+---
+
+## 2026-08-08: TsBoost v4 — Anti-Stuck Vị Trí XY & Hàm Tự Sát Chuẩn Menu (`Code.gameAN`)
+
+### 1. Vị Trí XY Là Tín Hiệu Anti-Stuck Chuẩn Nhất
+- **HP/MP không phản ánh chính xác trạng thái kẹt:** Nhân vật regen HP/MP hoặc buff skill làm HP/MP biến động dù đang đứng im kẹt địa hình / dialog block.
+- **Tọa độ `(cx, cy)` chính xác 100%:** Khi đánh quái, nhân vật liên tục di chuyển tiếp cận mob. Chỉ khi kẹt thật sự (bị cản, vướng địa hình, lỗi GoMap) mới đứng yên trùng vị trí 30s.
+- **Quy trình:**
+  - Chụp `(prevCx, prevCy)`.
+  - Sau 30s: `posChanged = (cx != prevCx || cy != prevCy)`.
+  - Nếu `!posChanged` (trùng khớp vị trí) -> Tự sát ngay lập tức.
+  - Nếu `posChanged` -> Cập nhật vị trí mới, tiếp tục loop.
+
+### 2. Hàm Tự Sát Đúng Chuẩn Game (`Code.gameAN`)
+- **Lỗi cũ:** `suicideAndReturn()` gọi `GameScr.gameAB(5,0,0)` + `Service.gI().gameAF()` (packet hồi sinh khi đã chết) -> không phải packet tự sát khi đang sống.
+- **Chuẩn game gốc:** Nút "Tự sát" trong menu (lệnh chat `die`) gọi `Code.gameAN()` -> gửi `Service.gI().gameAE()` (Packet -27 / Tự sát). Gọi `Code.gameAN()` đảm bảo tự sát tức thì và an toàn.
+
+
 

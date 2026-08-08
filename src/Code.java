@@ -256,14 +256,14 @@ implements Runnable {
         Char.DungHoTro = true;
         Char.KhienMana = true;
         Char.DotQuai = true;
-        Char.DungPhanThan = true;
+        Char.DungPhanThan = false;
         Char.NhatYen = true;
         Char.NhatVpNV = false;
         Char.NhatVpSk = true;
         Char.NhatAll = true;
         Char.NhatSvc = true;
         Char.ReMap = true;
-        Char.TsMapTrong = false;
+        Char.TsMapTrong = true;
         Char.AutoMuaFood = true;
         Char.DieHetMp = true;
         Char.ReConnect = true;
@@ -339,6 +339,7 @@ implements Runnable {
         gameCC.gameAA(var0, var1, Char.TsMapTrong ? -1 : (int)TileMap.zoneID);
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
+        TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
     }
 
     private static void gameAC(int var0, int var1) {

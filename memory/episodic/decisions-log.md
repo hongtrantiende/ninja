@@ -238,16 +238,20 @@
 - **Auto-restart:** Thêm restart logic trong `gameAP()` (init method, gọi khi reconnect) để watcher tự sống lại.
 - **Files:** `src/Code.java`, `src/NamMod.java`
 
-## 2026-08-08: TsBoost v3 — Anti-Stuck HP+MP (Thay Thế checkHang() Cũ)
-- **Quyết định:** Rewrite hệ thống anti-stuck trong TsBoost. Bỏ `checkHang()` dựa trên `lastLoopTime` (chỉ detect thread freeze), thay bằng `checkProgress()` dựa trên HP+MP thay đổi.
-- **Lý do:** `checkHang()` cũ KHÔNG BAO GIỜ trigger vì `lastLoopTime` luôn được update mỗi vòng lặp (thread không bao giờ freeze). Nhân vật kẹt vị trí/terrain/hết quái nhưng thread vẫn chạy → checkHang pass → không tự sát.
-- **Giải pháp v3:**
-  - **Tín hiệu chính:** `myChar.cHP` (HP) và `myChar.cMP` (MP). Khi đánh quái: HP giảm (bị đánh) + MP giảm (dùng skill). Nếu CẢ 2 không đổi 30s = KẸT.
-  - **Tín hiệu phụ (debug):** Yen, Attack count, Vị trí (cx/cy), Mob count — hiển thị trong thông báo.
-  - **Mỗi 30s:** Hiện thông báo chi tiết: `TsPro: 30s OK | HP:-500 MP:-200 Y:+1500 A:+30 Di M:Co`
-  - **Kẹt:** `TsPro: KET 30s! HP/MP=0 ... => Tu sat!` → tự sát về nhà.
-  - **Boss mode:** Bỏ qua (boss HP cao, đánh lâu là bình thường).
-  - **Chuyển map/khu:** Reset snapshot (tránh false positive).
-- **Tín hiệu đã loại bỏ:** EXP (user tắt nhận EXP), Kill count (không chính xác — nhiều khi không tăng dù đang đánh).
-- **checkHang() giữ làm backup:** Nâng timeout lên 60s, chỉ detect thread freeze thực sự (deadlock). Tự restart sau 3s.
-- **Files:** `src/TsBoost.java`
+## 2026-08-08: TsBoost v4 — Anti-Stuck Vị Trí XY (Chính Xác 100%) & Fix Hàm Tự Sát Menu
+- **Quyết định:** Nâng cấp hệ thống anti-stuck TsBoost sang v4 dùng vị trí tọa độ `(cx, cy)` làm tín hiệu quyết định CHÍNH. Sửa phương thức `suicideAndReturn()` dùng `Code.gameAN()` (gửi `Service.gI().gameAE()`), chuẩn 100% theo nút "Tự sát" (lệnh chat `die`) trong menu game.
+- **Cơ chế Vị trí XY:**
+  - Mỗi 30s chụp snapshot tọa độ `(cx, cy)`.
+  - 30s tiếp theo nếu vị trí **TRÙNG KHỚP (Khớp!)** -> Xác định KẸT -> Tự sát ngay lập tức (`Code.gameAN()`).
+  - Nếu vị trí **THAY ĐỔI (Di)** -> Bình thường -> Xóa tọa độ cũ, lưu tọa độ mới, tiếp tục vòng lặp.
+  - HP/MP chỉ hiển thị phụ trên thông báo `safeNotify`, không dùng để quyết định tự sát.
+- **Thông báo hiển thị 24/7 mỗi 30s:**
+  - OK: `TsPro: 30s OK | (x,y) Di HP:... MP:...`
+  - Kẹt: `TsPro: KET! (x,y) Khop! HP:... MP:... => Tu sat!`
+  - Chết: `TsPro: 30s | Dang chet, doi hoi sinh`
+  - Boss: `TsPro: 30s | Boss mode, bo qua`
+- **Tích hợp Menu Tự động:**
+  - Bấm nút **"Tàn sát"** trong menu Tự động -> Gọi `TsBoost.onTsStarted()` (tự bật Ts Pro đi kèm như lệnh chat `ts`).
+  - Mặc định **"Dùng phân thân"** -> **TẮT** (`Char.DungPhanThan = false`).
+  - Mặc định **"Tàn sát map trống"** -> **BẬT** (`Char.TsMapTrong = true`).
+- **Files:** `src/TsBoost.java`, `src/Code.java`
