@@ -14,6 +14,7 @@ public class TsBoost implements Runnable {
     public static boolean modeEnabled = true;   // Mac dinh ON
     public static boolean isRunning = false;
     private static Thread thread;
+    private static Thread watchdogThread;  // Thread doc lap check stuck
 
     // === CONFIG (toi uu cho 20 instances) ===
     private static final int ATTACK_DELAY_MS = 150;     // 150ms/attack (giam tu 50)
@@ -113,6 +114,8 @@ public class TsBoost implements Runnable {
         Code.timBG = true;
         thread = new Thread(new TsBoost());
         thread.start();
+        // Bat watchdog thread doc lap
+        startWatchdog();
     }
 
     /** Tat boost thread. */
@@ -120,6 +123,12 @@ public class TsBoost implements Runnable {
         isRunning = false;
         thread = null;
         Code.timBG = false;
+        // Dung watchdog
+        try {
+            Thread wd = watchdogThread;
+            if (wd != null) wd.interrupt();
+        } catch (Exception e) {}
+        watchdogThread = null;
     }
 
     /** Hook: goi khi ts/ak bat. */
@@ -302,56 +311,20 @@ public class TsBoost implements Runnable {
     }
 
     /**
-     * Goi tu Code.run loop moi frame.
-     * Lam 2 viec:
-     * 1. Check thread freeze (>60s lastLoopTime khong cap nhat)
-     * 2. Check stuck HP+MP (moi 30s, HP va MP khong doi = ket)
-     *
-     * Dat o Code.run vi thread TsBoost co the crash bat cu luc nao.
+     * Goi tu Code.run loop — chi check thread freeze.
      */
     public static void checkHang() {
-        if (!isRunning) return;
-
-        long now = System.currentTimeMillis();
-
-        // === 1. CHECK THREAD FREEZE ===
-        if (lastLoopTime > 0) {
-            long elapsed = now - lastLoopTime;
-            if (elapsed > 60000) { // 60s thread khong chay = treo cung
-                safeNotify("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
-                restartThread();
-                return;
-            }
-        }
-
-        // === 2. CHECK STUCK HP+MP (moi 30s) ===
-        if (lastStuckCheckTime == 0) {
-            // Lan dau — khoi tao snapshot
-            Char myChar = Char.getMyChar();
-            if (myChar != null) {
-                resetSnapshots(myChar);
-                lastStuckCheckTime = now;
-            }
-            return;
-        }
-
-        if (now - lastStuckCheckTime >= STUCK_CHECK_INTERVAL_MS) {
-            Char myChar = Char.getMyChar();
-            if (myChar == null || myChar.statusMe == 14 || myChar.cHP <= 0) {
-                // Dang chet — reset timer, khong check
-                lastStuckCheckTime = now;
-                if (myChar != null) resetSnapshots(myChar);
-                return;
-            }
-
-            if (checkProgress(myChar, now)) {
-                // KET! Da tu sat
-                lastStuckCheckTime = now;
-            } else {
-                lastStuckCheckTime = now;
-            }
+        if (!isRunning || lastLoopTime == 0) return;
+        long elapsed = System.currentTimeMillis() - lastLoopTime;
+        if (elapsed > 60000) {
+            safeNotify("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
+            restartThread();
         }
     }
+
+    // =============================================
+    // WATCHDOG THREAD DOC LAP (check stuck HP+MP)
+    // =============================================
 
     /** Restart thread TsBoost sau crash/freeze. */
     private static void restartThread() {
@@ -363,7 +336,6 @@ public class TsBoost implements Runnable {
         thread = null;
         Code.timBG = false;
         suicideAndReturn();
-        // Tu khoi dong lai sau 3s
         new Thread(new Runnable() {
             public void run() {
                 try { Thread.sleep(3000); } catch (Exception e) {}
@@ -374,77 +346,82 @@ public class TsBoost implements Runnable {
         }).start();
     }
 
-    // =============================================
-    // STUCK DETECTION
-    // =============================================
-
     /**
-     * Check progress moi 30s.
-     * TIN HIEU CHINH (quyet dinh ket hay khong):
-     *   - HP thay doi: bi danh/hoi mau = dang chien dau
-     *   - MP thay doi: dung skill = dang chien dau (CHUAN NHAT)
-     *   => Neu HP KHONG doi VA MP KHONG doi trong 30s = KET
-     *
-     * TIN HIEU PHU (hien thi de debug):
-     *   - Yen, Attack count, Vi tri, Mob
-     *
-     * Boss mode -> bo qua.
+     * Thread doc lap, chay song song, KHONG phu thuoc Code.run hay TsBoost thread.
+     * Moi 30s check HP+MP. Neu ca 2 khong doi = KET => tu sat.
      */
-    private static boolean checkProgress(Char myChar, long now) {
-        // Boss mode -> bo qua stuck check
-        if (isBossHuntingMode()) {
-            safeNotify("TsPro: 30s Boss mode, bo qua");
-            resetSnapshots(myChar);
-            return false;
-        }
+    private static void startWatchdog() {
+        // Dung watchdog cu neu con
+        try {
+            Thread wd = watchdogThread;
+            if (wd != null) wd.interrupt();
+        } catch (Exception e) {}
 
-        // === TIN HIEU CHINH ===
-        int dHp = myChar.cHP - prevHp;
-        int dMp = myChar.cMP - prevMp;
-        boolean hpChanged = (dHp != 0);
-        boolean mpChanged = (dMp != 0);
+        watchdogThread = new Thread(new Runnable() {
+            public void run() {
+                System.out.println("[TsPro] Watchdog started");
+                // Doi 5s cho game on dinh
+                try { Thread.sleep(5000); } catch (Exception e) { return; }
 
-        // === TIN HIEU PHU (chi de hien thi) ===
-        int dYen = myChar.yen - prevCheckYen;
-        int dAtk = attacksSent - prevCheckAttacks;
-        boolean moved = (myChar.cx != prevCx || myChar.cy != prevCy);
-        boolean hasMobs = hadMobsInPeriod;
+                // Khoi tao snapshot
+                Char mc = Char.getMyChar();
+                if (mc != null) {
+                    prevHp = mc.cHP;
+                    prevMp = mc.cMP;
+                }
 
-        // HP hoac MP phai thay doi => dang chien dau
-        // Ca 2 khong doi => KET
-        boolean hasProgress = (hpChanged || mpChanged);
+                while (isRunning && modeEnabled) {
+                    try {
+                        Thread.sleep(STUCK_CHECK_INTERVAL_MS); // 30s
+                    } catch (InterruptedException e) {
+                        break; // Bi interrupt = dung
+                    }
 
-        // Xay dung thong bao chi tiet
-        String info = "HP:" + (dHp >= 0 ? "+" : "") + dHp
-            + " MP:" + (dMp >= 0 ? "+" : "") + dMp
-            + " Y:" + (dYen >= 0 ? "+" : "") + dYen
-            + " A:+" + (attacksSent - prevCheckAttacks)
-            + (moved ? " Di" : " Dung")
-            + (hasMobs ? " M:Co" : " M:0");
+                    if (!isRunning || !modeEnabled) break;
 
-        // Reset snapshots
-        resetSnapshots(myChar);
+                    // Bo qua boss mode
+                    if (isBossHuntingMode()) {
+                        safeNotify("TsPro: 30s Boss mode, bo qua");
+                        Char c = Char.getMyChar();
+                        if (c != null) { prevHp = c.cHP; prevMp = c.cMP; }
+                        continue;
+                    }
 
-        if (hasProgress) {
-            safeNotify("TsPro: 30s OK | " + info);
-            return false;
-        } else {
-            // KET! HP va MP khong doi 30s
-            safeNotify("TsPro: KET 30s! HP/MP=0 " + info + " => Tu sat!");
-            suicideAndReturn();
-            return true;
-        }
-    }
+                    Char myChar = Char.getMyChar();
+                    if (myChar == null) continue;
 
-    /** Reset tat ca snapshot ve gia tri hien tai. */
-    private static void resetSnapshots(Char myChar) {
-        prevCheckYen = myChar.yen;
-        prevCheckAttacks = attacksSent;
-        prevCx = myChar.cx;
-        prevCy = myChar.cy;
-        prevHp = myChar.cHP;
-        prevMp = myChar.cMP;
-        hadMobsInPeriod = false;
+                    // Dang chet — bo qua
+                    if (myChar.statusMe == 14 || myChar.cHP <= 0) {
+                        prevHp = myChar.cHP;
+                        prevMp = myChar.cMP;
+                        continue;
+                    }
+
+                    // === CHECK HP + MP ===
+                    int dHp = myChar.cHP - prevHp;
+                    int dMp = myChar.cMP - prevMp;
+                    boolean hpOK = (dHp != 0);
+                    boolean mpOK = (dMp != 0);
+
+                    String info = "HP:" + (dHp >= 0 ? "+" : "") + dHp
+                        + " MP:" + (dMp >= 0 ? "+" : "") + dMp;
+
+                    // Update snapshot
+                    prevHp = myChar.cHP;
+                    prevMp = myChar.cMP;
+
+                    if (hpOK || mpOK) {
+                        safeNotify("TsPro: 30s OK | " + info);
+                    } else {
+                        // KET! HP va MP khong doi 30s
+                        safeNotify("TsPro: KET! " + info + " => Tu sat!");
+                        suicideAndReturn();
+                    }
+                }
+                System.out.println("[TsPro] Watchdog stopped");
+            }
+        });
+        watchdogThread.start();
     }
 
     /** Tu sat va ve lang. Khong dung TsBoost — de TS goc hoi sinh roi TsBoost tu chay lai. */
