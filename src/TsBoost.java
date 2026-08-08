@@ -24,6 +24,7 @@ public class TsBoost implements Runnable {
     private static final int SKILL_RESELECT_MS = 15000;   // Chon lai skill moi 15s (giam tu 5s)
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
     private static final int STUCK_CHECK_INTERVAL_MS = 30000; // Check stuck moi 30s
+    private static final int MAX_MOB_PER_ATTACK = 6;  // Gioi han mob/lan danh (tranh crash)
 
     // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
@@ -242,17 +243,8 @@ public class TsBoost implements Runnable {
                     }
                 }
 
-                // === STUCK DETECTION (moi 30s) ===
-                if (loopStart - lastStuckCheckTime >= STUCK_CHECK_INTERVAL_MS) {
-                    if (checkProgress(myChar, loopStart)) {
-                        // KET! Da tu sat, reset timer va tiep tuc loop
-                        // (nhan vat se chet -> TS goc hoi sinh -> quay lai danh)
-                        lastStuckCheckTime = loopStart;
-                        sleep(3000); // Cho hoi sinh
-                        continue;
-                    }
-                    lastStuckCheckTime = loopStart;
-                }
+                // === STUCK DETECTION da chuyen sang checkHang() goi tu Code.run ===
+                // (khong check o day nua vi thread co the crash)
 
                 // === RESET STUCK KHI CHUYEN MAP/KHU ===
                 if (TileMap.mapID != prevMapID || TileMap.zoneID != prevZoneID) {
@@ -310,32 +302,76 @@ public class TsBoost implements Runnable {
     }
 
     /**
-     * Backup: check thread TsBoost bi freeze (deadlock).
-     * Goi tu Code.run loop. Neu thread khong chay >60s = treo cung.
+     * Goi tu Code.run loop moi frame.
+     * Lam 2 viec:
+     * 1. Check thread freeze (>60s lastLoopTime khong cap nhat)
+     * 2. Check stuck HP+MP (moi 30s, HP va MP khong doi = ket)
+     *
+     * Dat o Code.run vi thread TsBoost co the crash bat cu luc nao.
      */
     public static void checkHang() {
-        if (!isRunning || lastLoopTime == 0) return;
-        long elapsed = System.currentTimeMillis() - lastLoopTime;
-        if (elapsed > 60000) { // 60s thread freeze = treo cung
-            GameScr.gameAC("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
-            try {
-                Thread oldThread = thread;
-                if (oldThread != null) oldThread.interrupt();
-            } catch (Exception e) {}
-            isRunning = false;
-            thread = null;
-            Code.timBG = false;
-            suicideAndReturn();
-            // Tu khoi dong lai sau 3s
-            new Thread(new Runnable() {
-                public void run() {
-                    try { Thread.sleep(3000); } catch (Exception e) {}
-                    if (modeEnabled && Code.gameAB != null && !isRunning) {
-                        start();
-                    }
-                }
-            }).start();
+        if (!isRunning) return;
+
+        long now = System.currentTimeMillis();
+
+        // === 1. CHECK THREAD FREEZE ===
+        if (lastLoopTime > 0) {
+            long elapsed = now - lastLoopTime;
+            if (elapsed > 60000) { // 60s thread khong chay = treo cung
+                GameScr.gameAC("TsPro: THREAD TREO " + (elapsed / 1000) + "s! Restart...");
+                restartThread();
+                return;
+            }
         }
+
+        // === 2. CHECK STUCK HP+MP (moi 30s) ===
+        if (lastStuckCheckTime == 0) {
+            // Lan dau — khoi tao snapshot
+            Char myChar = Char.getMyChar();
+            if (myChar != null) {
+                resetSnapshots(myChar);
+                lastStuckCheckTime = now;
+            }
+            return;
+        }
+
+        if (now - lastStuckCheckTime >= STUCK_CHECK_INTERVAL_MS) {
+            Char myChar = Char.getMyChar();
+            if (myChar == null || myChar.statusMe == 14 || myChar.cHP <= 0) {
+                // Dang chet — reset timer, khong check
+                lastStuckCheckTime = now;
+                if (myChar != null) resetSnapshots(myChar);
+                return;
+            }
+
+            if (checkProgress(myChar, now)) {
+                // KET! Da tu sat
+                lastStuckCheckTime = now;
+            } else {
+                lastStuckCheckTime = now;
+            }
+        }
+    }
+
+    /** Restart thread TsBoost sau crash/freeze. */
+    private static void restartThread() {
+        try {
+            Thread oldThread = thread;
+            if (oldThread != null) oldThread.interrupt();
+        } catch (Exception e) {}
+        isRunning = false;
+        thread = null;
+        Code.timBG = false;
+        suicideAndReturn();
+        // Tu khoi dong lai sau 3s
+        new Thread(new Runnable() {
+            public void run() {
+                try { Thread.sleep(3000); } catch (Exception e) {}
+                if (modeEnabled && Code.gameAB != null && !isRunning) {
+                    start();
+                }
+            }
+        }).start();
     }
 
     // =============================================
@@ -426,14 +462,14 @@ public class TsBoost implements Runnable {
     // ATTACK
     // =============================================
 
-    /** Thu thap mob song trong MAX_ATTACK_RANGE. */
+    /** Thu thap mob song trong MAX_ATTACK_RANGE. Gioi han MAX_MOB_PER_ATTACK con. */
     private static MyVector collectMobsInRange(Char myChar) {
         reusableMobs.removeAllElements();
         try {
             int cx = myChar.cx;
             int cy = myChar.cy;
             int size = GameScr.vMob.size();
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < size && reusableMobs.size() < MAX_MOB_PER_ATTACK; i++) {
                 Object o = GameScr.vMob.elementAt(i);
                 if (o instanceof Mob) {
                     Mob mob = (Mob) o;
