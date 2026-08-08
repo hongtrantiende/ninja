@@ -17,6 +17,7 @@ public class AutoPickup implements Runnable {
     private static final int SCAN_INTERVAL_MS = 100;    // 100ms giua moi vong quet
     private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
     private static final int GHOST_RANGE = 50;          // Item > 50px ngang thi ghost move
+    private static final int GHOST_X_LIMIT = 500;       // Cho phep ghost chieu ngang <= 500px
     private static final int GHOST_Y_LIMIT = 200;       // Cho phep ghost chieu cao <= 200px
     private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
     private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
@@ -125,8 +126,8 @@ public class AutoPickup implements Runnable {
                 int dx = Math.abs(origCx - item.xEnd);
                 int dy = Math.abs(origCy - item.yEnd);
 
-                // CHI ghost move item gan theo chieu cao (dy <= 150)
-                if (dx > GHOST_RANGE && dy <= GHOST_Y_LIMIT) {
+                // CHI ghost move item trong tam ngang <= 500px va cao <= 200px
+                if (dx > GHOST_RANGE && dx <= GHOST_X_LIMIT && dy <= GHOST_Y_LIMIT) {
                     // Ghost move den item (chi gui server, AN hieu ung)
                     Char.gameAC(item.xEnd, item.yEnd);
                     myChar.cx = origCx; // Giu visual tai cho

@@ -731,6 +731,7 @@ myChar.cy = origCy;                  // → Nhân vật KHÔNG nhảy trên màn
 |-------|-------|---------|
 | SCAN_INTERVAL_MS | 100ms | Quét item mỗi 100ms |
 | GHOST_RANGE | 50px | Item > 50px ngang → ghost |
+| GHOST_X_LIMIT | 500px | Cho phép ghost ngang ≤ 500px |
 | GHOST_Y_LIMIT | 200px | Cho phép ghost dọc ≤ 200px |
 | GHOST_PICK_INTERVAL_MS | 100ms | Ghost pick 1 item mỗi 100ms |
 | Ghost delay | 50ms × 2 | Tổng ~100ms lệch vị trí/item |
