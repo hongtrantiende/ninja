@@ -137,6 +137,10 @@ public class ChatRouter {
             AutoSanBoss.toggleMN();
             return true;
         }
+        if (text.equals("tspkbchua") || text.equals("chua")) {
+            AutoSanBoss.toggleChua();
+            return true;
+        }
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
             return true;
@@ -155,6 +159,10 @@ public class ChatRouter {
         }
         if (text.equals("treomn")) {
             AutoSanBoss.toggleTreoMN();
+            return true;
+        }
+        if (text.equals("treochua")) {
+            AutoSanBoss.toggleTreoChua();
             return true;
         }
         

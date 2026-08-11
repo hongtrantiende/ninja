@@ -96,10 +96,11 @@
 - **Auto-reconnect:** `isDisconnected()` + `waitForReconnect(120s)` → restart PkBoss sau reconnect.
 - **grabAllItems():** Nhặt tất cả đồ rơi 30ms/item khi boss chết.
 - **Boss data:**
-  - Server: M3, giờ 12/18/20/22
-  - TheGioi: M23, giờ 12/23
-  - VDMQ: M141-143, giờ 9/15/17/21
-  - MapNgoai: 12 map {14,15,16,44,67,70,24,41,45,18,36,54}, giờ 6/11/17/22
+  - Server: M63, giờ 12/18/20/22
+  - TheGioi: M65, giờ 11/17/19/21
+  - VDMQ: M141-143, giờ 6/13/19/23
+  - MapNgoai: 12 map {14,15,16,44,67,70,21,41,45,18,46,54}, giờ 1/4/7/10/13/16/19/22
+  - BossChua: M20, giờ 12/21
   - Mỗi boss sống 40 phút (2400s)
 
 ### SanBossHolder (src/SanBossHolder.java)

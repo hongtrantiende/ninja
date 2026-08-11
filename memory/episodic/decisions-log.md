@@ -254,4 +254,14 @@
   - Bấm nút **"Tàn sát"** trong menu Tự động -> Gọi `TsBoost.onTsStarted()` (tự bật Ts Pro đi kèm như lệnh chat `ts`).
   - Mặc định **"Dùng phân thân"** -> **TẮT** (`Char.DungPhanThan = false`).
   - Mặc định **"Tàn sát map trống"** -> **BẬT** (`Char.TsMapTrong = true`).
-- **Files:** `src/TsBoost.java`, `src/Code.java`
+- **Files:** `src/TsBoost.java`, `src/Code.java`
+
+## 2026-08-11: Thêm Boss Chúa (Map ID 20, 12h & 21h) vào Săn Boss & Lịch Boss
+- **Quyết định:** Thêm loại boss mới `Boss Chúa` (Map ID `20`, khung giờ `12:00` và `21:00`) vào hệ thống tự động săn boss (`AutoSanBoss.java`), lịch boss HUD (`ThongTinBoss.java`), menu UI NamMod (`NamMod.java`), và các lệnh chat mở rộng (`ChatRouter.java`).
+- **Chi tiết:**
+  - `ThongTinBoss.java`: Thêm `new BossData("Chúa", "M20", new int[] {12, 21})`. Tự động đếm ngược và hiển thị trên HUD overlay.
+  - `AutoSanBoss.java`: Thêm `TYPE_CHUA = 4` (`{20}`, `{12, 21}`), hỗ trợ tự động săn/treo theo lịch và các lệnh `tspkbchua`, `chua`, `treochua`.
+  - `NamMod.java`: Thêm nút **"Săn Chúa"** và **"Treo Chúa"** vào menu UI NamMod.
+  - `ChatRouter.java`: Thêm router nhận dạng câu lệnh `tspkbchua`, `chua`, `treochua`.
+- **Files:** `src/ThongTinBoss.java`, `src/AutoSanBoss.java`, `src/NamMod.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+

@@ -6,6 +6,7 @@ public final class NamMod implements IActionListener {
     private static final int BOSS_THE_GIOI = 120104;
     private static final int BOSS_VDMQ = 120105;
     private static final int BOSS_MAP_NGOAI = 120106;
+    private static final int BOSS_CHUA = 120125;
     private static final int BOSS_ALL = 120107;
     private static final int HUT_VP = 120108;
     private static final int MOI_NHOM = 120109;
@@ -17,6 +18,7 @@ public final class NamMod implements IActionListener {
     private static final int TREO_TG = 120117;
     private static final int TREO_VM = 120118;
     private static final int TREO_MN = 120119;
+    private static final int TREO_CHUA = 120126;
     private static final int TS_BOSS = 120120;
     private static final int BOSS_RADAR = 120121;
     private static final int HIDE_ITEM_DROP = 120122;
@@ -42,14 +44,16 @@ public final class NamMod implements IActionListener {
         items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(1), BOSS_THE_GIOI));
         items.addElement(command("S\u0103n VDMQ: " + bossStatus(2), BOSS_VDMQ));
         items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(3), BOSS_MAP_NGOAI));
-        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(4), BOSS_ALL));
+        items.addElement(command("S\u0103n Ch\u00faa: " + bossStatus(4), BOSS_CHUA));
+        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(5), BOSS_ALL));
 
         // === Treo Boss (t\u00ecm boss, kh\u00f4ng \u0111\u00e1nh) ===
-        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(4), TREO_ALL));
+        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(5), TREO_ALL));
         items.addElement(command("Treo Server: " + treoStatus(0), TREO_SV));
         items.addElement(command("Treo Th\u1ebf Gi\u1edbi: " + treoStatus(1), TREO_TG));
         items.addElement(command("Treo VDMQ: " + treoStatus(2), TREO_VM));
         items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(3), TREO_MN));
+        items.addElement(command("Treo Ch\u00faa: " + treoStatus(4), TREO_CHUA));
 
         // === H\u00FAt VP ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
@@ -85,8 +89,8 @@ public final class NamMod implements IActionListener {
     private static String bossStatus(int type) {
         if (!AutoSanBoss.isRunning) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        // Type 4 = Tat Ca (TYPE_ALL)
-        if (type == 4) return (forced == 4) ? "ON" : "OFF";
+        // Type 5 = Tat Ca (TYPE_ALL)
+        if (type == 5) return (forced == 5) ? "ON" : "OFF";
         // Auto schedule (-1) hien ON cho nut Sán Boss chinh
         if (forced == -1) return "Auto";
         return (forced == type) ? "ON" : "OFF";
@@ -95,7 +99,7 @@ public final class NamMod implements IActionListener {
     private static String treoStatus(int type) {
         if (!AutoSanBoss.isRunning || !AutoSanBoss.treoMode) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        if (type == 4) return (forced == 4) ? "ON" : "OFF";
+        if (type == 5) return (forced == 5) ? "ON" : "OFF";
         return (forced == type) ? "ON" : "OFF";
     }
 
@@ -124,6 +128,9 @@ public final class NamMod implements IActionListener {
                 return;
             case BOSS_MAP_NGOAI:
                 AutoSanBoss.toggleMN();
+                return;
+            case BOSS_CHUA:
+                AutoSanBoss.toggleChua();
                 return;
             case BOSS_ALL:
                 AutoSanBoss.toggleALL();
@@ -176,6 +183,9 @@ public final class NamMod implements IActionListener {
                 return;
             case TREO_MN:
                 AutoSanBoss.toggleTreoMN();
+                return;
+            case TREO_CHUA:
+                AutoSanBoss.toggleTreoChua();
                 return;
             default:
                 return;

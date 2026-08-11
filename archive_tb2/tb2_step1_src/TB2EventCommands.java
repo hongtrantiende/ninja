@@ -52,6 +52,10 @@ public final class TB2EventCommands {
             TB2AutoSanBoss.autoInviteFriends();
             return true;
         }
+        if (text.equals("tk") || text.equals("thongke")) {
+            TB2ThongKe.toggle();
+            return true;
+        }
         if (text.equals("ttb")) {
             TB2ThongTinBoss.toggle();
             return true;

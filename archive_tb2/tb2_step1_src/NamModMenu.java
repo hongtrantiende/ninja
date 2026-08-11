@@ -20,6 +20,7 @@ public final class NamModMenu implements Class_bn {
     private static final int TREO_VM = 120134;
     private static final int TREO_MN = 120135;
     private static final int TREO_ALL = 120136;
+    private static final int THONG_KE = 120137;
     private static final NamModMenu INSTANCE = new NamModMenu();
 
     private NamModMenu() {}
@@ -59,6 +60,7 @@ public final class NamModMenu implements Class_bn {
         items.addElement(new Class_db("Treo VDMQ: " + bossState(true, 2), INSTANCE, TREO_VM, null));
         items.addElement(new Class_db("Treo Map Ngo\u00e0i: " + bossState(true, 3), INSTANCE, TREO_MN, null));
         items.addElement(new Class_db("Treo T\u1ea5t C\u1ea3: " + bossState(true, 4), INSTANCE, TREO_ALL, null));
+        items.addElement(new Class_db("Th\u1ed1ng k\u00ea Up: " + (TB2ThongKe.isRunning ? "ON" : "OFF"), INSTANCE, THONG_KE, null));
         items.addElement(new Class_db("L\u1ecbch Boss: " + (TB2ThongTinBoss.enabled ? "ON" : "OFF"), INSTANCE, LICH_BOSS, null));
         items.addElement(new Class_db("M\u1eddi nh\u00f3m", INSTANCE, MOI_NHOM, null));
         items.addElement(new Class_db("Nam Mod OK", INSTANCE, CHECK, null));
@@ -87,6 +89,7 @@ public final class NamModMenu implements Class_bn {
         else if (id == TREO_VM) TB2AutoSanBoss.toggleTreoType(2);
         else if (id == TREO_MN) TB2AutoSanBoss.toggleTreoType(3);
         else if (id == TREO_ALL) TB2AutoSanBoss.toggleTreoType(4);
+        else if (id == THONG_KE) TB2ThongKe.toggle();
         else if (id == LICH_BOSS) TB2ThongTinBoss.toggle();
         else if (id == MOI_NHOM) TB2AutoSanBoss.autoInviteFriends();
         else if (id == CHECK) Class_ds.c("Nam Mod STEP1 hoat dong");

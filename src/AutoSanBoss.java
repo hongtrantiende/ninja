@@ -23,22 +23,24 @@ public class AutoSanBoss implements Runnable {
     private static boolean eventHuntMode;
     private static boolean eventRoundCompleted;
 
-    // 4 loai boss theo lich server
+    // 5 loai boss theo lich server
     // Moi boss co: ten, int[] mapIDs, int[] hours
     private static final int TYPE_SERVER = 0;
     private static final int TYPE_THEGIOI = 1;
     private static final int TYPE_VDMQ = 2;
     private static final int TYPE_MAPNGOAI = 3;
-    private static final int TYPE_ALL = 4;
+    private static final int TYPE_CHUA = 4;
+    private static final int TYPE_ALL = 5;
 
-    private static final String[] BOSS_NAMES = {"Server", "TheGioi", "VDMQ", "MapNgoai", "T\u1ea5t C\u1ea3"};
+    private static final String[] BOSS_NAMES = {"Server", "TheGioi", "VDMQ", "MapNgoai", "Ch\u00faa", "T\u1ea5t C\u1ea3"};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
         {63},              // Server
         {65},              // TheGioi
         {141, 142, 143},   // VDMQ
-        {}                 // MapNgoai
+        {},                // MapNgoai
+        {20}               // Chua (Map 20)
     };
 
     // Map IDs cua MapNgoai theo level
@@ -55,7 +57,8 @@ public class AutoSanBoss implements Runnable {
         {12, 18, 20, 22},                        // Server
         {11, 17, 19, 21},                        // TheGioi
         {6, 13, 19, 23},                         // VDMQ
-        {1, 4, 7, 10, 13, 16, 19, 22}            // MapNgoai
+        {1, 4, 7, 10, 13, 16, 19, 22},           // MapNgoai
+        {12, 21}                                 // Chua (12h, 21h)
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -115,7 +118,14 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * tspkball - San TAT CA boss (17 maps) 24/24 nguyen ngay
+     * tspkbchua / chua - San boss Chua (Map 20) ngay lap tuc
+     */
+    public static void toggleChua() {
+        toggleInternal(checkHasPartyOrFriends(), TYPE_CHUA);
+    }
+
+    /**
+     * tspkball - San TAT CA boss (18 maps) 24/24 nguyen ngay
      */
     public static void toggleALL() {
         toggleInternal(checkHasPartyOrFriends(), TYPE_ALL);
@@ -146,6 +156,11 @@ public class AutoSanBoss implements Runnable {
     /** treomn - Treo boss MapNgoai */
     public static void toggleTreoMN() {
         toggleTreoInternal(TYPE_MAPNGOAI);
+    }
+
+    /** treochua - Treo boss Chua */
+    public static void toggleTreoChua() {
+        toggleTreoInternal(TYPE_CHUA);
     }
 
     private static void toggleTreoInternal(int bossType) {

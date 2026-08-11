@@ -68,10 +68,10 @@ public final class TB2ThongKe {
         }
 
         try {
-            // Class_ad.d = tahoma_7_yellow
-            Class_ad.d.a(graphics, cachedLine1, x, y, 0);
-            Class_ad.d.a(graphics, cachedLine2, x, y + 12, 0);
-            Class_ad.d.a(graphics, cachedLine3, x, y + 24, 0);
+            // Class_ad.j = tahoma_7_yellow, Class_ad.k = tahoma_7_grey (bong chu)
+            Class_ad.j.a(graphics, cachedLine1, x, y, 0, Class_ad.k);
+            Class_ad.j.a(graphics, cachedLine2, x, y + 12, 0, Class_ad.k);
+            Class_ad.j.a(graphics, cachedLine3, x, y + 24, 0, Class_ad.k);
         } catch (Exception ignored) {}
     }
 

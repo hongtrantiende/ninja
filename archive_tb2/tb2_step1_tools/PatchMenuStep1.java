@@ -13,7 +13,7 @@ public final class PatchMenuStep1 {
         game.getDeclaredMethod("a", new CtClass[]{pool.get("java.lang.String"), pool.get("java.lang.String")})
             .insertBefore("{ if (TB2EventCommands.handle($1)) return; }");
         game.getDeclaredMethod("a", new CtClass[]{pool.get("Class_ae")})
-            .insertAfter("{ TB2ThongTinBoss.paint($1); }");
+            .insertAfter("{ TB2ThongTinBoss.paint($1); TB2ThongKe.paint($1); }");
         game.writeFile(args[2]);
         CtClass code = pool.get("Class_am");
         code.getDeclaredMethod("d", new CtClass[]{pool.get("java.lang.String"), pool.get("java.lang.String")})
