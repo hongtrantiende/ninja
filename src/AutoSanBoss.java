@@ -43,12 +43,12 @@ public class AutoSanBoss implements Runnable {
         {20}               // Chua (Map 20)
     };
 
-    // Map IDs cua MapNgoai theo level
+    // Map IDs cua MapNgoai theo level (19 maps)
     private static final int[][] MAPNGOAI_BY_LEVEL = {
-        {14, 15, 16, 24},  // Lv45
-        {44, 67, 70},      // Lv55
-        {21, 41, 45},      // Lv65
-        {18, 46, 54}       // Lv75
+        {14, 15, 16, 34, 35, 52, 68},  // Lv45: Xích Phiến Thiên Long (ID 115)
+        {44, 67, 70},                  // Lv55: Thần Thố (ID 114)
+        {21, 24, 41, 45, 59},          // Lv65: Samurai Chiến Tướng (ID 116)
+        {18, 36, 46, 54}               // Lv75: Hỏa Ngưu Vương (ID 139)
     };
     private static final int[] MAPNGOAI_LEVELS = {45, 55, 65, 75};
 
@@ -705,8 +705,13 @@ public class AutoSanBoss implements Runnable {
      * Lay danh sach map ID cho boss MapNgoai dua tren level nhan vat
      */
     private int[] getMapNgoaiMaps() {
-        // Boss MapNgoai spawn tren TAT CA 13 map, khong phan biet level
-        return new int[] {14, 15, 16, 24, 44, 67, 70, 21, 41, 45, 18, 46, 54};
+        // Boss MapNgoai spawn tren TAT CA 19 map, khong phan biet level
+        return new int[] {
+            14, 15, 16, 34, 35, 52, 68,
+            44, 67, 70,
+            21, 24, 41, 45, 59,
+            18, 36, 46, 54
+        };
     }
 
     /**
