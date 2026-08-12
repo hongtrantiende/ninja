@@ -45,7 +45,7 @@ public class AutoSanBoss implements Runnable {
 
     // Map IDs cua MapNgoai theo level
     private static final int[][] MAPNGOAI_BY_LEVEL = {
-        {14, 15, 16},      // Lv45
+        {14, 15, 16, 24},  // Lv45
         {44, 67, 70},      // Lv55
         {21, 41, 45},      // Lv65
         {18, 46, 54}       // Lv75
@@ -705,8 +705,8 @@ public class AutoSanBoss implements Runnable {
      * Lay danh sach map ID cho boss MapNgoai dua tren level nhan vat
      */
     private int[] getMapNgoaiMaps() {
-        // Boss MapNgoai spawn tren TAT CA 12 map, khong phan biet level
-        return new int[] {14, 15, 16, 44, 67, 70, 21, 41, 45, 18, 46, 54};
+        // Boss MapNgoai spawn tren TAT CA 13 map, khong phan biet level
+        return new int[] {14, 15, 16, 24, 44, 67, 70, 21, 41, 45, 18, 46, 54};
     }
 
     /**
