@@ -52,7 +52,7 @@ public class ThongTinBoss {
         new BossData("Server", "M63", new int[] {12, 18, 20, 22}),
         new BossData("TheGioi", "M65", new int[] {11, 17, 19, 21}),
         new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}),
-        new BossData("MapNgoai", "Lv45: 14,15,16,34,35,52,68 | Lv55: 44,67,70 | Lv65: 21,24,41,45,59 | Lv75: 18,36,46,54", new int[] {1, 4, 7, 10, 13, 16, 19, 22}),
+        new BossData("MapNgoai", "Lv45: 14,15,16,34,35,52,68 | Lv55: 44,67,70 | Lv65: 21,24,41,45,59 | Lv75: 18,36,46,54", new int[] {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}),
         new BossData("Ch\u00faa", "M20", new int[] {12, 21})
     };
 

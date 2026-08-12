@@ -57,7 +57,7 @@ public class AutoSanBoss implements Runnable {
         {12, 18, 20, 22},                        // Server
         {11, 17, 19, 21},                        // TheGioi
         {6, 13, 19, 23},                         // VDMQ
-        {1, 4, 7, 10, 13, 16, 19, 22},           // MapNgoai
+        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},           // MapNgoai (tat ca gio le: 1h, 3h, 5h, 7h, 9h, 11h, 13h, 15h, 17h, 19h, 21h, 23h)
         {12, 21}                                 // Chua (12h, 21h)
     };
 
