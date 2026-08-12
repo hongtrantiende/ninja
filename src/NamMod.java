@@ -2,11 +2,8 @@
 public final class NamMod implements IActionListener {
     private static final int AUTO_BOSS = 120101;
     private static final int LICH_BOSS = 120102;
-    private static final int BOSS_SERVER = 120103;
-    private static final int BOSS_THE_GIOI = 120104;
     private static final int BOSS_VDMQ = 120105;
     private static final int BOSS_MAP_NGOAI = 120106;
-    private static final int BOSS_CHUA = 120125;
     private static final int BOSS_ALL = 120107;
     private static final int HUT_VP = 120108;
     private static final int MOI_NHOM = 120109;
@@ -14,11 +11,8 @@ public final class NamMod implements IActionListener {
     private static final int THONG_TIN = 120111;
     private static final int AUTO_LEVEL = 120113;
     private static final int TREO_ALL = 120115;
-    private static final int TREO_SV = 120116;
-    private static final int TREO_TG = 120117;
     private static final int TREO_VM = 120118;
     private static final int TREO_MN = 120119;
-    private static final int TREO_CHUA = 120126;
     private static final int TS_BOSS = 120120;
     private static final int BOSS_RADAR = 120121;
     private static final int HIDE_ITEM_DROP = 120122;
@@ -33,29 +27,23 @@ public final class NamMod implements IActionListener {
     public static void open() {
         MyVector items = new MyVector();
 
-        // === S\u0103n Boss ===
+        // === Săn Boss ===
         items.addElement(command("S\u0103n Boss: " + onOff(AutoSanBoss.isRunning), AUTO_BOSS));
         items.addElement(command("TS \u01b0u ti\u00ean Boss: " + onOff(AutoBossEvent.isEnabled), TS_BOSS));
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
         items.addElement(command("Radar Boss: " + onOff(BossRadar.isRunning), BOSS_RADAR));
 
-        // Trang thai tung loai boss - hien ON neu dang chay loai do
-        items.addElement(command("S\u0103n Server: " + bossStatus(0), BOSS_SERVER));
-        items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(1), BOSS_THE_GIOI));
-        items.addElement(command("S\u0103n VDMQ: " + bossStatus(2), BOSS_VDMQ));
-        items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(3), BOSS_MAP_NGOAI));
-        items.addElement(command("S\u0103n Ch\u00faa: " + bossStatus(4), BOSS_CHUA));
-        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(5), BOSS_ALL));
+        // Trang thai tung loai boss (0: VDMQ, 1: MapNgoai, 2: Tat Ca)
+        items.addElement(command("S\u0103n VDMQ: " + bossStatus(0), BOSS_VDMQ));
+        items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(1), BOSS_MAP_NGOAI));
+        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(2), BOSS_ALL));
 
-        // === Treo Boss (t\u00ecm boss, kh\u00f4ng \u0111\u00e1nh) ===
-        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(5), TREO_ALL));
-        items.addElement(command("Treo Server: " + treoStatus(0), TREO_SV));
-        items.addElement(command("Treo Th\u1ebf Gi\u1edbi: " + treoStatus(1), TREO_TG));
-        items.addElement(command("Treo VDMQ: " + treoStatus(2), TREO_VM));
-        items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(3), TREO_MN));
-        items.addElement(command("Treo Ch\u00faa: " + treoStatus(4), TREO_CHUA));
+        // === Treo Boss (tìm boss, không đánh) ===
+        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(2), TREO_ALL));
+        items.addElement(command("Treo VDMQ: " + treoStatus(0), TREO_VM));
+        items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(1), TREO_MN));
 
-        // === H\u00FAt VP ===
+        // === Hút VP & Tiện ích ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
 
@@ -65,7 +53,7 @@ public final class NamMod implements IActionListener {
             : "OFF";
         items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
-        // === Ti\u1ec7n \u00edch ===
+        // === Tiện ích Khác ===
         items.addElement(command("Mua th\u1ebb map vip: " + onOff(Code.MuaMapVip), MUA_MAP_VIP));
         items.addElement(command("D\u00f9ng th\u1ebb map vip: " + onOff(Code.DungMapVip), DUNG_MAP_VIP));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
@@ -82,16 +70,10 @@ public final class NamMod implements IActionListener {
         return enabled ? "ON" : "OFF";
     }
 
-    /**
-     * Trang thai loai boss: ON neu dang chay va forcedBossType trung.
-     * -1 = auto schedule (hien ON khi isRunning + forcedBossType == -1).
-     */
     private static String bossStatus(int type) {
         if (!AutoSanBoss.isRunning) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        // Type 5 = Tat Ca (TYPE_ALL)
-        if (type == 5) return (forced == 5) ? "ON" : "OFF";
-        // Auto schedule (-1) hien ON cho nut Sán Boss chinh
+        if (type == 2) return (forced == 2) ? "ON" : "OFF";
         if (forced == -1) return "Auto";
         return (forced == type) ? "ON" : "OFF";
     }
@@ -99,7 +81,7 @@ public final class NamMod implements IActionListener {
     private static String treoStatus(int type) {
         if (!AutoSanBoss.isRunning || !AutoSanBoss.treoMode) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        if (type == 5) return (forced == 5) ? "ON" : "OFF";
+        if (type == 2) return (forced == 2) ? "ON" : "OFF";
         return (forced == type) ? "ON" : "OFF";
     }
 
@@ -117,20 +99,11 @@ public final class NamMod implements IActionListener {
             case LICH_BOSS:
                 ThongTinBoss.toggle();
                 return;
-            case BOSS_SERVER:
-                AutoSanBoss.toggleSV();
-                return;
-            case BOSS_THE_GIOI:
-                AutoSanBoss.toggleTG();
-                return;
             case BOSS_VDMQ:
                 AutoSanBoss.toggleVM();
                 return;
             case BOSS_MAP_NGOAI:
                 AutoSanBoss.toggleMN();
-                return;
-            case BOSS_CHUA:
-                AutoSanBoss.toggleChua();
                 return;
             case BOSS_ALL:
                 AutoSanBoss.toggleALL();
@@ -172,20 +145,11 @@ public final class NamMod implements IActionListener {
             case TREO_ALL:
                 AutoSanBoss.toggleTreo();
                 return;
-            case TREO_SV:
-                AutoSanBoss.toggleTreoSV();
-                return;
-            case TREO_TG:
-                AutoSanBoss.toggleTreoTG();
-                return;
             case TREO_VM:
                 AutoSanBoss.toggleTreoVM();
                 return;
             case TREO_MN:
                 AutoSanBoss.toggleTreoMN();
-                return;
-            case TREO_CHUA:
-                AutoSanBoss.toggleTreoChua();
                 return;
             default:
                 return;
@@ -196,7 +160,7 @@ public final class NamMod implements IActionListener {
         String info = "Nam Mod v2";
         if (AutoSanBoss.isRunning) {
             int f = AutoSanBoss.forcedBossType;
-            info += " | Boss:" + (f == -1 ? "Auto" : f == 4 ? "ALL" : "F" + f);
+            info += " | Boss:" + (f == -1 ? "Auto" : f == 2 ? "ALL" : f == 0 ? "VDMQ" : "MapNgoai");
         }
         if (AutoPickup.isRunning) info += " | H\u00FAtVP:ON";
         if (ThongTinBoss.isEnable) info += " | TTB:ON";
@@ -227,10 +191,10 @@ public final class NamMod implements IActionListener {
                     if (lv >= 10 && lv <= 99) {
                         AutoLevel.start(lv);
                     } else {
-                        GameScr.gameAC("Level ph\u1ea3i t\u1eeb 10-99!");
+                        GameScr.gameAC("Nam Mod: Level ph\u1ea3i t\u1eebr 10 \u0111\u1ebfn 99!");
                     }
                 } catch (Exception e) {
-                    GameScr.gameAC("S\u1ed1 kh\u00f4ng h\u1ee3p l\u1ec7!");
+                    GameScr.gameAC("Nam Mod: Level kh\u00f4ng h\u1ee3p l\u1ec7!");
                 }
                 GameCanvas.endDlg();
             }

@@ -121,14 +121,6 @@ public class ChatRouter {
             AutoSanBoss.toggleALL();
             return true;
         }
-        if (text.equals("tspkbsv") || text.equals("sv")) {
-            AutoSanBoss.toggleSV();
-            return true;
-        }
-        if (text.equals("tspkbtg") || text.equals("tg")) {
-            AutoSanBoss.toggleTG();
-            return true;
-        }
         if (text.equals("tspkbvm") || text.equals("vm")) {
             AutoSanBoss.toggleVM();
             return true;
@@ -137,20 +129,8 @@ public class ChatRouter {
             AutoSanBoss.toggleMN();
             return true;
         }
-        if (text.equals("tspkbchua") || text.equals("chua")) {
-            AutoSanBoss.toggleChua();
-            return true;
-        }
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
-            return true;
-        }
-        if (text.equals("treosv")) {
-            AutoSanBoss.toggleTreoSV();
-            return true;
-        }
-        if (text.equals("treotg")) {
-            AutoSanBoss.toggleTreoTG();
             return true;
         }
         if (text.equals("treovm")) {
@@ -159,10 +139,6 @@ public class ChatRouter {
         }
         if (text.equals("treomn")) {
             AutoSanBoss.toggleTreoMN();
-            return true;
-        }
-        if (text.equals("treochua")) {
-            AutoSanBoss.toggleTreoChua();
             return true;
         }
         
