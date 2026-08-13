@@ -37,7 +37,7 @@ public final class AutoBossEvent implements Runnable {
         if (inEvent) {
             AutoSanBoss.stopEventHunt();
             sendParty("pkm -3");
-            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
                 AutoSanBoss.finishLangCoAndExit();
             }
         }
@@ -85,7 +85,7 @@ public final class AutoBossEvent implements Runnable {
         AutoSanBoss.stopPartyMemberFully();
         Char.MuaCoLenh = false;
         Char.DungCoLenh = false;
-        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
             AutoSanBoss.cleanKhaoDiLenh();
             try { Code.gameAN(); } catch (Exception e) {}
             sleep(1000L);
@@ -248,7 +248,7 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void returnAndResume() {
-        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
             AutoSanBoss.finishLangCoAndExit();
         }
         final int map = savedMap;

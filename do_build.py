@@ -27,7 +27,8 @@ src_files = glob.glob(os.path.join(root, "src", "**", "*.java"), recursive=True)
 cmd_stubs = ["javac", "--release", "8", "-encoding", "UTF-8", "-d", stubs_dir] + stubs_files
 subprocess.run(cmd_stubs, check=True)
 
-cmd_src = ["javac", "--release", "8", "-encoding", "UTF-8", "-cp", f"{unpacked_dir};{stubs_dir}", "-d", unpacked_dir] + src_files
+cp_path = os.pathsep.join([unpacked_dir, stubs_dir])
+cmd_src = ["javac", "--release", "8", "-encoding", "UTF-8", "-cp", cp_path, "-d", unpacked_dir] + src_files
 subprocess.run(cmd_src, check=True)
 
 print("=== 3. Run Idempotent Python Patches ===")

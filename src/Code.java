@@ -638,7 +638,9 @@ implements Runnable {
                             Code.gameAB(248);
                         }
 
-                        TileMap.gameBZ[138] = new short[]{(short)TanSat.mapid};
+                        if (TileMap.gameBZ != null && TileMap.gameBZ.length > 138) {
+                            TileMap.gameBZ[138] = new short[]{134, 135, 136, 137, (short)TanSat.mapid};
+                        }
                         if (gameCO.size() > 0) {
                             int[] var20 = new int[]{150000, 247500, 408375, 673819, 1111801, 2056832, 4010822, 7420021, 12243035};
                             byte[] var10 = new byte[]{3, 5, 9, 4, 7, 10, 5, 7, 9};
@@ -738,27 +740,29 @@ implements Runnable {
                                     LockGame.gameAG();
                                 }
                             }
-                            if (TileMap.mapID == 138 && var4 > 1 && !Char.gameAJ(35) && !Char.gameAJ(37)) {
+                            if (Char.MuaCoLenh && TileMap.mapID == 138 && var4 > 1 && !Char.gameAJ(490) && !Char.gameAJ(35) && !Char.gameAJ(37)) {
                                 GameScr.gameAB(4, 0, 0);
-                                Service.gI().gameAB(9, 6, 1);
+                                Service.gI().gameAB(14, 29, 2);
                                 LockGame.gameAG();
                                 ++var4;
                             }
-                            if (var4 < 10 && !(gameAB instanceof As10) && Char.LuyenDa && var3.ctaskId > 9 && var4 > 0 && Code.gameAH()) {
+                            if (var4 < 10 && !(gameAB instanceof As10) && (Char.LuyenDa || Char.MuaCoLenh || Char.DungCoLenh) && var3.ctaskId > 9 && var4 > 0 && Code.gameAH()) {
                                 boolean var9 = TileMap.gameAF(TileMap.mapID);
                                 if (var9) {
-                                    var18 = Char.gameAF(37);
-                                    if (var18 == null && (var18 = Char.gameAF(35)) == null) {
+                                    var18 = Char.gameAF(490);
+                                    if (var18 == null) var18 = Char.gameAF(37);
+                                    if ((Char.MuaCoLenh || Char.LuyenDa) && var18 == null && (var18 = Char.gameAF(35)) == null) {
                                         GameScr.gameAB(4, 0, 0);
-                                        Service.gI().gameAB(9, 6, 1);
+                                        Service.gI().gameAB(14, 29, 2);
                                         LockGame.gameAG();
                                         Auto.Sleep(100L);
-                                        var18 = Char.gameAF(35);
+                                        var18 = Char.gameAF(490);
+                                        if (var18 == null) var18 = Char.gameAF(35);
                                     }
-                                    if (var18 != null) {
-                                        Service.gI().gameAI(var18.indexUI, 5);
-                                        TileMap.gameAF();
-                                    }
+                                    if (var18 != null && !TileMap.isLangCo(TileMap.mapID) && (Char.DungCoLenh || Char.LuyenDa || Char.MuaCoLenh)) {
+                                         Service.gI().useItem(var18.indexUI);
+                                         TileMap.gameAF();
+                                     }        
                                 }
                                 if (TileMap.gameAD(TileMap.mapID)) {
                                     GameScr.gameAB(6, 1, 1);

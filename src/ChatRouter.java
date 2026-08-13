@@ -39,8 +39,14 @@ public class ChatRouter {
             return;
         }
         if (auto != null && (auto.mapID == 135 || auto.mapID == 136)) {
-            Char.MuaCoLenh = true;
-            Char.DungCoLenh = true;
+            AutoSanBoss.ensureInLangCo();
+        } else if (auto != null && auto.mapID > 0) {
+            Char.MuaCoLenh = false;
+            Char.DungCoLenh = false;
+            if (TileMap.isLangCo(TileMap.mapID)) {
+                AutoSanBoss.cleanKhaoDiLenh();
+                try { Code.gameAN(); } catch (Exception e) {}
+            }
         }
         if (auto != null && auto.mapID == -5) {
             AutoBossEvent.returnMemberState();
@@ -56,10 +62,22 @@ public class ChatRouter {
         }
         if (auto != null && auto.mapID == -2) {
             AutoSanBoss.startPartyMemberTreo();
+            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+                Char.MuaCoLenh = false;
+                Char.DungCoLenh = false;
+                AutoSanBoss.cleanKhaoDiLenh();
+                try { Code.gameAN(); } catch (Exception e) {}
+            }
             return;
         }
         if (auto != null && auto.mapID == -1) {
             AutoSanBoss.startPartyMemberNormal();
+            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+                Char.MuaCoLenh = false;
+                Char.DungCoLenh = false;
+                AutoSanBoss.cleanKhaoDiLenh();
+                try { Code.gameAN(); } catch (Exception e) {}
+            }
             return;
         }
         AutoSanBoss.startPartyMember();

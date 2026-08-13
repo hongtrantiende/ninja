@@ -289,4 +289,23 @@
      - Gọi `Code.gameAN()` (tự sát về làng). Có thêm cơ chế **Double Check**: Nếu sau khi tự sát mà nhân vật vẫn còn ở Làng Cổ (map 135, 136, 138), hệ thống sẽ quét sạch Tủ đồ & Hành trang 1 lần nữa và tự sát lại 100% thoát kẹt.
      - Việc xóa sạch item ID 35 từ cả Tủ đồ lẫn Hành trang giúp nhân vật thoát hoàn toàn khỏi Làng Cổ, sẵn sàng quay về farm hoặc đi săn Boss Map Ngoài tiếp theo.
 - **Files:** `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/ChatRouter.java`, `src/ThongTinBoss.java`, `src/NamMod.java`, `Aeharuna.jar`
+
+## 2026-08-13: Fix Lỗi Chủ Nhóm & Thành Viên Ở Sẵn Trong Làng Cổ Khi Chuyển Sang Boss Khác
+- **Vấn đề:** Khi chủ nhóm hoặc thành viên ở sẵn trong Làng Cổ (`M135`, `M136`, `M138` hoặc `isLangCo`) mà phiên săn boss chuyển sang các loại boss ngoài Làng Cổ (MapNgoài, Server, VDMQ, Boss Chúa) hoặc chuyển map `mapID != 135/136`:
+  - Trước đây, hệ thống chưa tự động gọi `finishLangCoAndExit()` cho Trưởng nhóm trước khi PK/quét map ngoài.
+  - Thành viên nhóm khi nhận lệnh `pkm` sang map ngoài cũng chưa tự động phát hiện đang ở Làng Cổ để xóa Cổ Lệnh (ID 35 & 37) và tự sát ra làng.
+  - Hậu quả: Cả Trưởng nhóm và Thành viên còn giữ item 35 trong Hành trang / Tủ đồ nên game liên tục giữ lại / vào lại Làng Cổ không thể ra map ngoài được.
+- **Giải pháp:**
+  1. **Cho Trưởng nhóm (`AutoSanBoss.java`)**: Kiểm tra tại `huntBossType()`, `pkBossOnMap()`, `treoScanMap()`. Nếu `mapID` mục tiêu không phải Làng Cổ (khác 135 & 136) mà nhân vật đang đứng trong Làng Cổ -> Tự động gọi `finishLangCoAndExit()` (gửi `pkm -6` cho nhóm, tắt cờ mua/dùng Cổ Lệnh, xóa sạch item 35/37 ở cả Hành trang & Tủ đồ, rồi `Code.gameAN()` tự sát ra làng).
+  2. **Cho Thành viên nhóm (`ChatRouter.java`)**: Trong `startPartyBoss()`, khi nhận tín hiệu `pkm -6`, `pkm -1`, `pkm -2` hoặc `pkm <mapID>` sang map ngoài (khác 135 & 136), nếu Thành viên đang đứng trong Làng Cổ -> Tự động tắt cờ Cổ Lệnh, xóa sạch item 35/37 ở cả Hành trang & Tủ đồ và `Code.gameAN()` tự sát thoát khỏi Làng Cổ ngay lập tức.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+
+## 2026-08-13: Hoàn Thiện Tự Động Săn Boss Làng Cổ — Cổ Lệnh ID 490/35/37 & Tối Ưu Tốc Độ Chuyển Map
+- **Phát hiện & Khắc phục:**
+  1. **Item Template ID Cổ Lệnh (`490`) & Khả Dị Lệnh (`35`, `37`)**: Bytecode `TileMap.class` cho thấy vé Cổ Lệnh Lượng có template ID là `490`. Cập nhật `getCoLenhInBag()` kiểm tra và hỗ trợ cả 3 ID (`490`, `35`, `37`).
+  2. **Cơ chế Đổi Khu Làng Cổ (`changeZoneLangCo`)**: Làng Cổ không có NPC 13. Đổi khu bắt buộc truyền vị trí vé `item.indexUI` qua gói tin `Service.gI().gameAA(zoneID, item.indexUI)`. Đã ngăn chặn việc gọi `useItem` ngầm khi đã ở trong Làng Cổ (tránh tiêu hao vé và lặp vô tận mua/dùng vé).
+  3. **Giữ Vật Phẩm Tái Sử Dụng**: Khôi phục cờ `Char.MuaCoLenh` và giữ nguyên vé Cổ Lệnh/Khả Dị Lệnh khi tự sát/thoát Làng Cổ để tái sử dụng dịch chuyển nhanh ra/vào Làng Cổ.
+  4. **Tối Ưu Tốc Độ Chuyển Map Làng Cổ (Fix Đơ 20s)**: Thay thế luồng chờ `PkBoss` ngầm bằng `TileMap.GoMap(mapID)` trực tiếp giữa Map 138 và Map 135/136 với timeout 200ms. Giảm delay quét khu xuống 50ms, giúp chuyển map và quét 3 khu K0, K1, K2 mượt mà tức thì.
+- **Files:** `src/AutoSanBoss.java`, `src/Code.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+
 
