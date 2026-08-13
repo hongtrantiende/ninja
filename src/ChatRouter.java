@@ -30,6 +30,18 @@ public class ChatRouter {
 
     /** Nhan pkm tu truong nhom; map -1 chi bat trang thai Auto San Boss. */
     public static void startPartyBoss(Auto auto) {
+        if (auto != null && auto.mapID == -6) {
+            Char.MuaCoLenh = false;
+            Char.DungCoLenh = false;
+            AutoSanBoss.cleanKhaoDiLenh();
+            try { Code.gameAN(); } catch (Exception e) {}
+            AutoBossEvent.returnMemberState();
+            return;
+        }
+        if (auto != null && (auto.mapID == 135 || auto.mapID == 136)) {
+            Char.MuaCoLenh = true;
+            Char.DungCoLenh = true;
+        }
         if (auto != null && auto.mapID == -5) {
             AutoBossEvent.returnMemberState();
             return;
@@ -129,6 +141,10 @@ public class ChatRouter {
             AutoSanBoss.toggleMN();
             return true;
         }
+        if (text.equals("tspkblangco") || text.equals("langco")) {
+            AutoSanBoss.toggleLangCo();
+            return true;
+        }
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
             return true;
@@ -139,6 +155,10 @@ public class ChatRouter {
         }
         if (text.equals("treomn")) {
             AutoSanBoss.toggleTreoMN();
+            return true;
+        }
+        if (text.equals("treolangco")) {
+            AutoSanBoss.toggleTreoLangCo();
             return true;
         }
         

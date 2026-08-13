@@ -37,6 +37,9 @@ public final class AutoBossEvent implements Runnable {
         if (inEvent) {
             AutoSanBoss.stopEventHunt();
             sendParty("pkm -3");
+            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+                AutoSanBoss.finishLangCoAndExit();
+            }
         }
         inEvent = false;
         savedAuto = null;
@@ -80,6 +83,13 @@ public final class AutoBossEvent implements Runnable {
     public static void returnMemberState() {
         // LUON dung party boss mode truoc
         AutoSanBoss.stopPartyMemberFully();
+        Char.MuaCoLenh = false;
+        Char.DungCoLenh = false;
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+            AutoSanBoss.cleanKhaoDiLenh();
+            try { Code.gameAN(); } catch (Exception e) {}
+            sleep(1000L);
+        }
         // Neu co savedMap -> ve map cu
         if (savedMap >= 0 || savedAuto != null) {
             returnAndResume();
@@ -142,7 +152,7 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static boolean isSpawnHour(int h) {
-        int[] hours = {1,3,5,6,7,9,11,13,15,17,19,21,23};
+        int[] hours = {1,3,5,6,7,9,10,11,13,15,17,19,21,23};
         for (int i = 0; i < hours.length; i++) if (hours[i] == h) return true;
         return false;
     }
@@ -238,6 +248,9 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void returnAndResume() {
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+            AutoSanBoss.finishLangCoAndExit();
+        }
         final int map = savedMap;
         final int zone = savedZone;
         final Auto oldAuto = savedAuto;

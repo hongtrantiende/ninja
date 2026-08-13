@@ -23,32 +23,35 @@ public class AutoSanBoss implements Runnable {
     private static boolean eventHuntMode;
     private static boolean eventRoundCompleted;
 
-    // 2 loai boss (VDMQ & MapNgoai)
+    // 3 loai boss (VDMQ, MapNgoai, LangCo)
     public static final int TYPE_VDMQ = 0;
     public static final int TYPE_MAPNGOAI = 1;
-    public static final int TYPE_ALL = 2;
+    public static final int TYPE_LANGCO = 2;
+    public static final int TYPE_ALL = 3;
 
-    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "T\u1ea5t C\u1ea3"};
+    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "T\u1ea5t C\u1ea3"};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
         {141, 142, 143},   // VDMQ
-        {}                 // MapNgoai
+        {},                // MapNgoai
+        {135, 136}         // Làng Cổ
     };
 
-    // Map IDs cua MapNgoai theo level (19 maps)
+    // Map IDs cua MapNgoai theo level (12 maps)
     private static final int[][] MAPNGOAI_BY_LEVEL = {
-        {14, 15, 16, 34, 35, 52, 68},  // Lv45: Xích Phiến Thiên Long (ID 115)
+        {14, 15, 16},                  // Lv45: Xích Phiến Thiên Long (ID 115)
         {44, 67, 70},                  // Lv55: Thần Thố (ID 114)
-        {21, 24, 41, 45, 59},          // Lv65: Samurai Chiến Tướng (ID 116)
-        {18, 36, 46, 54}               // Lv75: Hỏa Ngưu Vương (ID 139)
+        {24, 41, 45},                  // Lv65: Samurai Chiến Tướng (ID 116)
+        {18, 36, 54}                   // Lv75: Hỏa Ngưu Vương (ID 139)
     };
     private static final int[] MAPNGOAI_LEVELS = {45, 55, 65, 75};
 
     // Khung gio spawn (gio)
     private static final int[][] BOSS_HOURS = {
         {6, 13, 19, 23},                                       // VDMQ
-        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}             // MapNgoai (gio le)
+        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},            // MapNgoai (gio le)
+        {7, 10, 15, 23}                                        // Làng Cổ
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -56,6 +59,60 @@ public class AutoSanBoss implements Runnable {
     private static final int BOSS_ALIVE_DURATION = 2400; // Boss ton tai 40 phut
     private static final int MAX_ZONES = 30;
     private static final int RECONNECT_TIMEOUT = 120; // Cho toi da 2 phut de reconnect
+
+    /** Cleans Khao Di Lenh (ID 35/37) from both inventory (arrItemBag) and trunk (arrItemBox) to exit Lang Co cleanly. */
+    public static void cleanKhaoDiLenh() {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar != null) {
+                // 1. Quet Hanh trang (arrItemBag)
+                if (myChar.arrItemBag != null) {
+                    for (int i = 0; i < myChar.arrItemBag.length; i++) {
+                        Item item = myChar.arrItemBag[i];
+                        if (item != null && (item.template.id == 35 || item.template.id == 37)) {
+                            try { Service.gI().gameAE(item.indexUI); } catch (Exception e) {}
+                            try { Service.gI().gameAR(item.indexUI); } catch (Exception e) {}
+                            myChar.arrItemBag[i] = null;
+                        }
+                    }
+                }
+                // 2. Quet Tu do / Ruong (arrItemBox)
+                if (myChar.arrItemBox != null) {
+                    for (int i = 0; i < myChar.arrItemBox.length; i++) {
+                        Item item = myChar.arrItemBox[i];
+                        if (item != null && (item.template.id == 35 || item.template.id == 37)) {
+                            try { Service.gI().gameAE(item.indexUI); } catch (Exception e) {}
+                            try { Service.gI().gameAR(item.indexUI); } catch (Exception e) {}
+                            myChar.arrItemBox[i] = null;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Finishes Lang Co hunt, sends pkm -6 to party, cleans item 35, and suicides to exit Lang Co. */
+    public static void finishLangCoAndExit() {
+        try {
+            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                Service.gI().gameAK("pkm -6");
+            }
+        } catch (Exception e) {}
+        Char.MuaCoLenh = false;
+        Char.DungCoLenh = false;
+        cleanKhaoDiLenh();
+        try { Code.gameAN(); } catch (Exception e) {}
+        sleep(1000L);
+
+        // Double check: neu van con o Lang Co -> quet ca Tu Do & Hanh Trang roi tu sat lai
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
+            Char.MuaCoLenh = false;
+            Char.DungCoLenh = false;
+            cleanKhaoDiLenh();
+            try { Code.gameAN(); } catch (Exception e) {}
+            sleep(1000L);
+        }
+    }
 
     // Trang thai hien tai
     private int currentBossType = -1;
@@ -90,10 +147,17 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * tspkbmn - San boss MapNgoai (19 maps) ngay lap tuc
+     * tspkbmn - San boss MapNgoai (12 maps) ngay lap tuc
      */
     public static void toggleMN() {
         toggleInternal(checkHasPartyOrFriends(), TYPE_MAPNGOAI);
+    }
+
+    /**
+     * tspkblangco / langco - San boss LangCo (M135-136) ngay lap tuc
+     */
+    public static void toggleLangCo() {
+        toggleInternal(checkHasPartyOrFriends(), TYPE_LANGCO);
     }
 
     /**
@@ -118,6 +182,11 @@ public class AutoSanBoss implements Runnable {
     /** treomn - Treo boss MapNgoai */
     public static void toggleTreoMN() {
         toggleTreoInternal(TYPE_MAPNGOAI);
+    }
+
+    /** treolangco - Treo boss LangCo */
+    public static void toggleTreoLangCo() {
+        toggleTreoInternal(TYPE_LANGCO);
     }
 
     private static void toggleTreoInternal(int bossType) {
@@ -662,12 +731,12 @@ public class AutoSanBoss implements Runnable {
      * Lay danh sach map ID cho boss MapNgoai dua tren level nhan vat
      */
     private int[] getMapNgoaiMaps() {
-        // Boss MapNgoai spawn tren TAT CA 19 map, khong phan biet level
+        // Boss MapNgoai spawn tren 12 map (da loc)
         return new int[] {
-            14, 15, 16, 34, 35, 52, 68,
+            14, 15, 16,
             44, 67, 70,
-            21, 24, 41, 45, 59,
-            18, 36, 46, 54
+            24, 41, 45,
+            18, 36, 54
         };
     }
 
@@ -829,8 +898,9 @@ public class AutoSanBoss implements Runnable {
             return false;
         }
 
-        // 3. Quet khu tuan tu K0 -> K29
-        for (int zone = 0; zone < MAX_ZONES && checkStillRunning(); zone++) {
+        // 3. Quet khu tuan tu K0 -> K29 (rieng M135 & M136 chi co 3 khu: K0->K2)
+        int maxZ = (mapID == 135 || mapID == 136) ? 3 : MAX_ZONES;
+        for (int zone = 0; zone < maxZ && checkStillRunning(); zone++) {
             // Doi khu bang Auto.gameAA(zone) — cung API PkBoss dung
             try {
                 Auto.gameAA(zone);
@@ -1094,6 +1164,10 @@ public class AutoSanBoss implements Runnable {
      */
     private void huntBossType(int bossType) {
         currentBossType = bossType;
+        if (bossType == TYPE_LANGCO) {
+            Char.MuaCoLenh = true;
+            Char.DungCoLenh = true;
+        }
         int[] maps = getMapsForBoss(bossType);
         String prefix = treoMode ? "TREO" : "TSB";
         GameScr.gameAC(prefix + ": San " + BOSS_NAMES[bossType] + " (" + maps.length + " maps)");
@@ -1106,6 +1180,10 @@ public class AutoSanBoss implements Runnable {
             } else {
                 pkBossOnMap(maps[mi]);
             }
+        }
+
+        if (bossType == TYPE_LANGCO) {
+            finishLangCoAndExit();
         }
     }
 

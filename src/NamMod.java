@@ -18,6 +18,8 @@ public final class NamMod implements IActionListener {
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int MUA_MAP_VIP = 120123;
     private static final int DUNG_MAP_VIP = 120124;
+    private static final int BOSS_LANG_CO = 120125;
+    private static final int TREO_LANG_CO = 120126;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -33,15 +35,17 @@ public final class NamMod implements IActionListener {
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
         items.addElement(command("Radar Boss: " + onOff(BossRadar.isRunning), BOSS_RADAR));
 
-        // Trang thai tung loai boss (0: VDMQ, 1: MapNgoai, 2: Tat Ca)
+        // Trang thai tung loai boss (0: VDMQ, 1: MapNgoai, 2: LangCo, 3: Tat Ca)
         items.addElement(command("S\u0103n VDMQ: " + bossStatus(0), BOSS_VDMQ));
         items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(1), BOSS_MAP_NGOAI));
-        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(2), BOSS_ALL));
+        items.addElement(command("S\u0103n L\u00e0ng C\u1ed5: " + bossStatus(2), BOSS_LANG_CO));
+        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(3), BOSS_ALL));
 
         // === Treo Boss (tìm boss, không đánh) ===
-        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(2), TREO_ALL));
+        items.addElement(command("Treo T\u1ea5t C\u1ea3: " + treoStatus(3), TREO_ALL));
         items.addElement(command("Treo VDMQ: " + treoStatus(0), TREO_VM));
         items.addElement(command("Treo Map Ngo\u00e0i: " + treoStatus(1), TREO_MN));
+        items.addElement(command("Treo L\u00e0ng C\u1ed5: " + treoStatus(2), TREO_LANG_CO));
 
         // === Hút VP & Tiện ích ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
@@ -73,7 +77,7 @@ public final class NamMod implements IActionListener {
     private static String bossStatus(int type) {
         if (!AutoSanBoss.isRunning) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        if (type == 2) return (forced == 2) ? "ON" : "OFF";
+        if (type == 3) return (forced == 3) ? "ON" : "OFF";
         if (forced == -1) return "Auto";
         return (forced == type) ? "ON" : "OFF";
     }
@@ -81,7 +85,7 @@ public final class NamMod implements IActionListener {
     private static String treoStatus(int type) {
         if (!AutoSanBoss.isRunning || !AutoSanBoss.treoMode) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        if (type == 2) return (forced == 2) ? "ON" : "OFF";
+        if (type == 3) return (forced == 3) ? "ON" : "OFF";
         return (forced == type) ? "ON" : "OFF";
     }
 
@@ -104,6 +108,9 @@ public final class NamMod implements IActionListener {
                 return;
             case BOSS_MAP_NGOAI:
                 AutoSanBoss.toggleMN();
+                return;
+            case BOSS_LANG_CO:
+                AutoSanBoss.toggleLangCo();
                 return;
             case BOSS_ALL:
                 AutoSanBoss.toggleALL();
@@ -150,6 +157,9 @@ public final class NamMod implements IActionListener {
                 return;
             case TREO_MN:
                 AutoSanBoss.toggleTreoMN();
+                return;
+            case TREO_LANG_CO:
+                AutoSanBoss.toggleTreoLangCo();
                 return;
             default:
                 return;

@@ -264,4 +264,29 @@
   - `NamMod.java`: Thêm nút **"Săn Chúa"** và **"Treo Chúa"** vào menu UI NamMod.
   - `ChatRouter.java`: Thêm router nhận dạng câu lệnh `tspkbchua`, `chua`, `treochua`.
 - **Files:** `src/ThongTinBoss.java`, `src/AutoSanBoss.java`, `src/NamMod.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+## 2026-08-13: Sửa Lỗi Tích Mua Cổ Lệnh Bị Mua Nhầm Vật Phẩm Trong Menu Auto (`TileMap.class`)
+- **Nguyên nhân:** Trong `TileMap.class`, khi cờ `Char.MuaCoLenh` được tích chọn và nhân vật không có Cổ Lệnh (ID `490`), game gửi gói tin mua vật phẩm `Service.gI().gameAB(14, 28, 2)` (Cửa hàng Goshu 14, slot 28). Slot 28 trong cửa hàng Goshu (gồm 5 hàng x 6 cột) tương ứng với ô Hàng 5 Cột 5 (ô kế cuối), dẫn đến mua nhầm item đứng trước Cổ Lệnh.
+- **Quyết định:** Tạo script [`scripts/patch_colenh_slot.py`](file:///root/ninja/scripts/patch_colenh_slot.py) patch bytecode `TileMap.class` tại vị trí `bipush 28` -> `bipush 29` (Hàng 5, Cột 6 - ô cuối cùng chuẩn 100% của Cổ Lệnh Lượng).
+- **Kết quả:** Đã biên dịch, patch và đóng gói lại thành công vào [`Aeharuna.jar`](file:///root/ninja/Aeharuna.jar). Nút tích "Mua Cổ Lệnh" trong Menu Auto hiện đã mua chính xác Cổ Lệnh tại shop Goshu.
+
+## 2026-08-13: Lọc Bỏ 7 Map ID Của Boss Map Ngoài (`AutoSanBoss.java` & `ThongTinBoss.java`)
+- **Quyết định:** Theo yêu cầu người dùng, loại bỏ 7 Map ID (`34, 35, 52, 68, 21, 59, 46`) ra khỏi danh sách tự động săn Boss Map Ngoài và giao diện đếm ngược Lịch Boss.
+- **Danh sách 12 Map ID còn lại:**
+  - Lv45: `14, 15, 16` (đã xóa: `34, 35, 52, 68`)
+  - Lv55: `44, 67, 70`
+  - Lv65: `24, 41, 45` (đã xóa: `21, 59`)
+  - Lv75: `18, 36, 54` (đã xóa: `46`)
+- **Kết quả:** Đã cập nhật `AutoSanBoss.java`, `ThongTinBoss.java`, biên dịch pass 100%, patch J2ME compatibility và đẩy bản build mới ra `/sdcard/Download/Aeharuna_v2.jar` (vừa tạo lúc 12:28).
+
+## 2026-08-13: Thêm Tính Năng Tự Động Săn Boss Làng Cổ (`M135-136`) & Xử Lý Thoát Làng Cổ
+- **Quy trình Leader & Member:**
+  1. Khung giờ spawn: `7:00`, `10:00`, `15:00`, `23:00` (Map ID `135` & `136`, mỗi map giới hạn **chỉ 3 khu: K0, K1, K2**).
+  2. Leader & Member tự động bật `Char.MuaCoLenh = true` và `Char.DungCoLenh = true` để mua & dùng Cổ Lệnh di chuyển vào Làng Cổ.
+  3. Leader di chuyển tới map 135 -> tìm thấy Boss -> phát tín hiệu `pkm 135` + `pkk <zone>` cho nhóm. Đánh xong 135 -> Leader chạy tiếp sang map 136 -> phát `pkm 136` + `pkk <zone>`.
+  4. **Quy trình kết thúc / Thoát Làng Cổ (`finishLangCoAndExit` / `pkm -6`)**:
+     - Leader phát tín hiệu `pkm -6` cho nhóm khi kết thúc Làng Cổ.
+     - Cả Leader và Member tự động gọi `cleanKhaoDiLenh()`: Quét và bán/vứt sạch vật phẩm ID 35 & 37 **ở cả Hành Trang (`arrItemBag`) VÀ Tủ Đồ/Rương (`arrItemBox`)**.
+     - Gọi `Code.gameAN()` (tự sát về làng). Có thêm cơ chế **Double Check**: Nếu sau khi tự sát mà nhân vật vẫn còn ở Làng Cổ (map 135, 136, 138), hệ thống sẽ quét sạch Tủ đồ & Hành trang 1 lần nữa và tự sát lại 100% thoát kẹt.
+     - Việc xóa sạch item ID 35 từ cả Tủ đồ lẫn Hành trang giúp nhân vật thoát hoàn toàn khỏi Làng Cổ, sẵn sàng quay về farm hoặc đi săn Boss Map Ngoài tiếp theo.
+- **Files:** `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/ChatRouter.java`, `src/ThongTinBoss.java`, `src/NamMod.java`, `Aeharuna.jar`
 
