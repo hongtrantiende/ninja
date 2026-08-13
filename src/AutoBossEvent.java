@@ -204,28 +204,30 @@ public final class AutoBossEvent implements Runnable {
         forceAllNext = false;
         if (huntAll) AutoSanBoss.startEventHuntAll();
         else AutoSanBoss.startEventHunt();
-        long retryEnd = 0L;
-        boolean completedFirstRound = false;
+
+        // === Luot 1: Quet + goi ae fang boss ===
         while (isEnabled && inEvent) {
-            if (AutoSanBoss.consumeEventRoundCompleted()) {
-                long now = System.currentTimeMillis();
-                if (!completedFirstRound) {
-                    completedFirstRound = true;
-                    retryEnd = now + ROUND_RECHECK_TIME;
-                    // Xong luot dau: gui nhom ve farm, leader tiep tuc quet solo
-                    membersSentBack = true;
-                    GameScr.gameAC("TSBoss: Xong luot dau, gui nhom ve farm!");
-                    sendParty("pkm -5");
-                    sleep(3000L);
-                    // Khong moi lai nhom — thanh vien dang travel ve map cu
-                    // Auto party manager (Code.java) se tu dong xu ly party reconnect
-                    AutoSanBoss.isPartyMode = false;
-                    GameScr.gameAC("TSBoss: Leader quet tiep 10 phut...");
-                }
-                if (completedFirstRound && now >= retryEnd) break;
-            }
+            if (AutoSanBoss.consumeEventRoundCompleted()) break;
             sleep(500L);
         }
+
+        if (!isEnabled || !inEvent) { finishEvent(false); return; }
+
+        // Xong luot 1: gui nhom ve farm
+        membersSentBack = true;
+        GameScr.gameAC("TSBoss: Xong l\u01b0\u1ee3t 1, g\u1eedi nh\u00f3m v\u1ec1 farm!");
+        sendParty("pkm -5");
+        sleep(3000L);
+        AutoSanBoss.isPartyMode = false;
+
+        // === Luot 2: Leader quet solo them 1 luot ===
+        GameScr.gameAC("TSBoss: Leader qu\u00e9t th\u00eam l\u01b0\u1ee3t 2...");
+        while (isEnabled && inEvent) {
+            if (AutoSanBoss.consumeEventRoundCompleted()) break;
+            sleep(500L);
+        }
+
+        // Xong luot 2 -> ve TS
         finishEvent(false);
     }
 

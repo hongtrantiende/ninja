@@ -716,7 +716,7 @@ implements Runnable {
                             var4 = Char.gameBG();
                             gameCP = System.currentTimeMillis();
                         }
-                        if (TileMap.mapID != 138 && TileMap.isLangCo(TileMap.mapID) && (!Char.gameAJ(35) && !Char.gameAJ(37) || Char.DungFood && Char.AutoMuaFood && Char.CapFood <= 50 && var4 > 1 && Code.gameAG(Char.CapFood) == 0)) {
+                        if (TileMap.mapID != 138 && TileMap.isLangCo(TileMap.mapID) && !Char.DungCoLenh && (!Char.gameAJ(35) && !Char.gameAJ(37) || Char.DungFood && Char.AutoMuaFood && Char.CapFood <= 50 && var4 > 1 && Code.gameAG(Char.CapFood) == 0)) {
                             TileMap.gameAJ(0);
                             TileMap.gameAF();
                         }

@@ -39,7 +39,11 @@ public class ChatRouter {
             return;
         }
         if (auto != null && (auto.mapID == 135 || auto.mapID == 136)) {
-            AutoSanBoss.ensureInLangCo();
+            // Set flags de game auto loop tu mua + dung Co Lenh (Code.java line 749-765)
+            // KHONG goi ensureInLangCo() o day vi chat thread ko mua duoc shop
+            Char.MuaCoLenh = true;
+            Char.DungCoLenh = true;
+            AutoSanBoss.restoreLangCoGraph();
         } else if (auto != null && auto.mapID > 0) {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
@@ -62,12 +66,8 @@ public class ChatRouter {
         }
         if (auto != null && auto.mapID == -2) {
             AutoSanBoss.startPartyMemberTreo();
-            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
-                Char.MuaCoLenh = false;
-                Char.DungCoLenh = false;
-                AutoSanBoss.cleanKhaoDiLenh();
-                try { Code.gameAN(); } catch (Exception e) {}
-            }
+            // KHONG tat Co Lenh khi dang o Lang Co — pkm 135/136 se den ngay sau
+            // Neu tat o day, game auto-exit da nhan vat ra truoc khi pkm 135 den
             return;
         }
         if (auto != null && auto.mapID == -1) {

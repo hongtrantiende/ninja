@@ -618,5 +618,28 @@ Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
 - **Lỗi cũ:** `suicideAndReturn()` gọi `GameScr.gameAB(5,0,0)` + `Service.gI().gameAF()` (packet hồi sinh khi đã chết) -> không phải packet tự sát khi đang sống.
 - **Chuẩn game gốc:** Nút "Tự sát" trong menu (lệnh chat `die`) gọi `Code.gameAN()` -> gửi `Service.gI().gameAE()` (Packet -27 / Tự sát). Gọi `Code.gameAN()` đảm bảo tự sát tức thì và an toàn.
 
+## 2026-08-14: Làng Cổ Boss — Root Causes & Fixes
 
+### 1. Game Auto-Exit Từ Map Làng Cổ (ROOT CAUSE chính!)
+- **Vấn đề:** Nhân vật vào map Làng Cổ (134-137) rồi bị đá ra ngay. Code.java line 719 tự động exit khi không có item 35/37 (Khao Di Lệnh).
+- **Fix:** Thêm `!Char.DungCoLenh` vào điều kiện. Khi `DungCoLenh = true` (đang săn boss), game KHÔNG auto-exit.
+
+### 2. GoMap vs TileMap.gameAJ(0)
+- **GoMap:** BFS thread riêng, vào map random rồi pathfind quay lại → "neck 2 lần".
+- **gameAJ(0):** Đi đến waypoint exit → chuyển map 1 lần → DỪNG. Dùng cho Làng Cổ.
+
+### 3. Party Member Không Mua Được Cổ Lệnh Từ Chat Handler
+- **Vấn đề:** `ensureInLangCo()` mở shop NPC nhưng ae đang ở map khác → không có shop → fail.
+- **Fix:** Chỉ set flags `MuaCoLenh/DungCoLenh = true`. Game auto loop (Code.java line 749) tự mua + dùng.
+
+### 4. pkm -2 Xóa DungCoLenh Quá Sớm
+- **Fix:** `pkm -2` chỉ startPartyMemberTreo(), KHÔNG clear flags. `pkm 135` set flags, `pkm <map khác>` clear.
+
+### 5. AutoBossEvent — 2 Lượt Thay 10 Phút
+- Lượt 1 + gọi ae → ae về → lượt 2 solo → VỀ. Không chờ 10 phút.
+
+### 6. HUNT_PRIORITY: Làng Cổ > MapNgoài > VDMQ
+- Mảng `{TYPE_LANGCO, TYPE_MAPNGOAI, TYPE_VDMQ}` cho cả Force ALL và Auto.
+
+### 7. Delay Tối Ưu: chờ ae 3s→1.5s, poll boss chết 2s→0.5s, double check 300ms→150ms.
 
