@@ -16,8 +16,7 @@ public final class NamMod implements IActionListener {
     private static final int TS_BOSS = 120120;
     private static final int BOSS_RADAR = 120121;
     private static final int HIDE_ITEM_DROP = 120122;
-    private static final int MUA_MAP_VIP = 120123;
-    private static final int DUNG_MAP_VIP = 120124;
+    private static final int TS_VIP_MAP = 120123;
     private static final int BOSS_LANG_CO = 120125;
     private static final int TREO_LANG_CO = 120126;
 
@@ -58,8 +57,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
         // === Tiện ích Khác ===
-        items.addElement(command("Mua th\u1ebb map vip: " + onOff(Code.MuaMapVip), MUA_MAP_VIP));
-        items.addElement(command("D\u00f9ng th\u1ebb map vip: " + onOff(Code.DungMapVip), DUNG_MAP_VIP));
+        items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled), TS_VIP_MAP));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
         items.addElement(command("T\u00e1ch \u0111\u1ed3 l\u1ebb", TACH_LE));
         items.addElement(command("Th\u00f4ng tin Nam Mod", THONG_TIN));
@@ -129,16 +127,8 @@ public final class NamMod implements IActionListener {
                     openAutoLevelInput();
                 }
                 return;
-            case MUA_MAP_VIP:
-                Code.MuaMapVip = !Code.MuaMapVip;
-                GameScr.gameAC(Code.MuaMapVip ? "Mua th\u1ebb map vip: ON" : "Mua th\u1ebb map vip: OFF");
-                return;
-            case DUNG_MAP_VIP:
-                Code.DungMapVip = !Code.DungMapVip;
-                if (Code.DungMapVip) {
-                    Code.startVipMapWatcher();
-                }
-                GameScr.gameAC(Code.DungMapVip ? "D\u00f9ng th\u1ebb map vip: ON" : "D\u00f9ng th\u1ebb map vip: OFF");
+            case TS_VIP_MAP:
+                AutoVipMap.toggle();
                 return;
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();

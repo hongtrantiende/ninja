@@ -518,6 +518,8 @@ implements Runnable {
                     Char var3 = Char.getMyChar();
                     int var4 = Char.gameBG();
                     if (gameAB != null) {
+                        // Auto quay lai map VIP khi chet/disconnect
+                        AutoVipMap.checkAndReturn();
                         Item var18;
                         int var19;
                         if (!(gameAB instanceof AutoNhan) && !(gameAB instanceof AutoGuiDo) && AutoNhan.gameAE() && AutoNhan.nguoinhan != null && SetAuto.gomdo) {
@@ -1375,6 +1377,10 @@ implements Runnable {
             Code.nhat[29] = 578;
             GameScr.gameAC("\u0110\u00e3 Th\u00eam Item Nh\u1eb7t VDMQ");
             Service.gI().gameAK("vdmq");
+            return true;
+        }
+        if (var31.equals("tsvip")) {
+            AutoVipMap.toggle();
             return true;
         }
         if (var31.equals("uppk")) {

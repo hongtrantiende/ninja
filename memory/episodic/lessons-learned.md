@@ -642,4 +642,52 @@ Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
 - Mảng `{TYPE_LANGCO, TYPE_MAPNGOAI, TYPE_VDMQ}` cho cả Force ALL và Auto.
 
 ### 7. Delay Tối Ưu: chờ ae 3s→1.5s, poll boss chết 2s→0.5s, double check 300ms→150ms.
+
+## NPC Interaction — Cách Mở NPC Dialog & Chọn Menu Option
+
+### 1. GameScr.gameAB(npcType, param1, param2) — Talk NPC
+- **Chức năng:** Mở NPC dialog. Bên trong gọi:
+  1. `gameAI(npcType)` → tìm NPC trên map hiện tại (trả về `Npc` object)
+  2. `Char.gameAC(npc.cx, npc.cy)` → di chuyển nhân vật đến NPC
+  3. `Service.gI().gameAC(npcType, param1, param2)` → gửi packet interact NPC đến server
+- **param1** (parameter thứ 2) = **menu option index (0-based)**
+  - `GameScr.gameAB(47, 0, 0)` → NPC VIP, chọn ô 1 (Nhận quà VIP)
+  - `GameScr.gameAB(47, 4, 0)` → NPC VIP, chọn ô 5 (Map Up Lượng)
+  - `GameScr.gameAB(4, 0, 0)` → NPC Shop
+  - `GameScr.gameAB(6, 1, 1)` → NPC VDMQ
+- **SAI:** Dùng `GameScr.gameAB(47, 0, 0)` rồi gọi `Service.gI().gameAI(4)` riêng → `gameAI(int)` là packet **-103** (request NPC shop data), KHÔNG phải chọn menu option!
+
+### 2. Service Packet Types cho NPC
+| Method | Packet | Mô tả |
+|---|---|---|
+| `Service.gameAC(int,int,int)` | interact NPC | Gửi khi click NPC, param = npcType + option |
+| `Service.gameAI(int)` | **-103** | Request NPC shop/inventory data, **KHÔNG phải** menu select |
+| `Service.gameAK(int)` | **-104** | Gửi số xu cho NPC (buy xu) |
+| `Service.gameAK(String)` | **-104** | Gửi lệnh chat/command đến server |
+| `Service.gameAK(int,int)` | **-85** | NPC action với byte+int params |
+
+### 3. GameScr.gI().gameAD(int) — Mở NPC Dialog UI
+- `gameAD(npcTypeId)` = switch case (2..50) → set flag + khởi tạo UI
+- Case 47: set `gameMP = true`, `upitem = new Item[18]` → VIP upgrade dialog
+- **Khác với** `gameAB(npcType, param1, param2)` — `gameAD` chỉ set UI flag, `gameAB` gửi packet thật
+
+### 4. TileMap Map Type Checks
+| Method | Maps | Mô tả |
+|---|---|---|
+| `TileMap.gameAD(mapID)` | 10,17,22,32,38,43,48,138 | VDMQ maps |
+| `TileMap.gameAF(mapID)` | 1,27,72 | VIP maps (Cổ Lệnh) |
+| `TileMap.isLangCo(mapID)` | 134-138 | Làng Cổ maps |
+
+## Auto VIP Map (Map Up Lượng M196)
+
+### 1. Flow hoạt động
+- NPC VIP [47] nằm **ngay map thôn** (chỗ hồi sinh) → KHÔNG cần GoMap
+- Chết ở M196 → hồi sinh ở thôn → `AutoVipMap.checkAndReturn()` phát hiện mapID ≠ 196
+- Gọi `GameScr.gameAB(47, 4, 0)` → NPC VIP chọn ô 5 "Map Up Lượng"
+- Chờ server chuyển map → vào lại M196
+
+### 2. Lỗi đã gặp
+- **Lần 1:** GoMap(48) → SAI vì NPC VIP ở thôn, không phải M48
+- **Lần 2:** `GameScr.gameAB(47, 0, 0)` + `Service.gI().gameAI(4)` → SAI vì `gameAI` không phải menu select, và param1=0 = ô 1
+- **Fix:** `GameScr.gameAB(47, 4, 0)` — truyền thẳng option index vào param1
 
