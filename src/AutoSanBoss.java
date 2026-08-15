@@ -31,8 +31,8 @@ public class AutoSanBoss implements Runnable {
 
     private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "T\u1ea5t C\u1ea3"};
 
-    /** Thu tu uu tien quet boss: Lang Co > MapNgoai > VDMQ */
-    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_MAPNGOAI, TYPE_VDMQ};
+    /** Thu tu uu tien quet boss: Lang Co > VDMQ > MapNgoai */
+    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_MAPNGOAI};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {

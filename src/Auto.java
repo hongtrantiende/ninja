@@ -328,7 +328,7 @@ public abstract class Auto {
             this.zoneID = var9;
             TileMap.gameAF();
             if (this.gameAL()) {
-                Service.gI().gameAK("khu " + var9);
+                Service.gI().gameAK("khu" + var9);
             }
             gameBB = System.currentTimeMillis();
             try {
@@ -480,24 +480,17 @@ public abstract class Auto {
         return this.gameAA && GameScr.vParty.size() > 0 && ((Party)GameScr.vParty.firstElement()).charId != Char.getMyChar().charID;
     }
 
-    private static long lastZoneSwitchTime = 0;
-
     public void gameAM() {
-        long now = System.currentTimeMillis();
-        if (now - lastZoneSwitchTime < 500) return;
-        lastZoneSwitchTime = now;
-
         if (Code.gameAV && Code.gameAX != null && Code.gameAX.length > 0) {
-            int totalZones = Code.gameAX.length;
-            Code.gameAW = (Code.gameAW + 1) % totalZones;
+            Code.gameAW = (Code.gameAW + 1) % Code.gameAX.length;
             this.zoneID = Code.gameAX[Code.gameAW];
-            Service.gI().gameAA(this.zoneID, -1);
-        } else {
-            GameScr gScr = GameScr.gI();
-            int total = (gScr != null && gScr.zones != null) ? gScr.zones.length : 30;
-            this.zoneID = (TileMap.zoneID + 1) % total;
-            Service.gI().gameAA(this.zoneID, -1);
+            Auto.gameAA(this.zoneID);
+            if (this.gameAL()) {
+                Service.gI().gameAK("khu" + this.zoneID);
+            }
+            return;
         }
+        this.gameAB((int)TileMap.zoneID);
     }
 
     /**

@@ -19,6 +19,7 @@ public final class NamMod implements IActionListener {
     private static final int TS_VIP_MAP = 120123;
     private static final int BOSS_LANG_CO = 120125;
     private static final int TREO_LANG_CO = 120126;
+    private static final int GIU_VP = 120127;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -49,6 +50,7 @@ public final class NamMod implements IActionListener {
         // === Hút VP & Tiện ích ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
+        items.addElement(command("Gi\u1eef VP: " + onOff(Code.giuVP), GIU_VP));
 
         // === Auto Level ===
         String lvStatus = AutoLevel.isRunning
@@ -119,6 +121,11 @@ public final class NamMod implements IActionListener {
             case HIDE_ITEM_DROP:
                 Code.hideItemDrop = !Code.hideItemDrop;
                 GameScr.gameAC(Code.hideItemDrop ? "\u1ea8n VP r\u01a1i: ON" : "\u1ea8n VP r\u01a1i: OFF");
+                return;
+            case GIU_VP:
+                Code.giuVP = !Code.giuVP;
+                if (Code.giuVP) Code.hideItemDrop = false;
+                GameScr.gameAC(Code.giuVP ? "Gi\u1eef VP: ON" : "Gi\u1eef VP: OFF");
                 return;
             case AUTO_LEVEL:
                 if (AutoLevel.isRunning) {

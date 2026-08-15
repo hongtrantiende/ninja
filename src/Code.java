@@ -62,6 +62,8 @@ implements Runnable {
     public static boolean gameBE = true;
     public static boolean timBG = false;
     public static boolean hideItemDrop = false;
+    public static boolean giuVP = false;
+    public static MyVector giuVPList = null;
     public static MyVector realItemMap = null;
     public static boolean MuaMapVip = false;
     public static boolean DungMapVip = false;
@@ -895,6 +897,28 @@ implements Runnable {
                     } catch (Exception e2) {}
                 } else if (realItemMap != null) {
                     realItemMap = null;
+                }
+                // Giu VP: giu vat pham tren map sau khi nhat (visual only)
+                if (giuVP && !hideItemDrop) {
+                    try {
+                        if (giuVPList == null) giuVPList = new MyVector();
+                        // Luu tat ca VP hien tai
+                        for (int gi = 0; gi < GameScr.vItemMap.size(); gi++) {
+                            Object obj = GameScr.vItemMap.elementAt(gi);
+                            if (!giuVPList.contains(obj)) {
+                                giuVPList.addElement(obj);
+                            }
+                        }
+                        // Them lai VP da bi server xoa (da nhat)
+                        for (int gi = 0; gi < giuVPList.size(); gi++) {
+                            Object obj = giuVPList.elementAt(gi);
+                            if (!GameScr.vItemMap.contains(obj)) {
+                                GameScr.vItemMap.addElement(obj);
+                            }
+                        }
+                    } catch (Exception e2) {}
+                } else if (giuVPList != null) {
+                    giuVPList = null;
                 }
                 if (timBG) {
                     // Xoa hieu ung render thua khi auto (ke ca tu Buff.class)
@@ -2841,6 +2865,10 @@ implements Runnable {
                         }
                         if (var5[0].equals("khu")) {
                             Code.gameAB.zoneID = Integer.parseInt(var5[1]);
+                            return;
+                        }
+                        if (var5[0].startsWith("khu") && var5[0].length() > 3) {
+                            Code.gameAB.zoneID = Integer.parseInt(var5[0].substring(3));
                             return;
                         }
                         if (gameAB instanceof TaThu) {
