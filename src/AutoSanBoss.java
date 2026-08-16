@@ -121,13 +121,34 @@ public class AutoSanBoss implements Runnable {
         if (TileMap.isLangCo(TileMap.mapID)) {
             try { Code.gameAN(); } catch (Exception e) {}
             sleep(1000L);
+            // Hoi sinh sau tu sat
+            respawnIfDead();
+            sleep(500L);
         }
 
         // Double check: neu van con o Lang Co -> tu sat lan 2
         if (TileMap.isLangCo(TileMap.mapID)) {
             try { Code.gameAN(); } catch (Exception e) {}
             sleep(1000L);
+            // Hoi sinh sau tu sat
+            respawnIfDead();
+            sleep(500L);
         }
+    }
+
+    /** Hoi sinh nhanh neu dang chet - dung cho finishLangCoAndExit */
+    private static void respawnIfDead() {
+        try {
+            if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                for (int retry = 0; retry < 10; retry++) {
+                    GameCanvas.endDlg();
+                    GameScr.gameAB(5, 0, 0);
+                    Service.gI().gameAF();
+                    sleep(200L);
+                    if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
+                }
+            }
+        } catch (Exception e) {}
     }
 
     /** Find Co Lenh / Khao Di Lenh item (ID 490, 35, 37) directly in inventory bag. */

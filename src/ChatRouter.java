@@ -34,7 +34,8 @@ public class ChatRouter {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
             AutoSanBoss.cleanKhaoDiLenh();
-            try { Code.gameAN(); } catch (Exception e) {}
+            // returnMemberState() tu xu ly tu sat + hoi sinh + ve map cu
+            // KHONG goi gameAN() o day tranh tu sat 2 lan
             AutoBossEvent.returnMemberState();
             return;
         }
@@ -50,6 +51,8 @@ public class ChatRouter {
             if (TileMap.isLangCo(TileMap.mapID)) {
                 AutoSanBoss.cleanKhaoDiLenh();
                 try { Code.gameAN(); } catch (Exception e) {}
+                // Hoi sinh sau tu sat de PkBoss co the di chuyen
+                respawnQuick();
             }
         }
         if (auto != null && auto.mapID == -5) {
@@ -77,6 +80,8 @@ public class ChatRouter {
                 Char.DungCoLenh = false;
                 AutoSanBoss.cleanKhaoDiLenh();
                 try { Code.gameAN(); } catch (Exception e) {}
+                // Hoi sinh sau tu sat de co the ve map cu
+                respawnQuick();
             }
             return;
         }
@@ -85,6 +90,19 @@ public class ChatRouter {
             LockGame.gameBK();
             Code.gameAA(auto);
         }
+    }
+
+    /** Hoi sinh nhanh trong ChatRouter (chat thread). */
+    private static void respawnQuick() {
+        try {
+            for (int i = 0; i < 15; i++) {
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
+                GameCanvas.endDlg();
+                GameScr.gameAB(5, 0, 0);
+                Service.gI().gameAF();
+                Thread.sleep(200L);
+            }
+        } catch (Exception e) {}
     }
 
     /** Nhan pkk: treo mode tu doi khu, mode thuong giao zone cho PkBoss. */

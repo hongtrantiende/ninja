@@ -9,6 +9,7 @@ public final class AutoBossEvent implements Runnable {
     private static Auto savedAuto;
     private static int savedMap = -1;
     private static int savedZone = -1;
+    private static int savedZoneIndex = 0;
     private static int lastWindowKey = -1;
     private static boolean forceAllNext;
     private static boolean disableAfterTest;
@@ -89,7 +90,11 @@ public final class AutoBossEvent implements Runnable {
             AutoSanBoss.cleanKhaoDiLenh();
             try { Code.gameAN(); } catch (Exception e) {}
             sleep(1000L);
+            // Hoi sinh sau tu sat de tranh member bi ket trang thai chet
+            ensureAlive();
         }
+        // Hoi sinh neu dang chet (truong hop bi giet truoc khi nhan pkm -5)
+        ensureAlive();
         // Neu co savedMap -> ve map cu
         if (savedMap >= 0 || savedAuto != null) {
             returnAndResume();
@@ -103,6 +108,7 @@ public final class AutoBossEvent implements Runnable {
     private static void saveLocalState() {
         savedMap = TileMap.mapID;
         savedZone = TileMap.zoneID;
+        savedZoneIndex = Code.gameAW; // Luu vi tri trong danh sach khu tuan tu
         // Traverse auto stack de tim auto that (TanSat/Stanima...)
         // Skip PkBoss va SanBossHolder vi do la wrapper cua mod
         Auto a = Code.gameAB;
@@ -239,6 +245,10 @@ public final class AutoBossEvent implements Runnable {
         }
         membersSentBack = false;
         if (!disabledByUser) GameScr.gameAC("TSBoss: Ket thuc, quay lai TS");
+        // Leader xu ly thoat Lang Co truoc khi ve map cu
+        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
+            AutoSanBoss.finishLangCoAndExit();
+        }
         returnAndResume();
         sleep(2000L);
         // Moi lai cac thanh vien bi thieu (neu co)
@@ -250,9 +260,7 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void returnAndResume() {
-        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
-            AutoSanBoss.finishLangCoAndExit();
-        }
+        // Caller (returnMemberState/finishEvent) da xu ly thoat Lang Co truoc khi goi
         final int map = savedMap;
         final int zone = savedZone;
         final Auto oldAuto = savedAuto;
@@ -266,6 +274,8 @@ public final class AutoBossEvent implements Runnable {
                 try {
                     // Dong dialog/NPC neu dang mo (tranh chan travel)
                     try { GameCanvas.endDlg(); } catch (Exception e) {}
+                    // Hoi sinh neu dang chet truoc khi travel
+                    ensureAlive();
                     // Xoa lock va auto hien tai de tranh xung dot
                     LockGame.gameBK();
                     if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
@@ -292,12 +302,14 @@ public final class AutoBossEvent implements Runnable {
                 } catch (Exception e) {}
                 // Khoi phuc auto: dung saved neu co, khong thi restart TS
                 if (oldAuto != null) {
+                    Code.gameAW = savedZoneIndex; // Khoi phuc vi tri khu tuan tu
                     Code.gameAB = oldAuto;
                     AutoPickup.start();
                     GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - tiep tuc TS");
                 } else {
                     // Fallback: khong co auto cu -> restart TanSat tai map hien tai
                     try {
+                        Code.gameAW = savedZoneIndex;
                         Code.gameAA(-1, (int)TileMap.mapID);
                         AutoPickup.start();
                     } catch (Exception e) {}
@@ -325,5 +337,22 @@ public final class AutoBossEvent implements Runnable {
 
     private static void sleep(long ms) {
         try { Thread.sleep(ms); } catch (InterruptedException e) {}
+    }
+
+    /** Hoi sinh nhanh neu nhan vat dang chet (statusMe==14 hoac cHP<=0). */
+    private static void ensureAlive() {
+        try {
+            if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                for (int retry = 0; retry < 10; retry++) {
+                    GameCanvas.endDlg();
+                    sleep(10L);
+                    GameScr.gameAB(5, 0, 0);
+                    sleep(10L);
+                    Service.gI().gameAF();
+                    sleep(200L);
+                    if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
+                }
+            }
+        } catch (Exception e) {}
     }
 }
