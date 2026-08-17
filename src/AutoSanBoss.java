@@ -22,6 +22,8 @@ public class AutoSanBoss implements Runnable {
     private static int memberTargetZone = -1;
     private static boolean eventHuntMode;
     private static boolean eventRoundCompleted;
+    /** Override thu tu uu tien boss cho TS event (null = dung HUNT_PRIORITY mac dinh) */
+    static int[] eventHuntTypes;
 
     // 3 loai boss (VDMQ, MapNgoai, LangCo)
     public static final int TYPE_VDMQ = 0;
@@ -373,6 +375,7 @@ public class AutoSanBoss implements Runnable {
         }
         eventHuntMode = true;
         eventRoundCompleted = false;
+        eventHuntTypes = null;
         toggleInternal(true, -1);
     }
 
@@ -383,12 +386,38 @@ public class AutoSanBoss implements Runnable {
         }
         eventHuntMode = true;
         eventRoundCompleted = false;
+        eventHuntTypes = null;
         toggleInternal(true, TYPE_ALL);
     }
 
     public static void stopEventHunt() {
         eventHuntMode = false;
         stop();
+    }
+
+    /** TS Boss chi san VDMQ + Lang Co */
+    public static void startEventHuntVdmqLc() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        // Override HUNT_PRIORITY TRUOC khi start thread (tranh race condition)
+        eventHuntTypes = new int[]{TYPE_VDMQ, TYPE_LANGCO};
+        toggleInternal(true, TYPE_ALL);
+    }
+
+    /** TS Boss chi san MapNgoai */
+    public static void startEventHuntMN() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = null;
+        toggleInternal(true, TYPE_MAPNGOAI);
     }
 
     public static boolean consumeEventRoundCompleted() {
@@ -560,6 +589,7 @@ public class AutoSanBoss implements Runnable {
             isPartyMode = false;
             treoMode = false;
             forcedBossType = -1;
+            eventHuntTypes = null;
             if (Code.gameAB == dummyAuto) {
                 Code.gameAB = null;
             }
@@ -1495,9 +1525,10 @@ public class AutoSanBoss implements Runnable {
                 }
 
                 if (forcedBossType == TYPE_ALL) {
-                    // === CHE DO FORCE ALL: San TAT CA 4 loai boss 24/24 ===
-                    for (int i = 0; i < HUNT_PRIORITY.length && checkStillRunning(); i++) {
-                        huntBossType(HUNT_PRIORITY[i]);
+                    // === CHE DO FORCE ALL: San theo danh sach uu tien ===
+                    int[] types = (eventHuntTypes != null) ? eventHuntTypes : HUNT_PRIORITY;
+                    for (int i = 0; i < types.length && checkStillRunning(); i++) {
+                        huntBossType(types[i]);
                     }
 
                     if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
@@ -1555,6 +1586,7 @@ public class AutoSanBoss implements Runnable {
         }
         dummyAuto = null;
         forcedBossType = -1;
+        eventHuntTypes = null;
         isRunning = false;
         GameScr.gameAC("TSB: Da dung.");
     }

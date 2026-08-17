@@ -690,4 +690,52 @@ Nếu không chạy patch này → menu Dưa Mod không hiện thống kê.
 - **Lần 1:** GoMap(48) → SAI vì NPC VIP ở thôn, không phải M48
 - **Lần 2:** `GameScr.gameAB(47, 0, 0)` + `Service.gI().gameAI(4)` → SAI vì `gameAI` không phải menu select, và param1=0 = ô 1
 - **Fix:** `GameScr.gameAB(47, 4, 0)` — truyền thẳng option index vào param1
-
+
+## 2026-08-17: TS Boss Ưu Tiên — UI Đơn Giản Hóa
+
+### Vấn đề
+Menu TS Boss ban đầu có nút "Bật/Tắt" riêng + 3 nút chọn chế độ ưu tiên → lằng nhằng, user phải ấn 2 lần.
+
+### Giải pháp
+- Gộp bật/tắt vào mỗi nút chế độ: ấn chọn loại nào → bật luôn loại đó
+- Ấn lại loại đang bật (có dấu ✔) → tắt
+- Đổi loại khác khi đang bật → tự chuyển sang loại mới
+- Method `togglePriority(int p)` thay cho `setPriority(int p)` + `toggle()` riêng
+
+### Quy tắc UX
+- Menu toggle nên gộp "chọn" và "bật" vào 1 hành động. Không tách riêng nút bật/tắt khi đã có nhiều lựa chọn.
+
+## 2026-08-17: eventHuntTypes Race Condition & State Leakage
+
+### Bug 1: Race condition
+- `startEventHuntVdmqLc()` gọi `toggleInternal()` (start thread) TRƯỚC khi gán `eventHuntTypes`
+- Thread mới có thể đọc `eventHuntTypes = null` và dùng HUNT_PRIORITY mặc định
+- **Fix:** Gán `eventHuntTypes` TRƯỚC `toggleInternal()`
+
+### Bug 2: State leakage
+- `eventHuntTypes` chỉ reset trong `stop()` khi `isRunning == true`
+- Thread kết thúc tự nhiên set `isRunning = false` mà không clear `eventHuntTypes`
+- **Fix:** Reset `eventHuntTypes = null` ở: `startEventHunt()`, `startEventHuntAll()`, `startEventHuntMN()`, thread cleanup
+
+### Quy tắc
+- Shared state dùng bởi worker thread phải được set TRƯỚC khi start thread
+- Cleanup shared state ở MỌI exit path (stop, natural completion, error)
+
+## 2026-08-17: Patch Vị Trí HUD "HS lượng" / "Lọc Đồ" Trong GameScr.class
+
+### Vấn đề
+Text vàng "HS lượng" và "Lọc Đồ" trong GameScr (code gốc obfuscated) hiển thị quá cao, che đồ.
+
+### Phân tích bytecode
+- Text vẽ bằng `mFont.tahoma_7_yellow.gameAA(g, text, iload_3, iload_2, 0, mFont.tahoma_7)`
+- `iload_2` = biến local #2 = tọa độ y, tăng dần bằng `iinc 2, 12` sau mỗi dòng
+- Trước đoạn code vẽ "HS lượng" có ~30 byte NOP (từ patch trước đã NOP-out code cũ)
+
+### Giải pháp
+- Script `scripts/patch_hsluong_pos.py`: tìm 3 NOP liền trước `getstatic mFont.tahoma_7_yellow`
+- Thay 3 NOP bằng `iinc 2, 30` (opcode: `84 02 1E`) → đẩy y xuống 30 pixel
+- KHÔNG thay đổi code structure, KHÔNG ảnh hưởng StackMapTable
+
+### Phân biệt ThongKe vs HS lượng/Lọc Đồ
+- **ThongKe.java** (mod): hiển thị thống kê yên/xu/exp khi treo, vị trí y=155, SỬA ĐƯỢC trong source
+- **HS lượng/Lọc Đồ** (game gốc GameScr.class): bytecode obfuscated, chỉ patch được bằng script

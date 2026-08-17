@@ -308,4 +308,18 @@
   4. **Tối Ưu Tốc Độ Chuyển Map Làng Cổ (Fix Đơ 20s)**: Thay thế luồng chờ `PkBoss` ngầm bằng `TileMap.GoMap(mapID)` trực tiếp giữa Map 138 và Map 135/136 với timeout 200ms. Giảm delay quét khu xuống 50ms, giúp chuyển map và quét 3 khu K0, K1, K2 mượt mà tức thì.
 - **Files:** `src/AutoSanBoss.java`, `src/Code.java`, `src/ChatRouter.java`, `Aeharuna.jar`
 
-
+
+## 2026-08-17: Tái Cấu Trúc Menu NamMod — Gọn Gàng & Sub-Menu
+- **Quyết định:** Dọn dẹp menu NamMod: xoá Treo Boss, Radar Boss, Giữ VP, Thông tin. Chuyển Săn Boss và TS Boss thành sub-menu. Tách lẻ ẩn khỏi menu (chỉ dùng ở Hành trang). Lịch Boss giữ ở ngoài.
+- **Lý do:** Menu quá chật, nhiều tính năng ít dùng. Sub-menu giúp gom nhóm các tùy chọn liên quan.
+- **Files:** `src/NamMod.java`
+
+## 2026-08-17: TS Boss Ưu Tiên — 3 Chế Độ Lọc Boss Theo Sự Kiện
+- **Quyết định:** Thêm `eventPriority` (0=Mặc định, 1=Chỉ VDMQ+Làng Cổ, 2=Chỉ Map Ngoài) vào AutoBossEvent. Chọn loại nào bật luôn, ấn lại tắt.
+- **Lý do:** User muốn chỉ săn 1 loại boss cụ thể khi đến giờ sự kiện.
+- **Files:** `src/AutoBossEvent.java`, `src/AutoSanBoss.java`, `src/NamMod.java`
+
+## 2026-08-17: Patch Vị Trí "HS lượng" / "Lọc Đồ" Xuống Thấp Hơn
+- **Quyết định:** Tạo `scripts/patch_hsluong_pos.py` patch bytecode GameScr.class đẩy text HUD xuống 30 pixel.
+- **Lý do:** Vị trí gốc quá cao che mất đồ vật/UI khác trên màn hình game.
+- **Files:** `scripts/patch_hsluong_pos.py`

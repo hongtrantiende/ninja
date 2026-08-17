@@ -4,6 +4,8 @@ import java.util.TimeZone;
 /** Uu tien boss khi dang TS; moi may tu luu va khoi phuc map/khu/auto cua minh. */
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
+    /** 0 = mac dinh (tat ca), 1 = chi VDMQ+LangCo, 2 = chi MapNgoai */
+    public static int eventPriority;
     private static boolean inEvent;
     private static boolean membersSentBack;
     private static Auto savedAuto;
@@ -26,7 +28,34 @@ public final class AutoBossEvent implements Runnable {
             isEnabled = true;
             new Thread(new AutoBossEvent()).start();
             lastWindowKey = -1;
-            GameScr.gameAC("TSBoss: ON - xong luot dau, quet lai 10 phut");
+            GameScr.gameAC("TSBoss: ON (" + priorityName() + ") - xong luot dau, quet lai 10 phut");
+        }
+    }
+
+    /** Chon loai nao thi bat luon, an lai loai dang bat thi tat. */
+    public static void togglePriority(int p) {
+        if (isEnabled && eventPriority == p) {
+            // Dang bat cung loai -> tat
+            isEnabled = false;
+            if (inEvent) finishEvent(true);
+            GameScr.gameAC("TSBoss: OFF");
+        } else {
+            // Bat voi loai moi (hoac bat lan dau)
+            eventPriority = p;
+            if (!isEnabled) {
+                isEnabled = true;
+                new Thread(new AutoBossEvent()).start();
+                lastWindowKey = -1;
+            }
+            GameScr.gameAC("TSBoss: ON (" + priorityName() + ")");
+        }
+    }
+
+    public static String priorityName() {
+        switch (eventPriority) {
+            case 1: return "VDMQ+L\u00e0ngC\u1ed5";
+            case 2: return "MapNgo\u00e0i";
+            default: return "M\u1eb7c \u0111\u1ecbnh";
         }
     }
 
@@ -208,8 +237,21 @@ public final class AutoBossEvent implements Runnable {
 
         boolean huntAll = forceAllNext;
         forceAllNext = false;
-        if (huntAll) AutoSanBoss.startEventHuntAll();
-        else AutoSanBoss.startEventHunt();
+        if (huntAll) {
+            AutoSanBoss.startEventHuntAll();
+        } else {
+            switch (eventPriority) {
+                case 1:
+                    AutoSanBoss.startEventHuntVdmqLc();
+                    break;
+                case 2:
+                    AutoSanBoss.startEventHuntMN();
+                    break;
+                default:
+                    AutoSanBoss.startEventHuntAll();
+                    break;
+            }
+        }
 
         // === Luot 1: Quet + goi ae fang boss ===
         while (isEnabled && inEvent) {
