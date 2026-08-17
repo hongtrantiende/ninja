@@ -1,31 +1,31 @@
 /**
- * AutoPickup v4 — Hut VP thong minh: loc ds nhat, check bag, delay chong spam.
+ * AutoPickup v5 — Hut VP mượt mà, KHÔNG gây giật.
  *
- * Cai tien tu v3.2:
- * - Loc item theo Code.gameAA(ItemTemplate) — cung ds nhat voi game goc
- * - Check hanh trang day (Char.gameBG() <= 2) — khong nhat khi day
- * - Delay 30ms/item trong thread nen — tranh flood server
- * - Tat gameAQ goc khi AutoPickup chay — tranh xung dot 2 he thong
- * - grabOnce (boss): van nhat tat ca VP (khong loc, uu tien nhanh)
+ * Fix từ v4.1:
+ * - THAY Char.gameAC(x,y) bằng Service.gameAB(x,y) — chỉ gửi 1 packet vị trí
+ *   thay vì pathfinding từng bước 50px (nguyên nhân giật)
+ * - KHÔNG update myChar.cx/cy khi ghost move — client giữ nguyên vị trí
+ * - Batch pickup: gom TẤT CẢ items → ghost + nhặt 1 lượt → restore 1 lần cuối
+ * - Delay 20ms/item trong thread nền
+ * - Tắt gameAQ gốc khi AutoPickup chạy — tránh xung đột
+ * - grabOnce (boss): nhặt tất cả VP nhanh (3ms/item)
  *
- * Lenh: "nhat" toggle on/off.
- * Nut menu "Nhat Xa" cung toggle AutoPickup.
- * Tu bat khi ts/tsn/ak active.
+ * Lệnh: "nhat" toggle on/off.
+ * Nút menu "Nhặt Xa" cũng toggle AutoPickup.
+ * Tự bật khi ts/tsn/ak active.
  */
 public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 150;    // 150ms giua moi vong quet — nhanh hon
-    private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
-    private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
-    private static final int THREAD_DELAY_MS = 20;      // 20ms/item — hut nhanh
+    private static final int SCAN_INTERVAL_MS = 200;    // 200ms giữa mỗi vòng quét
+    private static final int BURST_ROUNDS = 3;          // 3 vòng burst (grabOnce)
+    private static final int THREAD_DELAY_MS = 20;      // 20ms/item — hút nhanh
     private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
 
     /**
-     * Toggle hut VP on/off.
-     * Dong bo voi nut menu "Nhat Xa": tat gameAQ goc khi AutoPickup chay.
+     * Toggle hút VP on/off.
      */
     public static void toggle() {
         if (isRunning) {
@@ -40,7 +40,7 @@ public class AutoPickup implements Runnable {
     public static void start() {
         if (isRunning) return;
         isRunning = true;
-        // Tat nhat goc game de tranh xung dot 2 he thong nhat cung luc
+        // Tắt nhặt gốc game để tránh xung đột
         Code.gameAQ = false;
         thread = new Thread(new AutoPickup());
         thread.start();
@@ -65,19 +65,17 @@ public class AutoPickup implements Runnable {
     public static void stop() {
         isRunning = false;
         thread = null;
-        // Khoi phuc nhat goc game
+        // Khôi phục nhặt gốc game
         Code.gameAQ = true;
     }
 
     /**
-     * Kiem tra item co nen nhat khong — dung cung logic voi game goc.
-     * Gom: ds nhat (Code.nhat[]), NhatYen, NhatDa, NhatTrangBi, NhatAll...
+     * Kiểm tra item có nên nhặt không — dùng cùng logic với game gốc.
      */
     private static boolean shouldPickup(ItemMap item) {
         if (item == null || item.template == null) return false;
-        if (item.gameAK) return false; // Da nhat roi
+        if (item.gameAK) return false; // Đã nhặt rồi
 
-        // Dung ham loc goc cua game — cung ds nhat voi menu "Item Nhat"
         try {
             return Code.gameAA(item.template)
                 || Char.getMyChar().nClass.classId == 1 && item.template.id == 218;
@@ -87,8 +85,8 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Hut toan bo VP 1 lan (dung cho AutoSanBoss sau boss chet).
-     * Ghost move NHANH — pham vi toan map, nhat sach, KHONG LOC (uu tien nhanh).
+     * Hút toàn bộ VP 1 lần (dùng cho AutoSanBoss sau boss chết).
+     * KHÔNG LỌC — ưu tiên nhanh.
      */
     public static void grabOnce() {
         try {
@@ -111,12 +109,12 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Blast KHONG LOC — nhat tat ca, dung cho grabOnce (boss).
-     * Bo qua trang bi (item.template.gameAA()).
+     * Blast KHÔNG LỌC — nhặt tất cả, dùng cho grabOnce (boss).
+     * Ghost move = Service.gameAB(x,y) — 1 packet, KHÔNG pathfinding.
      */
     private static void blastPickupAll(int delayMs) {
         Char myChar = Char.getMyChar();
-        if (myChar == null) return;
+        if (myChar == null || Service.gI() == null) return;
         int origCx = myChar.cx;
         int origCy = myChar.cy;
 
@@ -124,17 +122,13 @@ public class AutoPickup implements Runnable {
         for (int i = 0; i < size; i++) {
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                if (item == null || item.template == null) continue;
 
-                // Bo qua trang bi (type 0-15)
-                if (item.template != null && item.template.gameAA()) continue;
+                // Bỏ qua trang bị
+                if (item.template.gameAA()) continue;
 
-                int dx = Math.abs(origCx - item.xEnd);
-                int dy = Math.abs(origCy - item.yEnd);
-
-                if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
-                    Char.gameAC(item.xEnd, item.yEnd);
-                }
-
+                // Ghost move: gửi 1 packet vị trí đến item (KHÔNG pathfinding, KHÔNG update cx/cy)
+                Service.gI().gameAB(item.xEnd, item.yEnd);
                 Service.gI().gameAQ(item.itemMapID);
 
                 if (delayMs > 0) {
@@ -143,27 +137,30 @@ public class AutoPickup implements Runnable {
             } catch (Exception e) {}
         }
 
-        Char.gameAC(origCx, origCy);
+        // Quay về vị trí gốc — 1 packet
+        Service.gI().gameAB(origCx, origCy);
+        // GIỮ NGUYÊN cx/cy client → nhân vật không giật
         myChar.cx = origCx;
         myChar.cy = origCy;
     }
 
     /**
-     * Hut VP thong minh — ghost move server-side, nhan vat KHONG nhay.
-     * Chi gui packet vi tri + pickup, nhan vat van dung yen danh quai.
-     * Loc theo ds nhat game goc.
-     * @param delayMs delay giua moi item (ms)
+     * Hút VP thông minh — ghost move server-side, nhân vật KHÔNG nhảy/giật.
+     *
+     * Khác v4: dùng Service.gameAB(x,y) thay Char.gameAC(x,y)
+     * - Service.gameAB = gửi 1 packet vị trí (instant)
+     * - Char.gameAC = pathfinding từng bước 50px + update cx/cy (gây giật)
      */
     private static void blastPickupFiltered(int delayMs) {
         Char myChar = Char.getMyChar();
         if (myChar == null || Service.gI() == null) return;
 
-        // Check hanh trang day — khong nhat khi con <= 2 o trong
+        // Check hành trang đầy
         try {
             if (Char.gameBG() <= 2) return;
         } catch (Exception e) {}
 
-        // Luu vi tri thuc cua nhan vat — se restore cuoi cung
+        // Lưu vị trí thực — sẽ restore cuối
         int realCx = myChar.cx;
         int realCy = myChar.cy;
         int picked = 0;
@@ -173,13 +170,12 @@ public class AutoPickup implements Runnable {
             try {
                 ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
 
-                // Loc theo ds nhat game goc
+                // Lọc theo ds nhặt game gốc
                 if (!shouldPickup(item)) continue;
 
-                // Ghost move server-side: gui packet vi tri den item
-                // Server tuong nhan vat o gan item -> cho phep nhat
-                // Nhan vat tren man hinh KHONG nhay — chi packet di
-                Char.gameAC(item.xEnd, item.yEnd);
+                // Ghost move: 1 packet vị trí → server tưởng ta ở gần item
+                // KHÔNG update cx/cy → nhân vật trên client đứng yên
+                Service.gI().gameAB(item.xEnd, item.yEnd);
                 Service.gI().gameAQ(item.itemMapID);
                 picked++;
 
@@ -189,22 +185,22 @@ public class AutoPickup implements Runnable {
             } catch (Exception e) {}
         }
 
-        // Khoi phuc vi tri thuc — server biet nhan vat dang o dau
+        // Quay về vị trí gốc — 1 packet duy nhất
         if (picked > 0) {
-            Char.gameAC(realCx, realCy);
+            Service.gI().gameAB(realCx, realCy);
         }
-        // Luon giu toa do client dung — nhan vat khong giat
+        // LUÔN giữ tọa độ client đúng — nhân vật không giật
         myChar.cx = realCx;
         myChar.cy = realCy;
     }
 
     /**
-     * Thread chinh — chay nen SONG SONG voi danh quai.
-     * Hut VP: ghost move server-side + loc ds nhat + delay 20ms/item.
-     * Nhan vat van dung yen danh quai, VP tu hut vao.
+     * Thread chính — chạy nền SONG SONG với đánh quái.
+     * Hút VP: ghost move server-side + lọc ds nhặt + delay 20ms/item.
+     * Nhân vật VẪN ĐỨNG YÊN đánh quái, VP tự hút vào.
      */
     public void run() {
-        try { Thread.sleep(300); } catch (Exception e) {}
+        try { Thread.sleep(500); } catch (Exception e) {}
 
         while (isRunning) {
             try {
@@ -218,4 +214,3 @@ public class AutoPickup implements Runnable {
         }
     }
 }
-
