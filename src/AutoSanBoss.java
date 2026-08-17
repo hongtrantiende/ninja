@@ -404,7 +404,7 @@ public class AutoSanBoss implements Runnable {
         eventHuntMode = true;
         eventRoundCompleted = false;
         // Override HUNT_PRIORITY TRUOC khi start thread (tranh race condition)
-        eventHuntTypes = new int[]{TYPE_VDMQ, TYPE_LANGCO};
+        eventHuntTypes = new int[]{TYPE_LANGCO, TYPE_VDMQ};
         toggleInternal(true, TYPE_ALL);
     }
 
@@ -1014,9 +1014,10 @@ public class AutoSanBoss implements Runnable {
 
     /**
      * Nhat nhanh tat ca item tren dat sau khi boss chet.
-     * Dung AutoPickup vacuum mode (blast + tele).
+     * Cho 1.5s de do roi het, roi blast pickup 1 lan.
      */
     private void grabAllItems() {
+        sleep(1500);
         AutoPickup.grabOnce();
     }
 
@@ -1406,6 +1407,7 @@ public class AutoSanBoss implements Runnable {
 
         long startTime = System.currentTimeMillis();
         boolean sentPartyCmd = false;
+        boolean bossKilled = false;
 
         while (checkStillRunning() && Code.gameAB instanceof PkBoss) {
             try {
@@ -1436,6 +1438,15 @@ public class AutoSanBoss implements Runnable {
                     lockBossFocus();
                 }
 
+                // Boss DA CHET: force stop PkBoss ngay, khong cho quet khu thua
+                if (sentPartyCmd && !hasBossOnCurrentMap()) {
+                    bossKilled = true;
+                    if (Code.gameAB instanceof PkBoss) {
+                        Code.gameAC();
+                    }
+                    break;
+                }
+
                 // Respawn nhanh neu chet
                 if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
                     respawnFast();
@@ -1463,14 +1474,13 @@ public class AutoSanBoss implements Runnable {
         // PkBoss xong, khoi phuc dummy
         restoreDummyAuto();
 
-        long elapsed = System.currentTimeMillis() - startTime;
-        boolean fought = sentPartyCmd && elapsed > 5000;
-        if (fought) {
+        if (bossKilled) {
+            long elapsed = System.currentTimeMillis() - startTime;
             GameScr.gameAC("TSB: Xong M" + mapID + " (" + (elapsed / 1000) + "s)");
-            // Boss da chet -> nhat nhanh do roi
             grabAllItems();
+            return true;
         }
-        return fought;
+        return false;
     }
 
     private void sleepSeconds(int seconds) {
@@ -1527,15 +1537,34 @@ public class AutoSanBoss implements Runnable {
                 if (forcedBossType == TYPE_ALL) {
                     // === CHE DO FORCE ALL: San theo danh sach uu tien ===
                     int[] types = (eventHuntTypes != null) ? eventHuntTypes : HUNT_PRIORITY;
-                    for (int i = 0; i < types.length && checkStillRunning(); i++) {
-                        huntBossType(types[i]);
+                    boolean huntedAnyAll = false;
+
+                    if (eventHuntTypes != null) {
+                        // Co danh sach uu tien cu the (VD: VDMQ+LangCo)
+                        // CHI quet loai boss nao DANG DEN GIO spawn
+                        for (int i = 0; i < types.length && checkStillRunning(); i++) {
+                            if (isBossActive(types[i])) {
+                                huntedAnyAll = true;
+                                huntBossType(types[i]);
+                            }
+                        }
+                    } else {
+                        // Khong co override -> quet tat ca nhu cu (khong check gio)
+                        for (int i = 0; i < types.length && checkStillRunning(); i++) {
+                            huntBossType(types[i]);
+                        }
+                        huntedAnyAll = true;
                     }
 
                     if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
 
-                    if (checkStillRunning()) {
-                        GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t ALL map, qu\u00e9t l\u1ea1i sau 10s...");
+                    if (huntedAnyAll && checkStillRunning()) {
+                        GameScr.gameAC("TSB: Xong 1 l\u01b0\u1ee3t, qu\u00e9t l\u1ea1i sau 10s...");
                         sleepSeconds(10);
+                    } else if (!huntedAnyAll && checkStillRunning()) {
+                        // Chua den gio boss nao trong danh sach uu tien -> doi 30s
+                        GameScr.gameAC("TSB: Ch\u01b0a \u0111\u1ebfn gi\u1edd boss, \u0111\u1ee3i 30s...");
+                        sleepSeconds(30);
                     }
                 } else if (forcedBossType >= 0) {
                     // === CHE DO FORCE 1 LOAI: San 1 loai boss cu the, khong check gio ===
