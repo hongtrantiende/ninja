@@ -739,3 +739,23 @@ Text vàng "HS lượng" và "Lọc Đồ" trong GameScr (code gốc obfuscated)
 ### Phân biệt ThongKe vs HS lượng/Lọc Đồ
 - **ThongKe.java** (mod): hiển thị thống kê yên/xu/exp khi treo, vị trí y=155, SỬA ĐƯỢC trong source
 - **HS lượng/Lọc Đồ** (game gốc GameScr.class): bytecode obfuscated, chỉ patch được bằng script
+
+## 2026-08-17: TS Boss Ưu Tiên Mặc Định — Quét Sai Loại Boss Không Đúng Giờ
+
+### Vấn đề
+Khi `eventPriority = 0` (Mặc định), đến giờ boss Map Ngoài thì hệ thống quét luôn cả Làng Cổ + VDMQ dù chưa tới giờ spawn của 2 loại đó.
+
+### Root cause
+Trong `AutoSanBoss.run()`, nhánh `forcedBossType == TYPE_ALL`:
+- Khi `eventHuntTypes != null` (VD: VDMQ+LangCo) → check `isBossActive()` trước khi quét ✅
+- Khi `eventHuntTypes == null` (Mặc định) → quét TẤT CẢ boss types KHÔNG check giờ ❌
+
+### Fix
+Đổi điều kiện từ `if (eventHuntTypes != null)` sang `if (eventHuntMode)`:
+- `eventHuntMode = true` (TS Boss Ưu Tiên) → luôn check `isBossActive()` cho TỪNG loại boss
+- `eventHuntMode = false` (lệnh `tspkball`) → quét tất cả không check giờ (giữ hành vi cũ)
+- Thứ tự ưu tiên khi trùng giờ: `HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_MAPNGOAI}`
+
+### Quy tắc
+- Logic check giờ spawn phải gắn với **chế độ hoạt động** (`eventHuntMode`) chứ không phải **có override hay không** (`eventHuntTypes != null`).
+

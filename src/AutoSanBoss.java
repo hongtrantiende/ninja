@@ -1539,9 +1539,9 @@ public class AutoSanBoss implements Runnable {
                     int[] types = (eventHuntTypes != null) ? eventHuntTypes : HUNT_PRIORITY;
                     boolean huntedAnyAll = false;
 
-                    if (eventHuntTypes != null) {
-                        // Co danh sach uu tien cu the (VD: VDMQ+LangCo)
-                        // CHI quet loai boss nao DANG DEN GIO spawn
+                    if (eventHuntMode) {
+                        // Event mode (TS Boss Uu Tien): CHI quet loai boss DANG DEN GIO spawn
+                        // Thu tu uu tien: Lang Co > VDMQ > MapNgoai (HUNT_PRIORITY)
                         for (int i = 0; i < types.length && checkStillRunning(); i++) {
                             if (isBossActive(types[i])) {
                                 huntedAnyAll = true;
@@ -1549,7 +1549,7 @@ public class AutoSanBoss implements Runnable {
                             }
                         }
                     } else {
-                        // Khong co override -> quet tat ca nhu cu (khong check gio)
+                        // Khong phai event mode (lenh tspkball) -> quet tat ca khong check gio
                         for (int i = 0; i < types.length && checkStillRunning(); i++) {
                             huntBossType(types[i]);
                         }
