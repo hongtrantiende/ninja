@@ -817,3 +817,57 @@ Trong `AutoSanBoss.run()`, nhánh `forcedBossType == TYPE_ALL`:
 - Trace flow TỪ ĐẦU ĐẾN CUỐI: Menu → handler → toggle → thread → run() → huntBossType()
 - Verify cả chiều BẬT lẫn TẮT
 - Check edge cases: disconnect, chết, Lang Cổ random map
+
+## 2026-08-17: Char.gameAC(x,y) vs Service.gameAB(x,y) — QUAN TRỌNG
+
+### Char.gameAC(int, int) — PATHFINDING (GÂY GIẬT!)
+- **Di chuyển từng bước 50px** dọc đường đến đích
+- Mỗi 50 bước gọi `Thread.sleep(200ms)` → chậm
+- Gọi `Service.gameAB(x,y)` cho MỖI bước
+- **SET `myChar.cx = x, myChar.cy = y`** ở cuối → nhân vật nhảy vị trí
+- **SET `cxSend, cySend`** → server biết vị trí mới
+- **KHÔNG BAO GIỜ dùng cho ghost move** — gây giật 100%
+
+### Service.gameAB(int, int) — 1 PACKET (MƯỢT!)
+- Gửi **1 packet vị trí** trực tiếp tới server
+- **KHÔNG update cx/cy** → nhân vật đứng yên trên client
+- **KHÔNG pathfinding** → tức thì, không delay
+- **Dùng cho ghost move**: gửi vị trí giả → server accept nhặt → restore vị trí
+
+### Quy tắc Ghost Move
+```java
+// ĐÚNG — 1 packet, không giật
+Service.gI().gameAB(item.xEnd, item.yEnd);
+Service.gI().gameAQ(item.itemMapID);
+myChar.cx = realCx;  // Giữ nguyên vị trí client
+myChar.cy = realCy;
+
+// SAI — pathfinding, giật nặng
+Char.gameAC(item.xEnd, item.yEnd);  // KHÔNG DÙNG!
+```
+
+## 2026-08-17: gameAQ=true vs false — Nguyên Nhân Nhảy VP
+
+### gameAQ = true (Mặc định)
+- Game gốc nhặt item **GẦN** (~50px) **KHÔNG di chuyển**
+- An toàn, không giật
+
+### gameAQ = false
+- Game engine **TỰ CHẠY** nhân vật tới VP để nhặt (nhặt xa gốc)
+- `Auto.gameAH/gameAC()` TELE đến item → nhặt → quay về
+- **GÂY GIẬT** — nhân vật nhảy qua VP rồi quay lại
+
+### Sai lầm v4: set gameAQ=false khi bật AutoPickup
+- Ý định: "tắt nhặt gốc để tránh xung đột"
+- Thực tế: **BẬT nhặt xa gốc** → game engine chạy nhân vật tới VP → GIẬT
+- Fix v6: **giữ gameAQ=true** → game gốc chỉ nhặt gần (không giật)
+  + mod ghost move nhặt xa bằng Service.gameAB (không nhìn thấy)
+
+### AutoPickup v6 — Config Tối Ưu
+| Thông số | Giá trị | Lý do |
+|----------|---------|-------|
+| SCAN_INTERVAL | 100ms | TS nhanh, chuyển khu <1s |
+| ITEM_DELAY | 15ms | Tránh flood server |
+| NEAR_RANGE | 40px | Game gốc nhặt gần, mod nhặt xa |
+| gameAQ | true | Nhặt gần không giật |
+| Ghost move | Service.gameAB | 1 packet, không pathfinding |
