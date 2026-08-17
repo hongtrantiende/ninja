@@ -14,8 +14,9 @@ public class AutoPickup implements Runnable {
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 50;     // 50ms — quet gan nhu moi frame
+    private static final int SCAN_INTERVAL_MS = 100;    // 100ms giua moi vong quet
     private static final int NEAR_RANGE = 40;           // Item <= 40px nhat truc tiep (khong can ghost)
+    private static final int ITEM_DELAY_MS = 15;        // 15ms/item — tranh flood server
     private static final int BURST_ROUNDS = 5;          // 5 vong burst (grabOnce)
 
     /**
@@ -121,6 +122,7 @@ public class AutoPickup implements Runnable {
                     ghosted = true;
                 }
                 Service.gI().gameAQ(item.itemMapID);
+                try { Thread.sleep(ITEM_DELAY_MS); } catch (Exception e2) {}
             } catch (Exception e) {}
         }
 
@@ -161,8 +163,8 @@ public class AutoPickup implements Runnable {
                     Service.gI().gameAB(item.xEnd, item.yEnd);
                     ghosted = true;
                 }
-                // Nhat ngay — 0ms delay
                 Service.gI().gameAQ(item.itemMapID);
+                try { Thread.sleep(ITEM_DELAY_MS); } catch (Exception e2) {}
             } catch (Exception e) {}
         }
 
