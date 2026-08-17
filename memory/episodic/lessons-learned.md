@@ -759,3 +759,61 @@ Trong `AutoSanBoss.run()`, nhánh `forcedBossType == TYPE_ALL`:
 ### Quy tắc
 - Logic check giờ spawn phải gắn với **chế độ hoạt động** (`eventHuntMode`) chứ không phải **có override hay không** (`eventHuntTypes != null`).
 
+## 2026-08-17: AutoPickup v4.1 — Hút VP Thông Minh + Sync gameAQ
+
+### 3 Cơ Chế Nhặt Chồng Nhau (Phát Hiện)
+| # | Cơ chế | Flag | Nhặt gần/xa | Ngừng đánh? |
+|---|--------|------|-------------|-------------|
+| 1 | Nhặt gốc game | `Code.gameAQ=true` | Gần (~50px) | Không |
+| 2 | Nhặt xa TS | `Code.gameAQ=false` | Xa (di chuyển) | **CÓ** |
+| 3 | AutoPickup mod | `AutoPickup.isRunning` | Toàn map (ghost) | Không |
+
+- Cơ chế 1 và 2 **loại trừ nhau** (toggle bởi `gameAQ`)
+- Cơ chế 3 chạy **song song** bất kể `gameAQ` → xung đột
+
+### Fix: Sync gameAQ với AutoPickup
+- `AutoPickup.start()` → `Code.gameAQ = false` (tắt nhặt gốc)
+- `AutoPickup.stop()` → `Code.gameAQ = true` (khôi phục nhặt gốc)
+- `Code.gameAF()` (tắt auto) → `AutoPickup.stop()` (tắt hút VP)
+- Lệnh `cnhat` → `AutoPickup.toggle()` (thay vì flip gameAQ trực tiếp)
+
+### Fix: Hook Nút Menu Gốc 1100080
+- Nút "Nhặt Xa" gốc (command 1100080) ở bytecode `GameScr.class` chỉ flip `Code.gameAQ`
+- **KHÔNG THỂ sửa bytecode** → hook qua `SplitPatcher.hookMenu()`:
+  - Detect `cmd.idAction == 1100080` → thay bằng Command mới gọi `AutoPickup.toggle()`
+  - Label: "Hút VP: ON" / "Hút VP: OFF" thay "Nhặt Xa"
+
+### AutoPickup v4.1 Cải Tiến
+| Thông số | v3.2 | v4.1 |
+|----------|------|------|
+| Delay/item | 50ms (thread), 0ms (scan) | **20ms** |
+| Scan interval | 200ms | **150ms** |
+| Lọc ds nhặt | ❌ Nhặt tất cả | ✅ `Code.gameAA(ItemTemplate)` |
+| Check bag đầy | ❌ | ✅ `Char.gameBG() <= 2` → skip |
+| Ghost move | Có check GHOST_RANGE | ✅ **Luôn ghost move** (server-side) |
+| Restore vị trí | Chỉ khi picked > 0 | ✅ **Luôn restore** `myChar.cx/cy` |
+
+### Hàm Lọc Item: `Code.gameAA(ItemTemplate)`
+- Lọc theo danh sách nhặt `Code.nhat[]`, `Char.NhatYen`, `Char.NhatDa`, `Char.NhatTrangBi`, `Char.NhatAll`
+- Lọc HP/MP theo `Char.NhatHpMp` + `Char.CapHpMp`
+- Check trang bị: `itemTemplate.gameAA()` = true nếu là equipment
+- Check NV: `itemTemplate.gameAB()` = true nếu là vật phẩm NV
+
+### Bài Học: Khi Có Nhiều Hệ Thống Cùng Chức Năng
+1. **Xác định TẤT CẢ các cơ chế** trước khi sửa — có thể có 3+ hệ thống cùng làm 1 việc
+2. **Sync state giữa các hệ thống** — tắt cái gốc khi bật mod, khôi phục khi tắt
+3. **Hook menu bytecode** qua SplitPatcher — thay Command object trong MyVector
+4. **KHÔNG BAO GIỜ** để 2 hệ thống nhặt chạy song song — gây flood server
+
+## 2026-08-17: Kiểm Tra Toàn Bộ Boss System — Kết Quả Audit
+
+### Tất Cả Modules Đã Verify ✅
+- **AutoSanBoss**: Toggle ON/OFF, force type (VDMQ/MN/LC/ALL), auto schedule, reconnect, Lang Cổ exit — logic đúng
+- **AutoBossEvent**: TS ưu tiên boss, 3 priority levels (Mặc định/VDMQ+LC/MN), save/restore state — đúng
+- **NamMod menu**: Sub-menus boss, labels, checkmarks, handlers — mapping đúng
+- **bossStatus()**: Hiện "ON"/"OFF"/"Auto" đúng theo `forcedBossType`
+
+### Quy Tắc Audit
+- Trace flow TỪ ĐẦU ĐẾN CUỐI: Menu → handler → toggle → thread → run() → huntBossType()
+- Verify cả chiều BẬT lẫn TẮT
+- Check edge cases: disconnect, chết, Lang Cổ random map

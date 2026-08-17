@@ -23,8 +23,19 @@ public class SplitPatcher {
             injectNamMod(var1);
             for (int i = 0; i < var1.size(); i++) {
                 Command cmd = (Command) var1.elementAt(i);
-                // Nút "Tách" gốc trong GameScr có idAction = 110244
-                if (cmd != null && cmd.idAction == 110244) {
+                if (cmd == null) continue;
+                // Hook nut "Nhat Xa / Hut VP" goc (1100080) -> AutoPickup.toggle()
+                if (cmd.idAction == 1100080) {
+                    String label = AutoPickup.isRunning ? "H\u00fat VP: ON" : "H\u00fat VP: OFF";
+                    Command hutVp = new Command(label, new IActionListener() {
+                        public void perform(int id, Object p) {
+                            AutoPickup.toggle();
+                        }
+                    }, 1100080, null);
+                    var1.setElementAt(hutVp, i);
+                }
+                // Nut "Tach" goc trong GameScr co idAction = 110244
+                if (cmd.idAction == 110244) {
                     Command tachLe = new Command("T\u00e1ch l\u1ebb", new IActionListener() {
                         public void perform(int id, Object p) {
                             GameCanvas.inputDlg.gameAA("Nh\u1eadp s\u1ed1 l\u01b0\u1ee3ng t\u00e1ch l\u1ebb", new Command("T\u00e1ch", new IActionListener() {
@@ -39,13 +50,12 @@ public class SplitPatcher {
                             GameCanvas.inputDlg.tfInput.gameAA("3");
                         }
                     }, 99999, null);
-                    // Chèn nút Tách lẻ ngay sau nút Tách gốc
+                    // Chen nut Tach le ngay sau nut Tach goc
                     var1.insertElementAt(tachLe, i + 1);
-                    break;
                 }
             }
         }
-        // Gọi lại phương thức gốc để hiển thị menu
+        // Goi lai phuong thuc goc de hien thi menu
         menu.gameAA(var1);
     }
 

@@ -400,6 +400,10 @@ implements Runnable {
         }
         gameAB = null;
         timBG = false; // Khoi phuc hieu ung skill khi tat auto
+        // Tat hut VP khi tat auto — dong bo trang thai
+        if (AutoPickup.isRunning) {
+            AutoPickup.stop();
+        }
     }
 
     private static void gameAT() {
@@ -1837,12 +1841,8 @@ implements Runnable {
                                 return true;
                             }
                             if (var31.equals("cnhat")) {
-                                if (gameAQ) {
-                                    GameScr.gameAC("B\u1eadt nh\u1eb7t xa");
-                                } else {
-                                    GameScr.gameAC("B\u1eadt h\u00fat VP");
-                                }
-                                gameAQ = !gameAQ;
+                                // Dong bo: toggle AutoPickup thay vi chi flip gameAQ
+                                AutoPickup.toggle();
                                 return true;
                             }
                             if (var31.equals("ruong")) {
