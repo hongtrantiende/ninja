@@ -226,13 +226,6 @@ public abstract class Auto {
             Service.gI().gameAK();
             TileMap.gameAF();
         }
-        // Fix: Doi server response cap nhat HP truoc khi tat lock
-        // Tranh race condition: LockGame.gameAA=false chay truoc khi HP phuc hoi
-        // → GameScr lai hien popup hoi sinh → ket UI vinh vien
-        long hsWait = System.currentTimeMillis();
-        while (Char.getMyChar().cHP <= 0 && System.currentTimeMillis() - hsWait < 3000L) {
-            try { Thread.sleep(100L); } catch (InterruptedException e) {}
-        }
         LockGame.gameAA = false;
         try {
             Thread.sleep(50L);
@@ -250,7 +243,7 @@ public abstract class Auto {
                 if (Math.abs(var1.cx - Char.getMyChar().cx) > 22 || Math.abs(var1.cy - Char.getMyChar().cy) > 22) {
                     Char.gameAC(var1.cx, var1.cy);
                     try {
-                        Thread.sleep(500L);
+                        Thread.sleep(0L);
                     }
                     catch (InterruptedException interruptedException) {}
                 }
@@ -288,7 +281,7 @@ public abstract class Auto {
                 if (Math.abs(var3.cx - Char.getMyChar().cx) > 22 || Math.abs(var3.cy - Char.getMyChar().cy) > 22) {
                     Char.gameAC(var3.cx, var3.cy);
                     try {
-                        Thread.sleep(500L);
+                        Thread.sleep(0L);
                     }
                     catch (InterruptedException interruptedException) {}
                 }
@@ -777,7 +770,6 @@ public abstract class Auto {
                 var21 = true;
                 var6 = null;
             }
-
             if (var6 == null || var6.hp <= 0 || var6.status == 0 || var6.status == 1 || !Auto.gameAA(var6, var1) || !Auto.gameAC(var6.levelBoss, var2) || System.currentTimeMillis() - this.gameAR > 1500L) {
                 var6 = this.gameAA(var3, var1, var2, var4, var5);
             }
@@ -871,8 +863,7 @@ public abstract class Auto {
                     }
                 } else if (!Code.gameBO || var7 == null || Auto.gameAB(var7) || !var8 && !Auto.gameAA(var3, var7)) {
                     int var23;
-                    if (var6 == null || var1 != -1 && var6.templateId != var1 || !Auto.gameAC(var6.levelBoss, var2)
-                        || var6.hp <= 0 || var6.status == 0 || var6.status == 1) {
+                    if (var6 == null || var1 != -1 && var6.templateId != var1 || !Auto.gameAC(var6.levelBoss, var2)) {
                         return;
                     }
                     if (!(var26.template.type != 1 && var26.template.type != 3 || Res.abs(var3.cx - var6.xFirst) <= var26.dx + 30 && Res.abs(var3.cy - var6.yFirst) <= var26.dy + 30)) {
