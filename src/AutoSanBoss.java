@@ -25,22 +25,24 @@ public class AutoSanBoss implements Runnable {
     /** Override thu tu uu tien boss cho TS event (null = dung HUNT_PRIORITY mac dinh) */
     static int[] eventHuntTypes;
 
-    // 3 loai boss (VDMQ, MapNgoai, LangCo)
+    // 4 loai boss (VDMQ, MapNgoai, LangCo, TheGioi)
     public static final int TYPE_VDMQ = 0;
     public static final int TYPE_MAPNGOAI = 1;
     public static final int TYPE_LANGCO = 2;
-    public static final int TYPE_ALL = 3;
+    public static final int TYPE_THEGIOI = 3;
+    public static final int TYPE_ALL = 4;
 
-    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "T\u1ea5t C\u1ea3"};
+    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "T\u1ea5t C\u1ea3"};
 
-    /** Thu tu uu tien quet boss: Lang Co > VDMQ > MapNgoai */
-    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_MAPNGOAI};
+    /** Thu tu uu tien quet boss: Lang Co > VDMQ > TheGioi > MapNgoai */
+    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
         {141, 142, 143},   // VDMQ
         {},                // MapNgoai
-        {135, 136}         // Làng Cổ
+        {135, 136},        // Làng Cổ
+        {20}               // Thế Giới
     };
 
     // Map IDs cua MapNgoai theo level (12 maps)
@@ -56,7 +58,8 @@ public class AutoSanBoss implements Runnable {
     private static final int[][] BOSS_HOURS = {
         {6, 13, 19, 23},                                       // VDMQ
         {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},            // MapNgoai (gio le)
-        {7, 10, 15, 23}                                        // Làng Cổ
+        {7, 10, 15, 23},                                       // Làng Cổ
+        {12, 21}                                                // Thế Giới
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -144,9 +147,15 @@ public class AutoSanBoss implements Runnable {
             if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
                 for (int retry = 0; retry < 10; retry++) {
                     GameCanvas.endDlg();
-                    GameScr.gameAB(5, 0, 0);
-                    Service.gI().gameAF();
-                    sleep(200L);
+                    Auto.gameAN.removeAllElements();
+                    Auto.gameAM = false;
+                    if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
+                        Service.gI().gameAL();
+                    } else {
+                        Service.gI().gameAK();
+                        TileMap.gameAF();
+                    }
+                    sleep(300L);
                     if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 }
             }
@@ -327,6 +336,13 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * tspkbtg - San boss TheGioi (M20) ngay lap tuc
+     */
+    public static void toggleTheGioi() {
+        toggleInternal(checkHasPartyOrFriends(), TYPE_THEGIOI);
+    }
+
+    /**
      * tspkball - San TAT CA boss 24/24 nguyen ngay
      */
     public static void toggleALL() {
@@ -353,6 +369,11 @@ public class AutoSanBoss implements Runnable {
     /** treolangco - Treo boss LangCo */
     public static void toggleTreoLangCo() {
         toggleTreoInternal(TYPE_LANGCO);
+    }
+
+    /** treotg - Treo boss TheGioi */
+    public static void toggleTreoTheGioi() {
+        toggleTreoInternal(TYPE_THEGIOI);
     }
 
     private static void toggleTreoInternal(int bossType) {
@@ -898,25 +919,35 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Hoi sinh nhanh: dong dialog, gui lenh hoi sinh, retry toi da 10 lan
+     * Hoi sinh nhanh: dong dialog, gui packet hoi sinh chuan game goc
+     * (copy logic tu Auto.gameAA(boolean) trong Auto.java)
+     * - gameAL() = hoi sinh luong (tai cho) — UU TIEN khi san boss
+     * - gameAK() = hoi sinh ve lang (fallback)
      */
     private void respawnFast() {
         for (int retry = 0; retry < 10 && isRunning; retry++) {
             if (isDisconnected()) return;
             try {
                 GameCanvas.endDlg();
-                sleep(10);
-                GameScr.gameAB(5, 0, 0);
-                sleep(10);
-                Service.gI().gameAF();
                 sleep(50);
+                // Clear state giong Auto.gameAA(boolean)
+                Auto.gameAN.removeAllElements();
+                Auto.gameAM = false;
+                // Gui packet hoi sinh chuan game goc
+                if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
+                    Service.gI().gameAL();  // Hoi sinh luong (tai cho)
+                } else {
+                    Service.gI().gameAK();  // Hoi sinh ve lang
+                    TileMap.gameAF();       // Refresh map
+                }
+                sleep(200);
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
                     return;
                 }
             } catch (Exception e) {
                 return;
             }
-            sleep(50);
+            sleep(200);
         }
     }
 
@@ -1449,13 +1480,23 @@ public class AutoSanBoss implements Runnable {
 
                 // Respawn nhanh neu chet
                 if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                    GameScr.gameAC("TSB: Chet! Hoi sinh...");
                     respawnFast();
                     if (isDisconnected()) {
                         if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
-                    // Restart PkBoss ngay de quay lai boss map
+                    // Cho nhan vat on dinh sau hoi sinh
+                    sleep(500);
+                    // Neu bi teleport ve nha (map khac boss map) -> can restart PkBoss
                     if (isRunning && !(Code.gameAB instanceof PkBoss)) {
+                        // Cho them thoi gian de nhan vat ve nha xong
+                        sleep(1000);
+                        GameScr.gameAC("TSB: Quay lai M" + mapID);
                         Code.gameAA(new PkBoss(mapID));
+                    }
+                    // Reset sentPartyCmd vi co the da o map khac
+                    if (TileMap.mapID != mapID) {
+                        sentPartyCmd = false;
                     }
                 }
             } catch (Exception e) {

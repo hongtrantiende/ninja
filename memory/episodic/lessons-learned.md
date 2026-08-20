@@ -871,3 +871,36 @@ Char.gameAC(item.xEnd, item.yEnd);  // KHÔNG DÙNG!
 | NEAR_RANGE | 40px | Game gốc nhặt gần, mod nhặt xa |
 | gameAQ | true | Nhặt gần không giật |
 | Ghost move | Service.gameAB | 1 packet, không pathfinding |
+
+## 2026-08-20: respawnFast() Dùng Sai Packet Hồi Sinh — Root Cause Lỗi Hồi Sinh Khi Săn Boss
+
+### Vấn đề
+Khi đánh boss PKB (`tspkb`), nhân vật chết → hồi sinh bị lỗi → ấn "Về nhà thay" → hiện "quét lại 1 lượt" thay vì quay lại đánh boss.
+
+### Nguyên nhân
+`respawnFast()` trong `AutoSanBoss.java` dùng SAI packet:
+- `GameScr.gameAB(5, 0, 0)` = **mở dialog UI hồi sinh** (nút Về Nhà / Hồi Sinh), KHÔNG gửi packet
+- `Service.gI().gameAF()` = **KHÔNG phải packet hồi sinh chuẩn**
+
+Game gốc (`Auto.gameAA(boolean)` dòng 195-236 trong `Auto.java`) dùng:
+- `Service.gI().gameAK()` = packet hồi sinh về làng (chuẩn)
+- `Service.gI().gameAL()` = packet hồi sinh lượng (tại chỗ)
+- `TileMap.gameAF()` = refresh map
+- `Auto.gameAN.removeAllElements()` + `Auto.gameAM = false` = clear state
+
+### Hậu quả
+1. Dialog hồi sinh hiện nhưng không tự gửi packet → user phải ấn thủ công "Về nhà"
+2. Khi ấn "Về nhà" → bị teleport về làng → PkBoss tự thoát (sai map) → while loop `instanceof PkBoss` thoát
+3. `pkBossOnMap()` return false → hiện "quét lại 1 lượt"
+
+### Fix
+- `respawnFast()` + `respawnIfDead()` đổi sang dùng `Service.gI().gameAK()` / `Service.gI().gameAL()` giống game gốc
+- Ưu tiên `gameAL()` (hồi sinh lượng tại chỗ) khi săn boss vì không cần navigate lại
+- Thêm delay 500ms sau hồi sinh để nhân vật ổn định
+- Reset `sentPartyCmd` khi bị teleport về map khác
+
+### Quy tắc
+- **KHÔNG DÙNG `GameScr.gameAB(5,0,0)` + `Service.gI().gameAF()` để hồi sinh** — đây chỉ mở dialog UI
+- **LUÔN dùng `Service.gI().gameAK()` hoặc `Service.gI().gameAL()`** — đây là packet hồi sinh chuẩn
+- Nhớ clear `Auto.gameAN` + `Auto.gameAM` trước khi hồi sinh (giống game gốc)
+

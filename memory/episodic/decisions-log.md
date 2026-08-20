@@ -323,3 +323,31 @@
 - **Quyết định:** Tạo `scripts/patch_hsluong_pos.py` patch bytecode GameScr.class đẩy text HUD xuống 30 pixel.
 - **Lý do:** Vị trí gốc quá cao che mất đồ vật/UI khác trên màn hình game.
 - **Files:** `scripts/patch_hsluong_pos.py`
+
+## 2026-08-20: Fix Lỗi Hồi Sinh Khi Săn Boss PKB (`tspkb`) — respawnFast() Sai Packet
+
+### Yêu cầu của user
+> "Khi vào chế độ săn boss pkb boss thì lúc bị boss đánh chết tôi thấy nó bị lỗi hồi sinh, tôi ấn về nhà thay thì nó bảo đánh boss xong quét lại 1 lượt. Xem chế hồi sinh của lệnh ak, lệnh đó khi chết hồi sinh rồi chạy lại vị trí cũ đánh rất tốt."
+
+### Phân tích
+- So sánh lệnh `ak` (game gốc, hồi sinh tốt) vs `tspkb` (mod, hồi sinh lỗi).
+- Lệnh `ak` dùng `Auto.gameAA(boolean)` trong `Auto.java` dòng 195-236: gọi `Service.gI().gameAK()` (hồi sinh về làng) hoặc `Service.gI().gameAL()` (hồi sinh lượng tại chỗ) — packet chuẩn game gốc.
+- Lệnh `tspkb` dùng `respawnFast()` trong `AutoSanBoss.java`: gọi `GameScr.gameAB(5,0,0)` (mở dialog UI) + `Service.gI().gameAF()` (sai packet) — KHÔNG PHẢI packet hồi sinh.
+
+### Root Cause
+1. `GameScr.gameAB(5,0,0)` chỉ MỞ DIALOG hồi sinh (nút Về Nhà / Hồi Sinh), KHÔNG gửi packet hồi sinh tự động.
+2. `Service.gI().gameAF()` KHÔNG phải packet hồi sinh chuẩn → hồi sinh không thành công.
+3. User phải ấn "Về nhà" thủ công → bị teleport về làng → PkBoss tự thoát (sai map) → while loop `instanceof PkBoss` thoát → hiện "quét lại 1 lượt".
+
+### Quyết định & Fix
+- Sửa `respawnFast()` và `respawnIfDead()` đổi sang dùng `Service.gI().gameAK()` / `Service.gI().gameAL()` (packet chuẩn game gốc).
+- Ưu tiên `gameAL()` (hồi sinh lượng tại chỗ) khi `Code.HoiSinhLuong && luong > 0` → không cần navigate lại.
+- Clear `Auto.gameAN` + `Auto.gameAM` trước hồi sinh (giống game gốc).
+- Thêm delay ổn định 500ms sau hồi sinh + 1000ms nếu bị teleport về nhà.
+- Reset `sentPartyCmd` khi bị teleport khác map → re-gửi party commands khi quay lại boss.
+- Thêm thông báo "TSB: Chet! Hoi sinh..." và "TSB: Quay lai M{mapID}" cho user biết trạng thái.
+
+### Trạng thái: ✅ Code sửa xong, compile PASS — CẦN TEST trên game
+- **Files:** `src/AutoSanBoss.java`
+- **Chưa build JAR** — cần chạy full build flow theo AGENTS.md trước khi test.
+
