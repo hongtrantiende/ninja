@@ -34,6 +34,82 @@ public class AutoSanBoss implements Runnable {
 
     private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "T\u1ea5t C\u1ea3"};
 
+    // === CAI DAT: per-map filtering ===
+    /** Danh sach map ID bi tat (khong san). Mac dinh rong = tat ca duoc san. */
+    public static java.util.Vector disabledMaps = new java.util.Vector();
+
+    /** Tat ca maps cho moi loai boss (dung cho menu) */
+    public static int[] getAllMapsForType(int bossType) {
+        if (bossType == TYPE_MAPNGOAI) {
+            return new int[]{14,15,16,44,67,70,24,41,45,18,36,54};
+        }
+        if (bossType == TYPE_VDMQ) return new int[]{141,142,143};
+        if (bossType == TYPE_LANGCO) return new int[]{135,136};
+        if (bossType == TYPE_THEGIOI) return new int[]{20};
+        return new int[0];
+    }
+
+    /** Kiem tra map co duoc phep san khong */
+    public static boolean isMapEnabled(int mapId) {
+        return !disabledMaps.contains(new Integer(mapId));
+    }
+
+    /** Bat/tat 1 map */
+    public static void toggleMap(int mapId) {
+        Integer key = new Integer(mapId);
+        if (disabledMaps.contains(key)) {
+            disabledMaps.removeElement(key);
+            GameScr.gameAC("Map " + mapId + ": B\u1eadt");
+        } else {
+            disabledMaps.addElement(key);
+            GameScr.gameAC("Map " + mapId + ": T\u1eaft");
+        }
+    }
+
+    /** Bat/tat tat ca maps cua 1 loai boss */
+    public static void toggleAllMapsOfType(int bossType) {
+        int[] maps = getAllMapsForType(bossType);
+        // Neu tat ca dang bat -> tat het; nguoc lai -> bat het
+        boolean allOn = true;
+        for (int i = 0; i < maps.length; i++) {
+            if (!isMapEnabled(maps[i])) { allOn = false; break; }
+        }
+        for (int i = 0; i < maps.length; i++) {
+            Integer key = new Integer(maps[i]);
+            if (allOn) {
+                if (!disabledMaps.contains(key)) disabledMaps.addElement(key);
+            } else {
+                disabledMaps.removeElement(key);
+            }
+        }
+        GameScr.gameAC(BOSS_NAMES[bossType] + ": " + (!allOn ? "B\u1eadt t\u1ea5t c\u1ea3" : "T\u1eaft t\u1ea5t c\u1ea3"));
+    }
+
+    /** Bat tat ca maps (xoa disabledMaps) */
+    public static void enableAllMaps() {
+        disabledMaps.removeAllElements();
+        GameScr.gameAC("S\u0103n Boss: B\u1eadt t\u1ea5t c\u1ea3 maps");
+    }
+
+    /** Kiem tra 1 loai boss co con map nao duoc bat khong */
+    public static boolean isBossTypeEnabled(int type) {
+        int[] maps = getAllMapsForType(type);
+        for (int i = 0; i < maps.length; i++) {
+            if (isMapEnabled(maps[i])) return true;
+        }
+        return false;
+    }
+
+    /** Dem so map dang bat cho 1 loai boss */
+    public static int countEnabledMaps(int bossType) {
+        int[] maps = getAllMapsForType(bossType);
+        int count = 0;
+        for (int i = 0; i < maps.length; i++) {
+            if (isMapEnabled(maps[i])) count++;
+        }
+        return count;
+    }
+
     /** Thu tu uu tien quet boss: Lang Co > VDMQ > TheGioi > MapNgoai */
     private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
 
@@ -1023,7 +1099,7 @@ public class AutoSanBoss implements Runnable {
      */
     private int findActiveBoss() {
         for (int i = 0; i < TYPE_ALL; i++) {
-            if (isBossActive(i)) {
+            if (isBossTypeEnabled(i) && isBossActive(i)) {
                 return i;
             }
         }
@@ -1746,6 +1822,8 @@ public class AutoSanBoss implements Runnable {
         GameScr.gameAC(prefix + ": San " + BOSS_NAMES[bossType] + " (" + maps.length + " maps)");
 
         for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
+            // Skip map bi tat trong cai dat
+            if (!isMapEnabled(maps[mi])) continue;
             // Neu mode tu dong (forcedBossType == -1), check gio
             if (!eventHuntMode && forcedBossType < 0 && !isBossActive(bossType)) break;
             if (treoMode) {
