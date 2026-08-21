@@ -4,7 +4,7 @@ import java.util.TimeZone;
 /** Uu tien boss khi dang TS; moi may tu luu va khoi phuc map/khu/auto cua minh. */
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
-    /** 0 = mac dinh (tat ca), 1 = chi VDMQ+LangCo, 2 = chi MapNgoai */
+    /** 0 = mac dinh (tat ca), 1 = chi VDMQ+LangCo, 2 = chi MapNgoai, 3 = chi TheGioi */
     public static int eventPriority;
     private static boolean inEvent;
     private static boolean membersSentBack;
@@ -55,6 +55,7 @@ public final class AutoBossEvent implements Runnable {
         switch (eventPriority) {
             case 1: return "VDMQ+L\u00e0ngC\u1ed5";
             case 2: return "MapNgo\u00e0i";
+            case 3: return "Th\u1ebf Gi\u1edbi";
             default: return "M\u1eb7c \u0111\u1ecbnh";
         }
     }
@@ -252,6 +253,9 @@ public final class AutoBossEvent implements Runnable {
                     break;
                 case 2:
                     AutoSanBoss.startEventHuntMN();
+                    break;
+                case 3:
+                    AutoSanBoss.startEventHuntTG();
                     break;
                 default:
                     AutoSanBoss.startEventHuntAll();

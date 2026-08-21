@@ -14,6 +14,7 @@ public final class NamMod implements IActionListener {
     private static final int TS_BOSS_DEFAULT = 120129;
     private static final int TS_BOSS_VDMQ_LC = 120130;
     private static final int TS_BOSS_MN = 120131;
+    private static final int TS_BOSS_TG = 120132;
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
@@ -97,6 +98,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("M\u1eb7c \u0111\u1ecbnh (t\u1ea5t c\u1ea3)" + (on && p == 0 ? " \u2714" : ""), TS_BOSS_DEFAULT));
         items.addElement(command("Ch\u1ec9 VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
+        items.addElement(command("Ch\u1ec9 Th\u1ebf Gi\u1edbi" + (on && p == 3 ? " \u2714" : ""), TS_BOSS_TG));
         GameCanvas.menu.gameAA(items);
     }
 
@@ -119,6 +121,9 @@ public final class NamMod implements IActionListener {
                 return;
             case TS_BOSS_MN:
                 AutoBossEvent.togglePriority(2);
+                return;
+            case TS_BOSS_TG:
+                AutoBossEvent.togglePriority(3);
                 return;
 
             case LICH_BOSS:

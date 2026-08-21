@@ -183,6 +183,10 @@ public class ChatRouter {
             AutoBossEvent.toggle();
             return true;
         }
+        if (text.equals("tsbosstg")) {
+            AutoBossEvent.togglePriority(3);
+            return true;
+        }
 
         // === FORCE BOSS COMMANDS ===
         if (text.equals("tspkball") || text.equals("all")) {

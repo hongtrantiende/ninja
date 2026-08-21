@@ -457,6 +457,18 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(true, TYPE_MAPNGOAI);
     }
 
+    /** TS Boss chi san TheGioi */
+    public static void startEventHuntTG() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = new int[]{TYPE_THEGIOI};
+        toggleInternal(true, TYPE_ALL);
+    }
+
     public static boolean consumeEventRoundCompleted() {
         if (!eventRoundCompleted) return false;
         eventRoundCompleted = false;
