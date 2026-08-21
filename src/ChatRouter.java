@@ -50,8 +50,14 @@ public class ChatRouter {
             Char.DungCoLenh = false;
             if (TileMap.isLangCo(TileMap.mapID)) {
                 AutoSanBoss.cleanKhaoDiLenh();
+                try { Thread.sleep(300L); } catch (InterruptedException e) {}
                 try { Code.gameAN(); } catch (Exception e) {}
-                // Hoi sinh sau tu sat de PkBoss co the di chuyen
+                try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                // Fallback: neu gameAN khong tu sat (item chua xoa kip) -> gui truc tiep
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                    try { Service.gI().gameAE(); } catch (Exception e) {}
+                    try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                }
                 respawnQuick();
             }
         }
@@ -79,8 +85,14 @@ public class ChatRouter {
                 Char.MuaCoLenh = false;
                 Char.DungCoLenh = false;
                 AutoSanBoss.cleanKhaoDiLenh();
+                try { Thread.sleep(300L); } catch (InterruptedException e) {}
                 try { Code.gameAN(); } catch (Exception e) {}
-                // Hoi sinh sau tu sat de co the ve map cu
+                try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                // Fallback: neu gameAN khong tu sat (item chua xoa kip) -> gui truc tiep
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                    try { Service.gI().gameAE(); } catch (Exception e) {}
+                    try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                }
                 respawnQuick();
             }
             return;
@@ -92,15 +104,23 @@ public class ChatRouter {
         }
     }
 
-    /** Hoi sinh nhanh trong ChatRouter (chat thread). */
+    /** Hoi sinh nhanh trong ChatRouter (chat thread).
+     *  Fix desync: GameScr.gameAB(5,0,0) truoc respawn packet de client dong bo. */
     private static void respawnQuick() {
         try {
             for (int i = 0; i < 15; i++) {
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 GameCanvas.endDlg();
+                Thread.sleep(10L);
                 GameScr.gameAB(5, 0, 0);
-                Service.gI().gameAF();
-                Thread.sleep(200L);
+                Thread.sleep(10L);
+                if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
+                    Service.gI().gameAL();
+                } else {
+                    Service.gI().gameAK();
+                    TileMap.gameAF();
+                }
+                Thread.sleep(300L);
             }
         } catch (Exception e) {}
     }

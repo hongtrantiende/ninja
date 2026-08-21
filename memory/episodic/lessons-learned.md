@@ -904,3 +904,65 @@ Game gốc (`Auto.gameAA(boolean)` dòng 195-236 trong `Auto.java`) dùng:
 - **LUÔN dùng `Service.gI().gameAK()` hoặc `Service.gI().gameAL()`** — đây là packet hồi sinh chuẩn
 - Nhớ clear `Auto.gameAN` + `Auto.gameAM` trước khi hồi sinh (giống game gốc)
 
+## 2026-08-21: Làng Cổ Tự Sát Desync — HP Còn Nhưng Hiện "Kiệt Sức"
+
+### Vấn đề
+Khi tsboss ưu tiên săn boss Làng Cổ xong, gọi `finishLangCoAndExit()` tự sát về làng, lâu lâu bị desync:
+- HP còn đầy nhưng vẫn hiện nút "Kiệt sức"
+- Hoặc HP = 0 nhưng hiện "Kiệt sức" mà không tự hồi sinh
+- Phải tự sát lần nữa thủ công mới hết lỗi
+
+### Root Cause 1: `Code.gameAN()` KHÔNG gửi packet tự sát khi có item 35/37
+```java
+// Code.gameAN():
+if (!Char.gameAJ(37) && !Char.gameAJ(35)) {
+    Service.gI().gameAE(); // CHI gui packet tu sat KHI KHONG co item 35/37
+} else {
+    Char.gameAC(var0.cx, TileMap.pxh); // CHI DI CHUYEN, KHONG TU SAT!
+}
+```
+`finishLangCoAndExit()` gọi `Code.gameAN()` mà **CHƯA gọi `cleanKhaoDiLenh()`** trước.
+Nếu item 35/37 vẫn còn trong bag → `Char.gameAJ(35)` trả `true` → packet tự sát KHÔNG được gửi.
+
+### Root Cause 2: `respawnIfDead()` thiếu `GameScr.gameAB(5,0,0)`
+Khi tự sát thành công, `respawnIfDead()` gọi `Service.gI().gameAK()` KHÔNG có
+`GameScr.gameAB(5,0,0)` trước → client chưa mở dialog hồi sinh → server có thể
+reject packet → desync trạng thái chết/sống.
+
+### Fix (3 files)
+1. **`AutoSanBoss.finishLangCoAndExit()`**: Gọi `cleanKhaoDiLenh()` + `sleep(300)` TRƯỚC `Code.gameAN()`
+2. **`AutoSanBoss.suicideAndEnsureAlive()`** (method mới): Gọi `gameAN()`, nếu vẫn sống → gửi trực tiếp `Service.gI().gameAE()` (fallback)
+3. **`AutoSanBoss.respawnIfDead()`**: Thêm `GameScr.gameAB(5,0,0)` trước respawn packet
+4. **`ChatRouter.respawnQuick()`**: Cùng fix — thêm `GameScr.gameAB(5,0,0)` + dùng `gameAK()/gameAL()` thay `gameAF()`
+5. **`ChatRouter.startPartyBoss()`**: Thêm sleep + fallback `gameAE()` cho member exit Làng Cổ
+6. **`AutoBossEvent.returnMemberState()`**: Thêm sleep + fallback `gameAE()` cho member return
+
+### Quy tắc VÀNG bổ sung
+- **LUÔN gọi `cleanKhaoDiLenh()` + `sleep(300)` TRƯỚC `Code.gameAN()`** khi ở Làng Cổ
+- **LUÔN có fallback `Service.gI().gameAE()`** sau `Code.gameAN()` nếu statusMe != 14
+- **LUÔN gọi `GameScr.gameAB(5,0,0)` TRƯỚC packet hồi sinh** (`gameAK()/gameAL()`) để sync client
+
+## 2026-08-21: Boss Chúa M20 — Chết Rồi Bỏ Boss Đi Săn Boss Khác
+
+### Vấn đề
+Boss Chúa M20 mạnh, nhân vật chết giữa trận → hồi sinh về nhà → bot bỏ qua boss đó đi săn boss khác.
+Dù user thủ công về nhà để bot chạy lại M20, bot vẫn chuyển sang boss type khác. Rất ức chế vì boss chưa chết.
+
+### Root Cause
+`pkBossOnMap()` dùng `while (Code.gameAB instanceof PkBoss)` làm điều kiện loop.
+Khi chết → PkBoss bị pop (`Code.gameAC()` tự động) → `Code.gameAB` không còn là PkBoss → while loop THOÁT.
+Dù dòng 1507 restart PkBoss, nếu hồi sinh về nhà thì PkBoss mới chưa kịp load map → loop thoát ngay → `return false` → `huntBossType` chuyển map tiếp.
+
+### Fix
+- Thay `while (Code.gameAB instanceof PkBoss)` → `while (keepFighting)` + `deathCount`
+- Khi PkBoss bị pop mà boss đã được tìm thấy (`sentPartyCmd == true`):
+  → Hồi sinh → Restart PkBoss → Quay lại map boss → Tiếp tục đánh
+- Giới hạn: `MAX_DEATH_RETRIES = 10`, `MAX_FIGHT_TIME_MS = 10 phút`
+- Nếu quá 10 lần chết hoặc 10 phút → bỏ qua map, hiện thông báo
+- Thêm `deathCount` hiển thị: "TSB: Chet lan X! Hoi sinh..."
+
+### Quy tắc
+- **KHÔNG dùng `Code.gameAB instanceof PkBoss` làm điều kiện duy nhất** cho while loop chiến đấu boss
+- **Boss chưa chết thì PHẢI retry** — dùng flag + death counter
+- **Timeout 10 phút/map** tránh loop vô hạn
+

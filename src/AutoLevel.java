@@ -255,9 +255,26 @@ public class AutoLevel implements Runnable {
             // Kiem tra chet (statusMe == 14)
             if (myChar.statusMe == 14) {
                 GameScr.gameAC("ALv: Ch\u1ebft, ch\u1edd h\u1ed3i sinh...");
-                // Gui lenh hoi sinh
-                try { Service.gI().gameAF(); } catch (Exception e) {}
-                sleep(5000);
+                // Hoi sinh chuan: endDlg + gameAB(5,0,0) + gameAK/gameAL
+                for (int r = 0; r < 10 && isRunning; r++) {
+                    try {
+                        GameCanvas.endDlg();
+                        sleep(10);
+                        Auto.gameAN.removeAllElements();
+                        Auto.gameAM = false;
+                        GameScr.gameAB(5, 0, 0);
+                        sleep(10);
+                        if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
+                            Service.gI().gameAL();
+                        } else {
+                            Service.gI().gameAK();
+                            TileMap.gameAF();
+                        }
+                    } catch (Exception e) {}
+                    sleep(300);
+                    if (myChar.statusMe != 14 && myChar.cHP > 0) break;
+                }
+                sleep(2000);
                 // Restart ts sau khi hoi sinh
                 if (isRunning && myChar.statusMe != 14) {
                     startTsOnMap(currentTargetMap);

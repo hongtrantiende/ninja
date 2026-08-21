@@ -28,69 +28,80 @@ Bạn là **Senior Reverse Engineer & Java ME Game Modder** của dự án này 
 
 ---
 
-## ⚡ Quy Trình Build JAR Chuẩn (Linux — KHÔNG LỖI)
+## ⚡ Quy Trình Build JAR Chuẩn (Windows PowerShell)
 
 > ⚠️ **QUAN TRỌNG:** PHẢI tuân thủ đúng thứ tự bên dưới. Vi phạm = ClassNotFoundException!
 
 ### Bước 1: Khôi phục JAR gốc từ git
-```bash
-cd /root/ninja
+```powershell
+cd "C:\Users\Admin\Documents\1 Ninja"
 git checkout Aeharuna.jar    # LUÔN LUÔN làm bước này trước!
 ```
-> **TẠI SAO?** `Aeharuna.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
+> **TẠI SAO?** `Aeharuna.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat/shortcut). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
 
 ### Bước 2: Xoá sạch + Unpack
-```bash
-rm -rf build/unpacked build/stubs_compiled
-mkdir -p build/unpacked build/stubs_compiled
-cd build/unpacked && jar xf ../../Aeharuna.jar && cd ../..
+```powershell
+Remove-Item -Recurse -Force build/unpacked -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force build/unpacked | Out-Null
+Push-Location build/unpacked; jar xf ../../Aeharuna.jar; Pop-Location
 ```
 
-### Bước 3: Compile stubs + mod sources
-```bash
-find stubs -name "*.java" | xargs javac --release 8 -encoding UTF-8 -d build/stubs_compiled
-javac --release 8 -encoding UTF-8 -cp "build/unpacked:build/stubs_compiled" -d build/unpacked src/*.java
+### Bước 3: Compile mod sources
+```powershell
+javac --release 8 -encoding UTF-8 -cp "build/unpacked;stubs" -d build/unpacked src/*.java
 ```
 
 ### Bước 4: Chạy patches (ĐÚNG THỨ TỰ!)
-```bash
+```powershell
 # 4a. J2ME compat — NGAY SAU compile (downgrade 52.0→45.3, strip StackMapTable)
-python3 scripts/patch_class_j2me.py build/unpacked/
+python scripts/patch_class_j2me.py build/unpacked/
 
 # 4b. Inject ThongKe vào GameScr (hiện yên/xu/lượng khi treo)
-python3 scripts/patch_gamescr_hienexp.py build/unpacked/GameScr.class
+$env:PYTHONIOENCODING="utf-8"; python scripts/patch_gamescr_hienexp.py build/unpacked/GameScr.class
 
-# 4c. Rename paint→draaw (tránh conflict Canvas.paint)  
-python3 scripts/fix_gamescr_thongke.py build/unpacked/GameScr.class
+# 4c. Rename paint→draaw (tránh conflict Canvas.paint)
+$env:PYTHONIOENCODING="utf-8"; python scripts/fix_gamescr_thongke.py build/unpacked/GameScr.class
 
 # 4d. Fix EffectAuto crash (mảng 20→100)
-python3 scripts/patch_effectauto.py build/unpacked/EffectAuto.class
+python scripts/patch_effectauto.py build/unpacked/EffectAuto.class
+
+# 4e. Đẩy vị trí HS lượng/Lọc Đồ xuống thấp hơn
+python scripts/patch_hsluong_pos.py build/unpacked/GameScr.class
 ```
 
 ### Bước 5: Đóng gói bằng lệnh `jar` (KHÔNG dùng Python zipfile!)
-```bash
-cd build/unpacked
-rm -f Char.class.bak_effects    # Xoá backup nếu có
-jar cfm /storage/emulated/0/Download/Aeharuna.jar META-INF/MANIFEST.MF .
+```powershell
+Push-Location build/unpacked
+Remove-Item -Force Char.class.bak_effects -ErrorAction SilentlyContinue
+jar cfm ../../Aeharuna.jar META-INF/MANIFEST.MF .
+Pop-Location
 ```
 
-### Bước 6: Verify
-```bash
-ls -lh /storage/emulated/0/Download/Aeharuna.jar   # Phải ~1.27 MB (1.21 MiB)
+### Bước 6: Copy ra thiết bị (nếu cần)
+```powershell
+# Copy ra thư mục Download (nếu dùng emulator/USB)
+Copy-Item Aeharuna.jar -Destination "$env:USERPROFILE\Downloads\Aeharuna.jar" -Force
 ```
 
 ---
 
-## 🚫 Patches ĐÃ XOÁ — KHÔNG BAO GIỜ CHẠY LẠI!
+## 🚫 Patches ĐÃ BAKE SẴN — KHÔNG BAO GIỜ CHẠY LẠI!
 
 Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gốc trên git. Chạy lại sẽ corrupt class files:
 
-| Script (đã xoá) | Lý do xoá |
+| Script (đã bake) | Lý do không chạy lại |
 |---|---|
 | `patch_service.py` | Thêm 6 CP entries MỖI LẦN chạy → corrupt tích lũy |
 | `patch_code_stop.py` | Replace methodref trên class đã replace → corrupt |
 | `patch_inputdlg.py` | Patch lại class đã patched → corrupt |
 | `patch_char_skip_effects.py` | Insert 7 bytes MỖI LẦN → code_length tăng vô hạn |
+| `patch_gamescr_menu.py` | Hook Menu.gameAA → SplitPatcher (đã có trong JAR) |
+| `patch_gamescr_chat.py` | Hook Code.gameAF → ChatRouter (đã có trong JAR) |
+| `patch_mothercanvas_shortcut.py` | Hook phím R shortcut (đã có trong JAR) |
+| `patch_mothercanvas_key.py` | Hook keyPressed vào ShortcutHandler (đã có trong JAR) |
+| `patch_gamescr_hsloc.py` | Patch vị trí HS/Lọc (đã có trong JAR) |
+| `patch_black_bg.py` | Xóa nền trời (đã có trong JAR) |
+| `patch_colenh_slot.py` | Fix slot Cổ Lệnh 28→29 (đã có trong JAR) |
 
 ## ✅ Patches CẦN CHẠY mỗi lần build
 
@@ -100,6 +111,7 @@ Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gố
 | `patch_gamescr_hienexp.py` | Inject gọi ThongKe.draaw() vào GameScr | ❌ Chạy 1 lần trên JAR gốc |
 | `fix_gamescr_thongke.py` | Rename "paint"→"draaw" tránh conflict | ❌ Chạy 1 lần trên JAR gốc |
 | `patch_effectauto.py` | Fix EffectAuto array size 20→100 | ✅ Có |
+| `patch_hsluong_pos.py` | Đẩy HS lượng/Lọc Đồ xuống 30px | ❌ Chạy 1 lần trên JAR gốc |
 
 ---
 

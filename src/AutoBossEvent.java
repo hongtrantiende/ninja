@@ -117,8 +117,14 @@ public final class AutoBossEvent implements Runnable {
         Char.DungCoLenh = false;
         if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
             AutoSanBoss.cleanKhaoDiLenh();
+            sleep(300L);
             try { Code.gameAN(); } catch (Exception e) {}
-            sleep(1000L);
+            sleep(800L);
+            // Fallback: neu gameAN khong tu sat (item 35/37 chua xoa kip) -> gui truc tiep
+            if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                try { Service.gI().gameAE(); } catch (Exception e) {}
+                sleep(800L);
+            }
             // Hoi sinh sau tu sat de tranh member bi ket trang thai chet
             ensureAlive();
         }
@@ -388,10 +394,17 @@ public final class AutoBossEvent implements Runnable {
                 for (int retry = 0; retry < 10; retry++) {
                     GameCanvas.endDlg();
                     sleep(10L);
+                    Auto.gameAN.removeAllElements();
+                    Auto.gameAM = false;
                     GameScr.gameAB(5, 0, 0);
                     sleep(10L);
-                    Service.gI().gameAF();
-                    sleep(200L);
+                    if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
+                        Service.gI().gameAL();
+                    } else {
+                        Service.gI().gameAK();
+                        TileMap.gameAF();
+                    }
+                    sleep(300L);
                     if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 }
             }

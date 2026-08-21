@@ -109,46 +109,62 @@ public class AutoSanBoss implements Runnable {
             }
         } catch (Exception e) {}
 
-        Char.MuaCoLenh = false;
-        Char.DungCoLenh = false;
+        // Xoa sach item 35/37/490 TRUOC khi tu sat — Code.gameAN() se KHONG gui
+        // packet tu sat neu Char.gameAJ(35/37) tra true (con item trong bag)
+        cleanKhaoDiLenh();
+        sleep(300L);
 
-        // 1. Uu tien su dụng Khả Dị Lệnh / Cổ Lệnh (ID 35, 37, 490) de dich chuyen khoi Lang Co ngay lap tuc
-        try {
-            Item item = getCoLenhInBag();
-            if (item != null) {
-                Service.gI().useItem(item.indexUI);
-                TileMap.gameAF();
-                sleep(1000L);
-            }
-        } catch (Exception e) {}
-
-        // 2. Neu van con o Lang Co -> Tu sat de ve tone/lang ngoai
+        // 1. Neu van con o Lang Co -> Tu sat de ve tone/lang ngoai
         if (TileMap.isLangCo(TileMap.mapID)) {
-            try { Code.gameAN(); } catch (Exception e) {}
-            sleep(1000L);
-            // Hoi sinh sau tu sat
-            respawnIfDead();
-            sleep(500L);
+            suicideAndEnsureAlive();
         }
 
         // Double check: neu van con o Lang Co -> tu sat lan 2
         if (TileMap.isLangCo(TileMap.mapID)) {
-            try { Code.gameAN(); } catch (Exception e) {}
-            sleep(1000L);
-            // Hoi sinh sau tu sat
-            respawnIfDead();
-            sleep(500L);
+            // Clean lai lan nua phong truong hop server tra item ve
+            cleanKhaoDiLenh();
+            sleep(200L);
+            suicideAndEnsureAlive();
         }
     }
 
-    /** Hoi sinh nhanh neu dang chet - dung cho finishLangCoAndExit */
+    /**
+     * Tu sat CHAC CHAN (khong bi skip boi item 35/37) roi hoi sinh.
+     * 1. Thu Code.gameAN() truoc (chuan game)
+     * 2. Neu van chua chet (gameAN bi skip) -> gui truc tiep Service.gI().gameAE()
+     * 3. Hoi sinh bang GameScr.gameAB(5,0,0) + respawn packet
+     */
+    private static void suicideAndEnsureAlive() {
+        try {
+            // Thu tu sat bang lenh game chuan
+            try { Code.gameAN(); } catch (Exception e) {}
+            sleep(800L);
+
+            // Neu gameAN() khong gui packet tu sat (vi item 35/37 chua xoa kip)
+            // -> gui truc tiep packet tu sat Service.gI().gameAE()
+            if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                try { Service.gI().gameAE(); } catch (Exception e) {}
+                sleep(800L);
+            }
+
+            // Hoi sinh
+            respawnIfDead();
+        } catch (Exception e) {}
+    }
+
+    /** Hoi sinh nhanh neu dang chet - dung cho finishLangCoAndExit va suicideAndEnsureAlive.
+     *  Dung GameScr.gameAB(5,0,0) truoc respawn packet de client dong bo trang thai chet dung. */
     private static void respawnIfDead() {
         try {
             if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
                 for (int retry = 0; retry < 10; retry++) {
                     GameCanvas.endDlg();
+                    sleep(10L);
                     Auto.gameAN.removeAllElements();
                     Auto.gameAM = false;
+                    // Mo dialog hoi sinh truoc (dong bo client state)
+                    GameScr.gameAB(5, 0, 0);
+                    sleep(10L);
                     if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                         Service.gI().gameAL();
                     } else {
@@ -929,10 +945,13 @@ public class AutoSanBoss implements Runnable {
             if (isDisconnected()) return;
             try {
                 GameCanvas.endDlg();
-                sleep(50);
+                sleep(10);
                 // Clear state giong Auto.gameAA(boolean)
                 Auto.gameAN.removeAllElements();
                 Auto.gameAM = false;
+                // Mo dialog hoi sinh truoc (dong bo client state — fix desync Kiet Suc)
+                GameScr.gameAB(5, 0, 0);
+                sleep(10);
                 // Gui packet hoi sinh chuan game goc
                 if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                     Service.gI().gameAL();  // Hoi sinh luong (tai cho)
@@ -940,7 +959,7 @@ public class AutoSanBoss implements Runnable {
                     Service.gI().gameAK();  // Hoi sinh ve lang
                     TileMap.gameAF();       // Refresh map
                 }
-                sleep(200);
+                sleep(300);
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
                     return;
                 }
@@ -1439,15 +1458,57 @@ public class AutoSanBoss implements Runnable {
         long startTime = System.currentTimeMillis();
         boolean sentPartyCmd = false;
         boolean bossKilled = false;
+        boolean keepFighting = true;
+        int deathCount = 0;
+        final int MAX_DEATH_RETRIES = 10;
+        final long MAX_FIGHT_TIME_MS = 10 * 60 * 1000; // 10 phut toi da cho 1 map
 
-        while (checkStillRunning() && Code.gameAB instanceof PkBoss) {
+        while (checkStillRunning() && keepFighting) {
+            // Timeout: qua 10 phut cho 1 map -> bo qua
+            if (System.currentTimeMillis() - startTime > MAX_FIGHT_TIME_MS) {
+                GameScr.gameAC("TSB: Timeout M" + mapID + " (10 phut)");
+                break;
+            }
+
+            // Neu PkBoss bi pop (chet/hoi sinh/loi) ma boss chua chet -> restart
+            if (!(Code.gameAB instanceof PkBoss)) {
+                // Boss da tim thay nhung chua chet -> can quay lai
+                if (sentPartyCmd && deathCount < MAX_DEATH_RETRIES && checkStillRunning()) {
+                    // Cho nhan vat on dinh
+                    sleep(500);
+                    // Hoi sinh neu dang chet
+                    if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                        GameScr.gameAC("TSB: Chet lan " + deathCount + "! Hoi sinh...");
+                        respawnFast();
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        sleep(1000);
+                    }
+                    // Restart PkBoss de quay lai map boss
+                    if (checkStillRunning() && Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                        GameScr.gameAC("TSB: Quay lai M" + mapID + " (lan " + (deathCount + 1) + ")");
+                        Code.gameAA(new PkBoss(mapID));
+                        // Reset sentPartyCmd neu o map khac de gui lai lenh nhom khi den noi
+                        if (TileMap.mapID != mapID) {
+                            sentPartyCmd = false;
+                        }
+                        sleep(500);
+                        continue;
+                    } else {
+                        break; // Khong hoi sinh duoc -> thoat
+                    }
+                } else {
+                    break; // Boss chua tim thay hoac qua so lan retry
+                }
+            }
+
             try {
                 // Detect disconnect trong khi PkBoss dang chay
                 if (isDisconnected()) {
                     GameScr.gameAC("TSB: M\u1ea5t k\u1ebft n\u1ed1i khi PK M" + mapID + "!");
                     if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     sentPartyCmd = false;
-                    startTime = System.currentTimeMillis();
                     Code.gameAA(new PkBoss(mapID));
                     continue;
                 }
@@ -1480,31 +1541,22 @@ public class AutoSanBoss implements Runnable {
 
                 // Respawn nhanh neu chet
                 if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
-                    GameScr.gameAC("TSB: Chet! Hoi sinh...");
+                    deathCount++;
+                    GameScr.gameAC("TSB: Chet lan " + deathCount + "! Hoi sinh...");
                     respawnFast();
                     if (isDisconnected()) {
                         if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
                     // Cho nhan vat on dinh sau hoi sinh
                     sleep(500);
-                    // Neu bi teleport ve nha (map khac boss map) -> can restart PkBoss
-                    if (isRunning && !(Code.gameAB instanceof PkBoss)) {
-                        // Cho them thoi gian de nhan vat ve nha xong
-                        sleep(1000);
-                        GameScr.gameAC("TSB: Quay lai M" + mapID);
-                        Code.gameAA(new PkBoss(mapID));
-                    }
-                    // Reset sentPartyCmd vi co the da o map khac
-                    if (TileMap.mapID != mapID) {
-                        sentPartyCmd = false;
-                    }
+                    // PkBoss bi pop khi chet -> vong lap se restart o tren
+                    continue;
                 }
             } catch (Exception e) {
                 // Exception co the do disconnect
                 if (isDisconnected()) {
                     if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     sentPartyCmd = false;
-                    startTime = System.currentTimeMillis();
                     Code.gameAA(new PkBoss(mapID));
                     continue;
                 }
@@ -1520,6 +1572,9 @@ public class AutoSanBoss implements Runnable {
             GameScr.gameAC("TSB: Xong M" + mapID + " (" + (elapsed / 1000) + "s)");
             grabAllItems();
             return true;
+        }
+        if (deathCount >= MAX_DEATH_RETRIES) {
+            GameScr.gameAC("TSB: M" + mapID + " chet " + deathCount + " lan, bo qua");
         }
         return false;
     }
