@@ -351,12 +351,14 @@
 - **Files:** `src/AutoSanBoss.java`
 - **Chưa build JAR** — cần chạy full build flow theo AGENTS.md trước khi test.
 
-## 2026-08-22: Giao Diện Cài Đặt Săn Boss (BossConfig) Dạng Form Checkbox & Tự Sát Về Làng
+## 2026-08-22: Giao Diện Cài Đặt Săn Boss (BossConfig) Dạng Form Checkbox, Lưu RMS & Tự Sát Về Làng
 - **Quyết định:**
   1. **Tạo Form `BossConfig`**: Cho phép người dùng bật/tắt từng map ID cụ thể cho 4 loại boss (VDMQ, Map Ngoài, Làng Cổ, Thế Giới) dạng checkbox trực quan giống menu `SetAuto` gốc.
-  2. **Tích hợp UI**: Mở qua mục "Cài đặt Săn Boss" trong menu NamMod, dùng `MotherCanvas.gI()` để chuyển đổi màn hình Displayable chuẩn Java ME.
+  2. **Lưu Vĩnh Viễn Vào RMS (`dis_boss_maps`)**: Danh sách các map bị tắt được lưu vào bộ nhớ máy (RMS) bằng `RMS.gameAA` và đọc tự động bằng `RMS.gameAC` khi khởi động/mở menu, đảm bảo thoát game vào lại vẫn giữ nguyên cài đặt.
   3. **Lọc Map trong AutoSanBoss**: Thêm `isMapEnabled(mapId)` và `isBossTypeEnabled(type)` để bỏ qua các map/loại boss đã bị tắt trong cài đặt.
-  4. **Tự sát về làng khi TS Map VIP / Tu Luyện**: Khi bật TS Map VIP hoặc Tu Luyện, sau khi săn boss xong, hệ thống tự sát và gọi `Service.gI().gameAK()` hồi sinh về làng (thay vì hồi sinh lượng tại chỗ) để kích hoạt cơ chế tương tác NPC vào lại map farm.
-- **Files:** `src/BossConfig.java`, `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `scripts/patch_class_j2me.py`, `.agents/AGENTS.md`
+  4. **Thoát map phòng kín khi bắt đầu săn boss (`exitGatedMapIfNeeded`)**: Khi nhân vật đang đứng trong **Map Up Lượng (M196)**, **Map Tu Luyện (M192)** hoặc **Làng Cổ (M135/M136)**: Trước khi `PkBoss` chạy, hệ thống tự động lưu vị trí → tự sát → bấm Về làng (`gameAK`) để xuất hiện ở làng/trường, từ đó `PkBoss` mới có thể đi sang map boss.
+  5. **Tính năng Test TS Boss (1 Map)**: Thêm nút menu `Test TS Boss (1 Map)` và lệnh chat `tsbosstest`: Quét nhanh đúng 1 map test rồi tự động kết thúc và đưa nhân vật về lại đúng map cũ.
+- **Files:** `src/BossConfig.java`, `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`, `.agents/AGENTS.md`
+
 
 
