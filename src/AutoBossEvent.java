@@ -342,8 +342,22 @@ public final class AutoBossEvent implements Runnable {
                         // Tu sat
                         try { Code.gameAN(); } catch (Exception e) {}
                         sleep(1000L);
-                        // Hoi sinh ve thon (mien phi)
-                        ensureAlive();
+                        // An "Ve lang" (gameAK) - KHONG dung HSL vi can ve thon co NPC
+                        for (int r = 0; r < 10; r++) {
+                            try {
+                                Char me = Char.getMyChar();
+                                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                                GameCanvas.endDlg();
+                                sleep(10L);
+                                Auto.gameAN.removeAllElements();
+                                Auto.gameAM = false;
+                                GameScr.gameAB(5, 0, 0);
+                                sleep(10L);
+                                Service.gI().gameAK(); // Ve lang (LUON LUON)
+                                TileMap.gameAF();
+                                sleep(300L);
+                            } catch (Exception ex) {}
+                        }
                         sleep(2000L);
                         // Khoi phuc auto de VipMap/TuLuyen.checkAndReturn() co the detect
                         if (oldAuto != null) {
