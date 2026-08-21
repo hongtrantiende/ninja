@@ -1727,7 +1727,7 @@ public class AutoSanBoss implements Runnable {
                         // Event mode (TS Boss Uu Tien): CHI quet loai boss DANG DEN GIO spawn
                         // Thu tu uu tien: Lang Co > VDMQ > MapNgoai (HUNT_PRIORITY)
                         for (int i = 0; i < types.length && checkStillRunning(); i++) {
-                            if (isBossActive(types[i])) {
+                            if (isBossTypeEnabled(types[i]) && isBossActive(types[i])) {
                                 huntedAnyAll = true;
                                 huntBossType(types[i]);
                             }
@@ -1735,7 +1735,9 @@ public class AutoSanBoss implements Runnable {
                     } else {
                         // Khong phai event mode (lenh tspkball) -> quet tat ca khong check gio
                         for (int i = 0; i < types.length && checkStillRunning(); i++) {
-                            huntBossType(types[i]);
+                            if (isBossTypeEnabled(types[i])) {
+                                huntBossType(types[i]);
+                            }
                         }
                         huntedAnyAll = true;
                     }
@@ -1766,7 +1768,7 @@ public class AutoSanBoss implements Runnable {
 
                     for (int i = 0; i < HUNT_PRIORITY.length && checkStillRunning(); i++) {
                         int bossType = HUNT_PRIORITY[i];
-                        if (!isBossActive(bossType)) continue;
+                        if (!isBossTypeEnabled(bossType) || !isBossActive(bossType)) continue;
 
                         huntedAny = true;
                         huntBossType(bossType);
@@ -1818,8 +1820,9 @@ public class AutoSanBoss implements Runnable {
             }
         }
         int[] maps = getMapsForBoss(bossType);
+        int enabledCount = countEnabledMaps(bossType);
         String prefix = treoMode ? "TREO" : "TSB";
-        GameScr.gameAC(prefix + ": San " + BOSS_NAMES[bossType] + " (" + maps.length + " maps)");
+        GameScr.gameAC(prefix + ": San " + BOSS_NAMES[bossType] + " (" + enabledCount + "/" + maps.length + " maps)");
 
         for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
             // Skip map bi tat trong cai dat
