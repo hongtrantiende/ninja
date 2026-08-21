@@ -321,11 +321,48 @@ public final class AutoBossEvent implements Runnable {
         savedZone = -1;
         savedAuto = null;
         if (map < 0) return;
+
+        // === CHECK: Neu VipMap hoac TuLuyen dang bat, tu sat ve thon de auto re-enter ===
+        final boolean useNpcReturn = AutoVipMap.isEnabled || AutoTuLuyen.isEnabled;
+
         new Thread(new Runnable() {
             public void run() {
                 try {
                     // Dong dialog/NPC neu dang mo (tranh chan travel)
                     try { GameCanvas.endDlg(); } catch (Exception e) {}
+
+                    if (useNpcReturn) {
+                        // === CHE DO VIP/TU LUYEN: Tu sat -> hoi sinh ve thon -> auto checkAndReturn ===
+                        GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o l\u1ea1i map farm...");
+                        // Xoa auto hien tai
+                        LockGame.gameBK();
+                        if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                            Code.gameAB = null;
+                        }
+                        // Tu sat
+                        try { Code.gameAN(); } catch (Exception e) {}
+                        sleep(1000L);
+                        // Hoi sinh ve thon (mien phi)
+                        ensureAlive();
+                        sleep(2000L);
+                        // Khoi phuc auto de VipMap/TuLuyen.checkAndReturn() co the detect
+                        if (oldAuto != null) {
+                            Code.gameAW = savedZoneIndex;
+                            Code.gameAB = oldAuto;
+                            AutoPickup.start();
+                        } else {
+                            try {
+                                Code.gameAW = savedZoneIndex;
+                                Code.gameAA(-1, (int)TileMap.mapID);
+                                AutoPickup.start();
+                            } catch (Exception e) {}
+                        }
+                        GameScr.gameAC("TSBoss: \u0110\u00e3 h\u1ed3i sinh, ch\u1edd auto v\u00e0o map...");
+                        // checkAndReturn se tu dong chay trong game loop
+                        return;
+                    }
+
+                    // === CHE DO BINH THUONG: Travel ve map cu ===
                     // Hoi sinh neu dang chet truoc khi travel
                     ensureAlive();
                     // Xoa lock va auto hien tai de tranh xung dot
