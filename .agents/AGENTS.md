@@ -48,7 +48,7 @@ Push-Location build/unpacked; jar xf ../../Aeharuna.jar; Pop-Location
 
 ### Bước 3: Compile mod sources
 ```powershell
-javac --release 8 -encoding UTF-8 -cp "build/unpacked;stubs" -d build/unpacked src/*.java
+javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/*.java
 ```
 
 ### Bước 4: Chạy patches (ĐÚNG THỨ TỰ!)
