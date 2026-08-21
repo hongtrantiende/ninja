@@ -187,7 +187,7 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static boolean isSpawnHour(int h) {
-        int[] hours = {1,3,5,6,7,9,10,11,13,15,17,19,21,23};
+        int[] hours = {1,3,5,6,7,9,10,11,12,13,15,17,19,21,23};
         for (int i = 0; i < hours.length; i++) if (hours[i] == h) return true;
         return false;
     }

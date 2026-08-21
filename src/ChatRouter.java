@@ -181,6 +181,10 @@ public class ChatRouter {
             AutoSanBoss.toggleLangCo();
             return true;
         }
+        if (text.equals("tspkbtg")) {
+            AutoSanBoss.toggleTheGioi();
+            return true;
+        }
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
             return true;
@@ -195,6 +199,10 @@ public class ChatRouter {
         }
         if (text.equals("treolangco")) {
             AutoSanBoss.toggleTreoLangCo();
+            return true;
+        }
+        if (text.equals("treotg")) {
+            AutoSanBoss.toggleTreoTheGioi();
             return true;
         }
         

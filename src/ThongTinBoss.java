@@ -51,7 +51,8 @@ public class ThongTinBoss {
     private static BossData[] bosses = new BossData[] {
         new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}),
         new BossData("MapNgoai", "Lv45: 14,15,16 | Lv55: 44,67,70 | Lv65: 24,41,45 | Lv75: 18,36,54", new int[] {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}),
-        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {7, 10, 15, 23})
+        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {7, 10, 15, 23}),
+        new BossData("Th\u1ebf Gi\u1edbi", "M20", new int[] {12, 21})
     };
 
     public static void toggle() {

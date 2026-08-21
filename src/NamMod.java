@@ -6,6 +6,7 @@ public final class NamMod implements IActionListener {
     private static final int BOSS_VDMQ = 120105;
     private static final int BOSS_MAP_NGOAI = 120106;
     private static final int BOSS_ALL = 120107;
+    private static final int BOSS_THEGIOI = 120110;
     private static final int HUT_VP = 120108;
     private static final int MOI_NHOM = 120109;
     private static final int AUTO_LEVEL = 120113;
@@ -16,6 +17,7 @@ public final class NamMod implements IActionListener {
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
+    private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
 
 
@@ -31,7 +33,7 @@ public final class NamMod implements IActionListener {
         String bossLabel = "S\u0103n Boss";
         if (AutoSanBoss.isRunning) {
             int f = AutoSanBoss.forcedBossType;
-            bossLabel += ": ON (" + (f == -1 ? "Auto" : f == 3 ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : "LC") + ")";
+            bossLabel += ": ON (" + (f == -1 ? "Auto" : f == 4 ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : f == 2 ? "LC" : "TG") + ")";
         } else {
             bossLabel += ": OFF";
         }
@@ -55,6 +57,7 @@ public final class NamMod implements IActionListener {
 
         // === Tiện ích Khác ===
         items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled), TS_VIP_MAP));
+        items.addElement(command("TS Tu Luy\u1ec7n: " + onOff(AutoTuLuyen.isEnabled), TS_TU_LUYEN));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
         GameCanvas.menu.gameAA(items);
     }
@@ -70,7 +73,7 @@ public final class NamMod implements IActionListener {
     private static String bossStatus(int type) {
         if (!AutoSanBoss.isRunning) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
-        if (type == 3) return (forced == 3) ? "ON" : "OFF";
+        if (type == 4) return (forced == 4) ? "ON" : "OFF";
         if (forced == -1) return "Auto";
         return (forced == type) ? "ON" : "OFF";
     }
@@ -82,7 +85,8 @@ public final class NamMod implements IActionListener {
         items.addElement(command("S\u0103n VDMQ: " + bossStatus(0), BOSS_VDMQ));
         items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(1), BOSS_MAP_NGOAI));
         items.addElement(command("S\u0103n L\u00e0ng C\u1ed5: " + bossStatus(2), BOSS_LANG_CO));
-        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(3), BOSS_ALL));
+        items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(3), BOSS_THEGIOI));
+        items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(4), BOSS_ALL));
         GameCanvas.menu.gameAA(items);
     }
 
@@ -129,6 +133,9 @@ public final class NamMod implements IActionListener {
             case BOSS_LANG_CO:
                 AutoSanBoss.toggleLangCo();
                 return;
+            case BOSS_THEGIOI:
+                AutoSanBoss.toggleTheGioi();
+                return;
             case BOSS_ALL:
                 AutoSanBoss.toggleALL();
                 return;
@@ -149,6 +156,9 @@ public final class NamMod implements IActionListener {
                 return;
             case TS_VIP_MAP:
                 AutoVipMap.toggle();
+                return;
+            case TS_TU_LUYEN:
+                AutoTuLuyen.toggle();
                 return;
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();

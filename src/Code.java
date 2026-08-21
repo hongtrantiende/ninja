@@ -526,6 +526,8 @@ implements Runnable {
                     if (gameAB != null) {
                         // Auto quay lai map VIP khi chet/disconnect
                         AutoVipMap.checkAndReturn();
+                        // Auto quay lai map Tu Luyen khi chet/disconnect
+                        AutoTuLuyen.checkAndReturn();
                         Item var18;
                         int var19;
                         if (!(gameAB instanceof AutoNhan) && !(gameAB instanceof AutoGuiDo) && AutoNhan.gameAE() && AutoNhan.nguoinhan != null && SetAuto.gomdo) {
@@ -1409,6 +1411,10 @@ implements Runnable {
         }
         if (var31.equals("tsvip")) {
             AutoVipMap.toggle();
+            return true;
+        }
+        if (var31.equals("tstl")) {
+            AutoTuLuyen.toggle();
             return true;
         }
         if (var31.equals("uppk")) {
