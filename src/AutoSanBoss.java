@@ -40,6 +40,45 @@ public class AutoSanBoss implements Runnable {
     /** Danh sach map ID bi tat (khong san). Mac dinh rong = tat ca duoc san. */
     public static java.util.Vector disabledMaps = new java.util.Vector();
 
+    static {
+        loadFromRMS();
+    }
+
+    public static void loadFromRMS() {
+        try {
+            String data = RMS.gameAC("dis_boss_maps");
+            if (data != null && data.length() > 0) {
+                disabledMaps.removeAllElements();
+                int start = 0;
+                int comma;
+                while ((comma = data.indexOf(',', start)) != -1) {
+                    String token = data.substring(start, comma).trim();
+                    if (token.length() > 0) {
+                        disabledMaps.addElement(new Integer(Integer.parseInt(token)));
+                    }
+                    start = comma + 1;
+                }
+                if (start < data.length()) {
+                    String token = data.substring(start).trim();
+                    if (token.length() > 0) {
+                        disabledMaps.addElement(new Integer(Integer.parseInt(token)));
+                    }
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    public static void saveToRMS() {
+        try {
+            StringBuffer sb = new StringBuffer();
+            for (int i = 0; i < disabledMaps.size(); i++) {
+                if (i > 0) sb.append(',');
+                sb.append(disabledMaps.elementAt(i).toString());
+            }
+            RMS.gameAA("dis_boss_maps", sb.toString());
+        } catch (Exception e) {}
+    }
+
     /** Tat ca maps cho moi loai boss (dung cho menu) */
     public static int[] getAllMapsForType(int bossType) {
         if (bossType == TYPE_MAPNGOAI) {

@@ -93,6 +93,7 @@ public final class BossConfig implements CommandListener {
 
     /** Mo form cai dat — goi tu NamMod menu */
     public static void select() {
+        AutoSanBoss.loadFromRMS();
         if (instance == null) {
             instance = new BossConfig();
         }
@@ -110,6 +111,9 @@ public final class BossConfig implements CommandListener {
             saveGroup(cgMapNgoai, mapsMN);
             saveGroup(cgLangCo, mapsLC);
             saveGroup(cgTheGioi, mapsTG);
+
+            // Luu vao bo nho may (RMS) de thoat game vao lai van con
+            AutoSanBoss.saveToRMS();
 
             int disabled = AutoSanBoss.disabledMaps.size();
             if (disabled == 0) {
