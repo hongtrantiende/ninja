@@ -230,7 +230,10 @@ def main():
         'ThongKe', 'TsBoost', 'Auto', 'AutoSanBoss', 'ChatRouter', 'Code',
         'AutoPickup', 'AutoBossEvent', 'BossRadar', 'GhostBoss',
         'ThongTinBoss', 'NamMod', 'MapScanner', 'AutoLevel', 'SplitPatcher',
-        'ShortcutHandler', 'SanBossHolder', 'MultiSkillAttack', 'AutoGaoDa'
+        'ShortcutHandler', 'SanBossHolder', 'MultiSkillAttack', 'AutoGaoDa',
+        'AutoDoiDiem', 'AutoFilter', 'AutoNhanDa', 'AutoTsXa',
+        'AutoTuLuyen', 'AutoVipMap', 'AutoVT55', 'InfoMe', 'mResources',
+        'Skill', 'AutoFakePkb'
     }
     
     patched = 0
