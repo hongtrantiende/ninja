@@ -39,17 +39,25 @@ git checkout Aeharuna.jar    # LUÔN LUÔN làm bước này trước!
 ```
 > **TẠI SAO?** `Aeharuna.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat/shortcut). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
 
-### Bước 2: Xoá sạch + Unpack
+### Bước 2: Xoá sạch + Unpack + Dọn class cũ
 ```powershell
 Remove-Item -Recurse -Force build/unpacked -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force build/unpacked | Out-Null
 Push-Location build/unpacked; jar xf ../../Aeharuna.jar; Pop-Location
+
+# Dọn sạch class cũ của các file mod để tránh sót inner class cũ (như NamMod$2)
+Get-ChildItem src/*.java | ForEach-Object {
+    $base = $_.BaseName
+    Remove-Item -Force "build/unpacked/$base.class" -ErrorAction SilentlyContinue
+    Remove-Item -Force "build/unpacked/$base`$*.class" -ErrorAction SilentlyContinue
+}
 ```
 
 ### Bước 3: Compile mod sources
 ```powershell
 javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/*.java
 ```
+> ⚠️ **LƯU Ý KHI THÊM FILE JAVA MỚI:** Phải thêm tên class vào danh sách `mod_classes` trong `scripts/patch_class_j2me.py` để file mới được hạ version 45.3 và gỡ StackMapTable!
 
 ### Bước 4: Chạy patches (ĐÚNG THỨ TỰ!)
 ```powershell
@@ -69,9 +77,11 @@ python scripts/patch_effectauto.py build/unpacked/EffectAuto.class
 python scripts/patch_hsluong_pos.py build/unpacked/GameScr.class
 ```
 
-### Bước 5: Đóng gói bằng lệnh `jar` (KHÔNG dùng Python zipfile!)
+### Bước 5: Xóa folder javax stubs & Đóng gói JAR
 ```powershell
 Push-Location build/unpacked
+# BẮT BUỘC: Xóa javax/ stubs do javac tạo ra (nếu để lại J2ME Loader sẽ báo lỗi cài đặt Security / Package Override sau 2s)
+Remove-Item -Recurse -Force javax -ErrorAction SilentlyContinue
 Remove-Item -Force Char.class.bak_effects -ErrorAction SilentlyContinue
 jar cfm ../../Aeharuna.jar META-INF/MANIFEST.MF .
 Pop-Location

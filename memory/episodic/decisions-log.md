@@ -351,3 +351,12 @@
 - **Files:** `src/AutoSanBoss.java`
 - **Chưa build JAR** — cần chạy full build flow theo AGENTS.md trước khi test.
 
+## 2026-08-22: Giao Diện Cài Đặt Săn Boss (BossConfig) Dạng Form Checkbox & Tự Sát Về Làng
+- **Quyết định:**
+  1. **Tạo Form `BossConfig`**: Cho phép người dùng bật/tắt từng map ID cụ thể cho 4 loại boss (VDMQ, Map Ngoài, Làng Cổ, Thế Giới) dạng checkbox trực quan giống menu `SetAuto` gốc.
+  2. **Tích hợp UI**: Mở qua mục "Cài đặt Săn Boss" trong menu NamMod, dùng `MotherCanvas.gI()` để chuyển đổi màn hình Displayable chuẩn Java ME.
+  3. **Lọc Map trong AutoSanBoss**: Thêm `isMapEnabled(mapId)` và `isBossTypeEnabled(type)` để bỏ qua các map/loại boss đã bị tắt trong cài đặt.
+  4. **Tự sát về làng khi TS Map VIP / Tu Luyện**: Khi bật TS Map VIP hoặc Tu Luyện, sau khi săn boss xong, hệ thống tự sát và gọi `Service.gI().gameAK()` hồi sinh về làng (thay vì hồi sinh lượng tại chỗ) để kích hoạt cơ chế tương tác NPC vào lại map farm.
+- **Files:** `src/BossConfig.java`, `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `scripts/patch_class_j2me.py`, `.agents/AGENTS.md`
+
+

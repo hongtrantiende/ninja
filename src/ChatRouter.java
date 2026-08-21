@@ -97,6 +97,18 @@ public class ChatRouter {
             }
             return;
         }
+        if (auto != null && auto.mapID > 0) {
+            int curMap = TileMap.mapID;
+            if (curMap == 192 || curMap == 196 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+                try { Code.gameAN(); } catch (Exception e) {}
+                try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                    try { Service.gI().gameAE(); } catch (Exception e) {}
+                    try { Thread.sleep(800L); } catch (InterruptedException e) {}
+                }
+                respawnQuick();
+            }
+        }
         AutoSanBoss.startPartyMember();
         if (auto != null) {
             LockGame.gameBK();

@@ -80,17 +80,16 @@ public final class AutoBossEvent implements Runnable {
 
     public static void testNow() {
         if (inEvent) {
-            GameScr.gameAC("TSBossTest: Huy phien cu, khoi dong lai...");
+            GameScr.gameAC("TSBossTest: H\u1ee7y phi\u00ean c\u0169, kh\u1edfi \u0111\u1ed9ng l\u1ea1i...");
             AutoSanBoss.stopEventHunt();
             inEvent = false;
             sleep(700L);
         }
         if (!isLeader()) {
-            GameScr.gameAC("TSBossTest: Chi truong nhom duoc dung!");
+            GameScr.gameAC("TSBossTest: Ch\u1ec9 tr\u01b0\u1edfng nh\u00f3m \u0111\u01b0\u1ee3c d\u00f9ng!");
             return;
         }
         inEvent = true;
-        forceAllNext = true;
         disableAfterTest = !isEnabled;
         if (!isEnabled) {
             isEnabled = true;
@@ -98,10 +97,67 @@ public final class AutoBossEvent implements Runnable {
         }
         new Thread(new Runnable() {
             public void run() {
-                GameScr.gameAC("TSBossTest: Quet ALL, khong cat ngang luot");
-                beginLeaderEvent();
+                GameScr.gameAC("TSBoss Test: L\u01b0u v\u1ecb tr\u00ed & qu\u00e9t 1 map test...");
+                saveLocalState();
+                pauseLeaderAndWaitStable();
+                inEvent = true;
+                membersSentBack = false;
+                AutoSanBoss.autoInviteFriends();
+                sleep(1000L);
+                sendParty("pkm -4");
+                exitGatedMapIfNeeded();
+
+                // Chon 1 map test: map 141 (VDMQ) hoac map 14 (Map ngoai)
+                int sampleMap = 141;
+                if (!AutoSanBoss.isMapEnabled(sampleMap)) {
+                    sampleMap = 14;
+                }
+                AutoSanBoss.startEventHuntTest1Map(sampleMap);
+
+                // Cho quet xong 1 map test
+                while (isEnabled && inEvent) {
+                    if (AutoSanBoss.consumeEventRoundCompleted()) break;
+                    sleep(500L);
+                }
+
+                GameScr.gameAC("TSBoss Test: Xong map M" + sampleMap + ", quay l\u1ea1i TS!");
+                finishEvent(false);
             }
         }).start();
+    }
+
+    public static void exitGatedMapIfNeeded() {
+        int curMap = TileMap.mapID;
+        boolean isGated = curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
+                || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
+        if (!isGated) return;
+
+        if (curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)) {
+            AutoSanBoss.cleanKhaoDiLenh();
+        }
+        GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 ra s\u0103n boss...");
+        LockGame.gameBK();
+        if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+            Code.gameAB = null;
+        }
+        try { Code.gameAN(); } catch (Exception e) {}
+        sleep(1000L);
+        for (int r = 0; r < 10; r++) {
+            try {
+                Char me = Char.getMyChar();
+                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                GameCanvas.endDlg();
+                sleep(10L);
+                Auto.gameAN.removeAllElements();
+                Auto.gameAM = false;
+                GameScr.gameAB(5, 0, 0);
+                sleep(10L);
+                Service.gI().gameAK();
+                TileMap.gameAF();
+                sleep(300L);
+            } catch (Exception ex) {}
+        }
+        sleep(1000L);
     }
 
     public static void saveMemberState() {
@@ -223,6 +279,7 @@ public final class AutoBossEvent implements Runnable {
         AutoSanBoss.autoInviteFriends();
         sleep(1000L);
         sendParty("pkm -4");
+        exitGatedMapIfNeeded();
 
         // Auto re-invite moi 1 phut khi nhom chua du 6 nguoi
         new Thread(new Runnable() {

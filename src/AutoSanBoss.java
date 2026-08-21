@@ -31,8 +31,10 @@ public class AutoSanBoss implements Runnable {
     public static final int TYPE_LANGCO = 2;
     public static final int TYPE_THEGIOI = 3;
     public static final int TYPE_ALL = 4;
+    public static final int TYPE_TEST_1MAP = 5;
+    public static int testMapId = 141;
 
-    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "T\u1ea5t C\u1ea3"};
+    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "T\u1ea5t C\u1ea3", "Test 1 Map"};
 
     // === CAI DAT: per-map filtering ===
     /** Danh sach map ID bi tat (khong san). Mac dinh rong = tat ca duoc san. */
@@ -543,6 +545,19 @@ public class AutoSanBoss implements Runnable {
         eventRoundCompleted = false;
         eventHuntTypes = new int[]{TYPE_THEGIOI};
         toggleInternal(true, TYPE_ALL);
+    }
+
+    /** TS Boss Test: quet dung 1 map test duy nhat */
+    public static void startEventHuntTest1Map(int mapId) {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = null;
+        testMapId = mapId;
+        toggleInternal(true, TYPE_TEST_1MAP);
     }
 
     public static boolean consumeEventRoundCompleted() {
@@ -1751,6 +1766,15 @@ public class AutoSanBoss implements Runnable {
                         // Chua den gio boss nao trong danh sach uu tien -> doi 30s
                         GameScr.gameAC("TSB: Ch\u01b0a \u0111\u1ebfn gi\u1edd boss, \u0111\u1ee3i 30s...");
                         sleepSeconds(30);
+                    }
+                } else if (forcedBossType == TYPE_TEST_1MAP) {
+                    // === CHE DO TEST 1 MAP: Quet duy nhat 1 map roi bao hoan thanh ===
+                    GameScr.gameAC("TSB Test: Qu\u00e9t map test M" + testMapId + "...");
+                    pkBossOnMap(testMapId);
+                    if (checkStillRunning()) eventRoundCompleted = true;
+                    if (checkStillRunning()) {
+                        GameScr.gameAC("TSB Test: \u0110\u00e3 xong map test M" + testMapId + "!");
+                        sleepSeconds(2);
                     }
                 } else if (forcedBossType >= 0) {
                     // === CHE DO FORCE 1 LOAI: San 1 loai boss cu the, khong check gio ===

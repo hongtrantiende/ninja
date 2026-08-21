@@ -966,3 +966,43 @@ Dù dòng 1507 restart PkBoss, nếu hồi sinh về nhà thì PkBoss mới chư
 - **Boss chưa chết thì PHẢI retry** — dùng flag + death counter
 - **Timeout 10 phút/map** tránh loop vô hạn
 
+## 2026-08-22: J2ME Loader Văng Sau 2s Khi Cài Đặt — Root Causes & Quy Trình Chuẩn
+
+### 1. Root Cause 1: Package `javax/` bị đóng gói vào JAR
+- **Triệu chứng:** Cài đặt JAR trên J2ME Loader chạy thanh tiến trình chỉ được 2 giây rồi báo lỗi cài đặt / DEX conversion fail.
+- **Nguyên nhân:** Khi `javac` biên dịch với `stubs/javax/microedition/...`, nó sinh ra các file `.class` trong `build/unpacked/javax/`. Nếu không xóa thư mục `javax/` này trước khi pack `jar cfm`, hệ điều hành Android / Dalvik VM sẽ phát hiện package bị cấm `javax.*` (Security Exception: Overriding system package) và từ chối nạp APK/DEX ngay lập tức.
+- **Giải pháp:** Sau khi chạy `javac` và trước khi đóng gói `jar cfm`, **BẮT BUỘC** chạy:
+  `Remove-Item -Recurse -Force "build/unpacked/javax"`
+
+### 2. Root Cause 2: Ép kiểu sai `Displayable` trong LCDUI Form
+- **Triệu chứng:** `ClassCastException` hoặc `VerifyError` khi đổi màn hình từ Form LCDUI về Canvas game.
+- **Nguyên nhân:** GameCanvas không kế thừa `javax.microedition.lcdui.Displayable` hay `Canvas`. `MotherCanvas` mới là lớp kế thừa `Canvas` (`Displayable`).
+- **Sai:** `Display.getDisplay(GameMidlet.instance).setCurrent((Displayable)(Object)GameCanvas.instance);`
+- **Đúng:** `Display.getDisplay(GameMidlet.instance).setCurrent(MotherCanvas.gI());`
+
+### 3. Root Cause 3: Inner Class rác còn sót lại (`NamMod$2.class`)
+- **Nguyên nhân:** Khi unpack JAR cũ, các inner class cũ (như `NamMod$2.class`) vẫn nằm trong `build/unpacked/`. Khi code mới không còn sinh `NamMod$2`, class cũ bị bỏ rơi mang tham chiếu đến method cũ không tồn tại và chưa được strip `StackMapTable`.
+- **Giải pháp:** Trước khi `javac`, luôn xóa sạch các file `.class` và `$*.class` của các file mã nguồn mod trong `src/`.
+
+### 4. Root Cause 4: Quên thêm class mới vào whitelist `scripts/patch_class_j2me.py`
+- **Nguyên nhân:** Khi tạo file Java mới (như `BossConfig.java`), nếu quên thêm vào `mod_classes` trong script patch, class mới sẽ giữ nguyên version 52.0 và StackMapTable → J2ME Loader không đọc được.
+- **Giải pháp:** Luôn cập nhật danh sách `mod_classes` trong `scripts/patch_class_j2me.py` khi thêm file Java mới.
+
+## 2026-08-22: Thoát Map Đóng Kín (M196 Up Lượng, M192 Tu Luyện, M135/136 Làng Cổ) Khi Bắt Đầu Săn Boss
+
+### 1. Vấn đề
+- Khi nhân vật đang cắm Tàn Sát ở các map phòng kín vào qua NPC như **Map Up Lượng (M196)**, **Map Tu Luyện (M192)** hoặc **Làng Cổ (M135/136)**:
+- Đến giờ săn boss (hoặc khi gõ lệnh test), hệ thống lưu lại `savedMap` nhưng không tự sát thoát map.
+- Các map phòng kín không có cổng waypoint thông thường ra bản đồ thế giới, khiến `PkBoss` bị kẹt lại bên trong map và không thể chạy ra map boss.
+
+### 2. Giải pháp: `exitGatedMapIfNeeded()`
+- Trước khi khởi chạy `PkBoss` đi săn boss, hệ thống kiểm tra: nếu nhân vật đang ở `mapID == 196 || mapID == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled || TileMap.isLangCo(mapID)`:
+  1. `saveLocalState()`: Chụp lưu lại Map/Khu/Auto trước.
+  2. `cleanKhaoDiLenh()` (nếu ở Làng Cổ).
+  3. `Code.gameAN()` (tự sát).
+  4. `Service.gI().gameAK()` (Bấm "Về làng", hồi sinh tại Thôn/Trường có NPC).
+  5. Khi đã ở Thôn/Trường an toàn, `PkBoss` bắt đầu di chuyển đường tắt sang map boss.
+- Áp dụng cho cả **Trưởng nhóm (`beginLeaderEvent`, `testNow`)** và **Thành viên nhóm (`ChatRouter.startPartyBoss`)**.
+
+
+

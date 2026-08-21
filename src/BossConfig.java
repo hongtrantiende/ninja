@@ -119,7 +119,7 @@ public final class BossConfig implements CommandListener {
             }
         }
         // Quay ve man hinh game (giong SetAuto)
-        Display.getDisplay(GameMidlet.instance).setCurrent((Displayable)(Object)GameCanvas.instance);
+        Display.getDisplay(GameMidlet.instance).setCurrent(MotherCanvas.gI());
     }
 
     private void saveGroup(ChoiceGroup cg, int[] maps) {
