@@ -21,19 +21,8 @@ public final class NamMod implements IActionListener {
     private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
 
-    // Cai dat San Boss: per-map toggle
+    // Cai dat San Boss: mo Form checkbox
     private static final int CFG_BOSS_MENU = 120140;
-    private static final int CFG_BOSS_ALL = 120141;
-    private static final int CFG_TYPE_VDMQ = 120142;
-    private static final int CFG_TYPE_MN = 120143;
-    private static final int CFG_TYPE_LC = 120144;
-    private static final int CFG_TYPE_TG = 120145;
-    // Map toggle: base 121000 + mapId (vd: 121141 = map 141)
-    private static final int CFG_MAP_BASE = 121000;
-    private static final int CFG_TYPE_ALL_VDMQ = 120150;
-    private static final int CFG_TYPE_ALL_MN = 120151;
-    private static final int CFG_TYPE_ALL_LC = 120152;
-    private static final int CFG_TYPE_ALL_TG = 120153;
 
 
     private static final NamMod INSTANCE = new NamMod();
@@ -122,81 +111,13 @@ public final class NamMod implements IActionListener {
         GameCanvas.menu.gameAA(items);
     }
 
-    private static void openBossConfigMenu() {
-        MyVector items = new MyVector();
-        int disCount = AutoSanBoss.disabledMaps.size();
-        items.addElement(command(disCount == 0 ? "\u2714 T\u1ea5t c\u1ea3 \u0111ang B\u1eadt" : "B\u1eadt t\u1ea5t c\u1ea3 (" + disCount + " map t\u1eaft)", CFG_BOSS_ALL));
-        // 4 loai boss
-        String[] names = {"VDMQ", "Map Ngo\u00e0i", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi"};
-        int[] menuIds = {CFG_TYPE_VDMQ, CFG_TYPE_MN, CFG_TYPE_LC, CFG_TYPE_TG};
-        for (int t = 0; t < 4; t++) {
-            int en = AutoSanBoss.countEnabledMaps(t);
-            int total = AutoSanBoss.getAllMapsForType(t).length;
-            String label = names[t] + " (" + en + "/" + total + ") \u25b8";
-            items.addElement(command(label, menuIds[t]));
-        }
-        GameCanvas.menu.gameAA(items);
-    }
-
-    private static void openBossTypeConfig(int bossType) {
-        MyVector items = new MyVector();
-        String[] names = {"VDMQ", "Map Ngo\u00e0i", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi"};
-        int[] toggleAllIds = {CFG_TYPE_ALL_VDMQ, CFG_TYPE_ALL_MN, CFG_TYPE_ALL_LC, CFG_TYPE_ALL_TG};
-        // Toggle tat ca cua loai nay
-        boolean allOn = true;
-        int[] maps = AutoSanBoss.getAllMapsForType(bossType);
-        for (int i = 0; i < maps.length; i++) {
-            if (!AutoSanBoss.isMapEnabled(maps[i])) { allOn = false; break; }
-        }
-        items.addElement(command((allOn ? "T\u1eaft" : "B\u1eadt") + " t\u1ea5t c\u1ea3 " + names[bossType], toggleAllIds[bossType]));
-        // Tung map rieng le
-        for (int i = 0; i < maps.length; i++) {
-            boolean on = AutoSanBoss.isMapEnabled(maps[i]);
-            items.addElement(command((on ? "\u2714 " : "\u2716 ") + "Map " + maps[i], CFG_MAP_BASE + maps[i]));
-        }
-        GameCanvas.menu.gameAA(items);
-    }
-
     public void perform(int id, Object parameter) {
-        // Xu ly toggle per-map (id = CFG_MAP_BASE + mapId)
-        if (id >= CFG_MAP_BASE && id < CFG_MAP_BASE + 1000) {
-            int mapId = id - CFG_MAP_BASE;
-            AutoSanBoss.toggleMap(mapId);
-            return;
-        }
         switch (id) {
             case BOSS_MENU:
                 openBossMenu();
                 return;
             case CFG_BOSS_MENU:
-                openBossConfigMenu();
-                return;
-            case CFG_BOSS_ALL:
-                AutoSanBoss.enableAllMaps();
-                return;
-            case CFG_TYPE_VDMQ:
-                openBossTypeConfig(AutoSanBoss.TYPE_VDMQ);
-                return;
-            case CFG_TYPE_MN:
-                openBossTypeConfig(AutoSanBoss.TYPE_MAPNGOAI);
-                return;
-            case CFG_TYPE_LC:
-                openBossTypeConfig(AutoSanBoss.TYPE_LANGCO);
-                return;
-            case CFG_TYPE_TG:
-                openBossTypeConfig(AutoSanBoss.TYPE_THEGIOI);
-                return;
-            case CFG_TYPE_ALL_VDMQ:
-                AutoSanBoss.toggleAllMapsOfType(AutoSanBoss.TYPE_VDMQ);
-                return;
-            case CFG_TYPE_ALL_MN:
-                AutoSanBoss.toggleAllMapsOfType(AutoSanBoss.TYPE_MAPNGOAI);
-                return;
-            case CFG_TYPE_ALL_LC:
-                AutoSanBoss.toggleAllMapsOfType(AutoSanBoss.TYPE_LANGCO);
-                return;
-            case CFG_TYPE_ALL_TG:
-                AutoSanBoss.toggleAllMapsOfType(AutoSanBoss.TYPE_THEGIOI);
+                BossConfig.select();
                 return;
             case AUTO_BOSS:
                 AutoSanBoss.toggle();

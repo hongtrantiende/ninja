@@ -233,7 +233,7 @@ def main():
         'ShortcutHandler', 'SanBossHolder', 'MultiSkillAttack', 'AutoGaoDa',
         'AutoDoiDiem', 'AutoFilter', 'AutoNhanDa', 'AutoTsXa',
         'AutoTuLuyen', 'AutoVipMap', 'AutoVT55', 'InfoMe', 'mResources',
-        'Skill', 'AutoFakePkb'
+        'Skill', 'AutoFakePkb', 'BossConfig'
     }
     
     patched = 0
