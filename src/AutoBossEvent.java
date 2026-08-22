@@ -84,6 +84,7 @@ public final class AutoBossEvent implements Runnable {
         savedAuto = null;
         savedMap = -1;
         savedZone = -1;
+        AutoSanBoss.ignoreBossHourCheck = false;
         saveConfigToRMS();
     }
 
@@ -132,6 +133,31 @@ public final class AutoBossEvent implements Runnable {
 
                 GameScr.gameAC("TSBoss Test: Xong map M" + sampleMap + ", quay l\u1ea1i TS!");
                 finishEvent(false);
+            }
+        }).start();
+    }
+
+    /**
+     * Kich hoat phien san boss NGAY LAP TUC (bo qua kiem tra gio spawn).
+     * Dung khi doc vi boss tu Chat Notice / Server notification.
+     */
+    public static void triggerImmediate(int p) {
+        AutoSanBoss.ignoreBossHourCheck = true;
+        eventPriority = p;
+        if (inEvent) {
+            AutoSanBoss.stopEventHunt();
+            inEvent = false;
+            sleep(700L);
+        }
+        if (!isEnabled) {
+            isEnabled = true;
+            new Thread(new AutoBossEvent()).start();
+        }
+        new Thread(new Runnable() {
+            public void run() {
+                GameScr.gameAC("TSBoss: K\u00edch ho\u1ea1t s\u0103n boss " + priorityName() + " ngay l\u1eadp t\u1ee9c!");
+                lastWindowKey = -1;
+                beginLeaderEvent();
             }
         }).start();
     }
@@ -450,6 +476,7 @@ public final class AutoBossEvent implements Runnable {
             disableAfterTest = false;
             isEnabled = false;
         }
+        AutoSanBoss.ignoreBossHourCheck = false;
     }
 
     private static void returnAndResume() {

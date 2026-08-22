@@ -193,19 +193,20 @@ public class AutoBossNotice {
     }
 
     /**
-     * Kích hoạt tự động săn cả loại Boss tương ứng
+     * Kích hoạt tự động săn cả loại Boss tương ứng (Bỏ qua giờ spawn, săn ngay lập tức)
      */
     private static void triggerHuntType(final int bossType) {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    // Ưu tiên dùng AutoBossEvent nếu đang dùng TS Ưu Tiên, hoặc dùng AutoSanBoss
+                    AutoSanBoss.ignoreBossHourCheck = true;
+                    int priority = 0;
+                    if (bossType == AutoSanBoss.TYPE_VDMQ || bossType == AutoSanBoss.TYPE_LANGCO) priority = 1;
+                    else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) priority = 2;
+                    else if (bossType == AutoSanBoss.TYPE_THEGIOI) priority = 3;
+
                     if (AutoBossEvent.isEnabled) {
-                        int priority = 0;
-                        if (bossType == AutoSanBoss.TYPE_VDMQ || bossType == AutoSanBoss.TYPE_LANGCO) priority = 1;
-                        else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) priority = 2;
-                        else if (bossType == AutoSanBoss.TYPE_THEGIOI) priority = 3;
-                        AutoBossEvent.togglePriority(priority);
+                        AutoBossEvent.triggerImmediate(priority);
                     } else {
                         if (bossType == AutoSanBoss.TYPE_VDMQ) AutoSanBoss.toggleVM();
                         else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) AutoSanBoss.toggleMN();

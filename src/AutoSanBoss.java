@@ -1215,10 +1215,13 @@ public class AutoSanBoss implements Runnable {
         };
     }
 
+    public static boolean ignoreBossHourCheck = false;
+
     /**
-     * Kiem tra boss co dang trong khung gio spawn khong (40 phut sau gio spawn)
+     * Kiem tra khung gio spawn cho 1 loai boss.
      */
     public static boolean isBossActive(int bossType) {
+        if (ignoreBossHourCheck) return true; // Khi duoc kich hoat qua Chat Notice / Force: Bo qua check gio!
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int h = cal.get(Calendar.HOUR_OF_DAY);
         int m = cal.get(Calendar.MINUTE);
