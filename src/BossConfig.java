@@ -37,6 +37,9 @@ public final class BossConfig implements CommandListener {
     private TextField tfLangCo;
     private TextField tfTheGioi;
 
+    // Extra rounds cho TS Boss uu tien
+    private TextField tfExtraRounds;
+
     // Luu map IDs tuong ung voi tung ChoiceGroup
     private final int[] mapsVDMQ;
     private final int[] mapsMN;
@@ -98,6 +101,10 @@ public final class BossConfig implements CommandListener {
             cgTheGioi.append("Map " + mapsTG[i], null);
         }
         form.append(cgTheGioi);
+
+        // === TS Boss uu tien: so luot quet them ===
+        tfExtraRounds = new TextField("L\u01b0\u1ee3t qu\u00e9t th\u00eam (0=kh\u00f4ng, 1=m\u1eb7c \u0111\u1ecbnh)", "", 5, TextField.NUMERIC);
+        form.append(tfExtraRounds);
     }
 
     /** Load trang thai tu AutoSanBoss vao checkbox + textfield */
@@ -112,6 +119,9 @@ public final class BossConfig implements CommandListener {
         tfMapNgoai.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_MAPNGOAI));
         tfLangCo.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_LANGCO));
         tfTheGioi.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_THEGIOI));
+
+        // Extra rounds
+        tfExtraRounds.setString(String.valueOf(AutoBossEvent.extraRounds));
     }
 
     private void loadGroup(ChoiceGroup cg, int[] maps) {
@@ -125,6 +135,7 @@ public final class BossConfig implements CommandListener {
     public static void select() {
         AutoSanBoss.loadFromRMS();
         AutoSanBoss.loadBossHoursFromRMS();
+        AutoBossEvent.loadConfigFromRMS();
         if (instance == null) {
             instance = new BossConfig();
         }
@@ -156,6 +167,21 @@ public final class BossConfig implements CommandListener {
                 errMsg.append("TheGioi, ");
             AutoSanBoss.saveBossHoursToRMS();
 
+            // Luu extra rounds
+            try {
+                String s = tfExtraRounds.getString();
+                int v = safeParseInt(s, -1);
+                if (v >= 0 && v <= 9) {
+                    AutoBossEvent.extraRounds = v;
+                } else {
+                    if (errMsg.length() > 0) errMsg.append(", ");
+                    errMsg.append("ExtraRounds(").append(v).append(")");
+                }
+            } catch (Exception e) {
+                errMsg.append("ExtraRounds");
+            }
+            AutoBossEvent.saveConfigToRMS();
+
             int disabled = AutoSanBoss.disabledMaps.size();
             StringBuffer msg = new StringBuffer("Boss Config: \u0110\u00e3 l\u01b0u");
             if (disabled > 0) msg.append(" (").append(disabled).append(" map t\u1eaft)");
@@ -183,6 +209,22 @@ public final class BossConfig implements CommandListener {
                 // Map khong duoc chon = disabled
                 AutoSanBoss.disabledMaps.addElement(new Integer(maps[i]));
             }
+        }
+    }
+
+    /** An toan parse int tu TextField. Strip ky tu khong phai so. */
+    private static int safeParseInt(String s, int fallback) {
+        if (s == null) return fallback;
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '0' && ch <= '9') sb.append(ch);
+        }
+        if (sb.length() == 0) return fallback;
+        try {
+            return Integer.parseInt(sb.toString());
+        } catch (Exception e) {
+            return fallback;
         }
     }
 }

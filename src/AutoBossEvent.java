@@ -6,6 +6,8 @@ public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
     /** 0 = mac dinh (tat ca), 1 = chi VDMQ+LangCo, 2 = chi MapNgoai, 3 = chi TheGioi */
     public static int eventPriority;
+    /** So luot quet them sau luot 1 (0 = khong quet them, 1 = mac dinh, 2-9 = nhieu luot) */
+    public static int extraRounds = 1;
     private static boolean inEvent;
     private static boolean membersSentBack;
     private static Auto savedAuto;
@@ -406,23 +408,25 @@ public final class AutoBossEvent implements Runnable {
         sleep(3000L);
         AutoSanBoss.isPartyMode = false;
 
-        // === Luot 2: Leader quet solo them 1 luot ===
-        GameScr.gameAC("TSBoss: Leader qu\u00e9t th\u00eam l\u01b0\u1ee3t 2...");
-        while (isEnabled && inEvent) {
-            if (AutoSanBoss.consumeEventRoundCompleted()) break;
-            if (!AutoSanBoss.isRunning) break;
-            if (isDisconnected()) {
-                if (!waitForReconnect()) { finishEvent(false); return; }
-                if (!AutoSanBoss.isRunning) {
-                    lastWindowKey = -1;
-                    finishEvent(false);
-                    return;
+        // === Luot them: Leader quet solo ===
+        for (int round = 0; round < extraRounds && isEnabled && inEvent; round++) {
+            GameScr.gameAC("TSBoss: Leader qu\u00e9t l\u01b0\u1ee3t " + (round + 2) + "/" + (extraRounds + 1) + "...");
+            while (isEnabled && inEvent) {
+                if (AutoSanBoss.consumeEventRoundCompleted()) break;
+                if (!AutoSanBoss.isRunning) break;
+                if (isDisconnected()) {
+                    if (!waitForReconnect()) { finishEvent(false); return; }
+                    if (!AutoSanBoss.isRunning) {
+                        lastWindowKey = -1;
+                        finishEvent(false);
+                        return;
+                    }
                 }
+                sleep(500L);
             }
-            sleep(500L);
         }
 
-        // Xong luot 2 -> ve TS
+        // Xong tat ca luot -> ve TS
         finishEvent(false);
     }
 
@@ -581,22 +585,32 @@ public final class AutoBossEvent implements Runnable {
 
     // === RMS ===
 
-    /** Luu isEnabled + eventPriority vao RMS */
+    /** Luu isEnabled + eventPriority + extraRounds vao RMS */
     public static void saveConfigToRMS() {
         try {
-            RMS.gameAA("boss_event_cfg", (isEnabled ? 1 : 0) + ";" + eventPriority);
+            RMS.gameAA("boss_event_cfg", (isEnabled ? 1 : 0) + ";" + eventPriority + ";" + extraRounds);
         } catch (Exception e) {}
     }
 
-    /** Load isEnabled + eventPriority tu RMS. Auto-start thread neu enabled. */
+    /** Load isEnabled + eventPriority + extraRounds tu RMS. Auto-start thread neu enabled. */
     public static void loadConfigFromRMS() {
         try {
             String data = RMS.gameAC("boss_event_cfg");
             if (data != null && data.length() > 0) {
-                int sep = data.indexOf(';');
-                if (sep > 0) {
-                    isEnabled = Integer.parseInt(data.substring(0, sep).trim()) == 1;
-                    eventPriority = Integer.parseInt(data.substring(sep + 1).trim());
+                int[] vals = new int[3];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 3; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 2) {
+                    isEnabled = vals[0] == 1;
+                    eventPriority = vals[1];
+                }
+                if (idx >= 3) {
+                    extraRounds = vals[2];
                 }
             }
         } catch (Exception e) {}
