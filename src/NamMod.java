@@ -30,8 +30,6 @@ public final class NamMod implements IActionListener {
 
     // Cai dat Tan Sat
     private static final int CFG_TS_MENU = 120160;
-    private static final int AUTO_SUICIDE = 120161;
-    private static final int AUTO_JUMP = 120162;
 
 
     private static final NamMod INSTANCE = new NamMod();
@@ -76,12 +74,6 @@ public final class NamMod implements IActionListener {
 
         // === Cài đặt Tàn Sát ===
         items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
-        String suicideLabel = "Auto T\u1ef1 S\u00e1t: " + onOff(AutoSuicide.isEnabled);
-        if (AutoSuicide.isEnabled) suicideLabel += " (" + (AutoSuicide.IDLE_TIMEOUT_MS / 1000) + "s)";
-        items.addElement(command(suicideLabel, AUTO_SUICIDE));
-        String jumpLabel = "Auto Nh\u1ea3y: " + onOff(AutoSuicide.isJumpEnabled);
-        if (AutoSuicide.isJumpEnabled) jumpLabel += " (" + (AutoSuicide.JUMP_INTERVAL_MS / 1000) + "s)";
-        items.addElement(command(jumpLabel, AUTO_JUMP));
 
         // === Tiện ích Khác ===
         items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled), TS_VIP_MAP));
@@ -144,12 +136,6 @@ public final class NamMod implements IActionListener {
                 return;
             case CFG_TS_MENU:
                 TsConfig.select();
-                return;
-            case AUTO_SUICIDE:
-                AutoSuicide.toggle();
-                return;
-            case AUTO_JUMP:
-                AutoSuicide.toggleJump();
                 return;
             case AUTO_BOSS:
                 AutoSanBoss.toggle();
