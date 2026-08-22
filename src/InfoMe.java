@@ -95,6 +95,7 @@ public final class InfoMe {
     }
 
     public static void gameAA(String s) {
+        AutoBossNotice.onReceiveMessage(s);
         if (!gameAB(s)) {
             if (GameCanvas.w == 128) {
                 limLeft = 1;

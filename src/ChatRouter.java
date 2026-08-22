@@ -187,6 +187,10 @@ public class ChatRouter {
             BossRadar.toggle();
             return true;
         }
+        if (text.equals("chatboss") || text.equals("noticeboss")) {
+            AutoBossNotice.toggle();
+            return true;
+        }
         if (text.equals("tsbosstest")) {
             AutoBossEvent.testNow();
             return true;

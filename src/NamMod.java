@@ -32,6 +32,8 @@ public final class NamMod implements IActionListener {
     private static final int CFG_TS_MENU = 120160;
 
 
+    private static final int AUTO_BOSS_NOTICE = 120170;
+
     private static final NamMod INSTANCE = new NamMod();
 
     private NamMod() {
@@ -61,6 +63,7 @@ public final class NamMod implements IActionListener {
         cfgLabel += " \u25b8";
         items.addElement(command(cfgLabel, CFG_BOSS_MENU));
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
+        items.addElement(command("Auto Boss qua Chat: " + onOff(AutoBossNotice.isEnabled), AUTO_BOSS_NOTICE));
 
 
         // === Hút VP & Tiện ích ===
@@ -161,6 +164,9 @@ public final class NamMod implements IActionListener {
 
             case LICH_BOSS:
                 ThongTinBoss.toggle();
+                return;
+            case AUTO_BOSS_NOTICE:
+                AutoBossNotice.toggle();
                 return;
             case BOSS_VDMQ:
                 AutoSanBoss.toggleVM();

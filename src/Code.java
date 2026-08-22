@@ -2575,6 +2575,7 @@ implements Runnable {
     }
 
     public static void gameAB(String var0, String var1) {
+        AutoBossNotice.onReceiveMessage(var1);
         boolean var16;
         ChatTab var2;
         if (Char.DanhNhom && gameAH != null && var0.equals(gameAH) && !Char.getMyChar().cName.equals(gameAH)) {
