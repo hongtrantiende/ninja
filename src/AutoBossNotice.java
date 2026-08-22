@@ -1,8 +1,9 @@
 /**
- * AutoBossNotice — Tự động phát hiện Boss xuất hiện từ kênh chat / thông báo Server.
+ * AutoBossNotice — Tự động đọc vị Boss từ Kênh Chat / Thông báo Server
  * 
- * Lắng nghe các tin nhắn từ Server (InfoMe, Chat), so sánh tên Map trong tin nhắn
- * với bảng tên map TileMap.mapNames để tự động tìm Map ID và Zone, sau đó dịch chuyển đến săn ngay lập tức.
+ * Khi nhận được tin nhắn thông báo Boss xuất hiện:
+ * 1. Đọc vị xem thuộc loại Boss nào (Map Ngoài, VĐMQ, Làng Cổ, Thế Giới) qua tên Map hoặc từ khóa.
+ * 2. Tự động kích hoạt chế độ Săn Boss tương ứng (săn toàn bộ các map của loại Boss đó và tự quét tìm khu).
  */
 public class AutoBossNotice {
     public static boolean isEnabled = true; // Mặc định BẬT
@@ -40,9 +41,9 @@ public class AutoBossNotice {
     public static void onReceiveMessage(String text) {
         if (!isEnabled || text == null || text.length() == 0) return;
 
-        // Anti-spam / Debounce 3s cho cùng tin nhắn
+        // Anti-spam / Debounce 5s cho cùng tin nhắn
         long now = System.currentTimeMillis();
-        if (text.equals(lastNotice) && now - lastTriggerTime < 3000L) return;
+        if (text.equals(lastNotice) && now - lastTriggerTime < 5000L) return;
 
         String lower = text.toLowerCase();
 
@@ -52,20 +53,48 @@ public class AutoBossNotice {
         lastNotice = text;
         lastTriggerTime = now;
 
-        // Tìm Map ID từ tên map trong tin nhắn
+        // 1. Kiểm tra theo tên Map trong tin nhắn
         int mapId = findMapIdFromText(text);
-        if (mapId < 0) return;
+        int bossType = -1;
 
-        // Trích xuất khu (zone) nếu có
-        int zoneId = extractZoneFromText(lower);
+        if (mapId >= 0) {
+            bossType = getBossTypeFromMap(mapId);
+        }
 
-        String mapName = (TileMap.mapNames != null && mapId >= 0 && mapId < TileMap.mapNames.length) 
-                ? TileMap.mapNames[mapId] : ("Map " + mapId);
+        // 2. Nếu chưa tìm thấy qua mapId, kiểm tra theo từ khóa tên loại Boss trong chat
+        if (bossType < 0) {
+            if (lower.indexOf("map ngo\u00e0i") >= 0 || lower.indexOf("map ngoai") >= 0) {
+                bossType = AutoSanBoss.TYPE_MAPNGOAI;
+            } else if (lower.indexOf("vdmq") >= 0 || lower.indexOf("v\u01b0\u01a1ng qu\u1ed1c") >= 0 || lower.indexOf("vuong quoc") >= 0) {
+                bossType = AutoSanBoss.TYPE_VDMQ;
+            } else if (lower.indexOf("l\u00e0ng c\u1ed5") >= 0 || lower.indexOf("lang co") >= 0) {
+                bossType = AutoSanBoss.TYPE_LANGCO;
+            } else if (lower.indexOf("th\u1ebf gi\u1edbi") >= 0 || lower.indexOf("the gioi") >= 0) {
+                bossType = AutoSanBoss.TYPE_THEGIOI;
+            }
+        }
 
-        GameScr.gameAC("\uD83D\uDCE2 [BOSS CHAT] " + mapName + (zoneId >= 0 ? (" Khu " + zoneId) : "") + " -> \u0110ang di chuy\u1ec3n!");
-
-        // Thực hiện dịch chuyển đến săn Boss
-        triggerHunt(mapId, zoneId);
+        // 3. Thực hiện kích hoạt Săn Boss theo nhóm loại Boss
+        if (bossType == AutoSanBoss.TYPE_MAPNGOAI) {
+            String detail = (mapId >= 0 && TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? (" t\u1ea1i " + TileMap.mapNames[mapId]) : "";
+            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS MAP NGO\u00C0I" + detail + " -> S\u0103n to\u00e0n b\u1ed9 Map Ngo\u00e0i!");
+            triggerHuntType(AutoSanBoss.TYPE_MAPNGOAI);
+        } else if (bossType == AutoSanBoss.TYPE_VDMQ) {
+            String detail = (mapId >= 0 && TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? (" t\u1ea1i " + TileMap.mapNames[mapId]) : "";
+            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS V\u0110MQ" + detail + " -> S\u0103n to\u00e0n b\u1ed9 V\u0110MQ!");
+            triggerHuntType(AutoSanBoss.TYPE_VDMQ);
+        } else if (bossType == AutoSanBoss.TYPE_LANGCO) {
+            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS L\u00C0NG C\u1ED0 -> S\u0103n L\u00e0ng C\u1ed5!");
+            triggerHuntType(AutoSanBoss.TYPE_LANGCO);
+        } else if (bossType == AutoSanBoss.TYPE_THEGIOI) {
+            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS TH\u1EAE GI\u1EDAI -> S\u0103n Th\u1ebf Gi\u1edbi!");
+            triggerHuntType(AutoSanBoss.TYPE_THEGIOI);
+        } else if (mapId >= 0) {
+            // Map riêng lẻ không thuộc 4 nhóm trên
+            String mapName = (TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? TileMap.mapNames[mapId] : ("Map " + mapId);
+            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS " + mapName + " -> S\u0103n ngay!");
+            triggerDirectMap(mapId);
+        }
     }
 
     private static boolean isBossMessage(String lower) {
@@ -76,8 +105,30 @@ public class AutoBossNotice {
     }
 
     /**
-     * Tìm Map ID bằng cách so sánh tên map trong TileMap.mapNames với nội dung tin nhắn.
-     * Hỗ trợ cả tiếng Việt có dấu và không dấu.
+     * Xác định xem Map ID thuộc nhóm loại Boss nào
+     */
+    public static int getBossTypeFromMap(int mapId) {
+        int[] mn = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_MAPNGOAI);
+        for (int i = 0; i < mn.length; i++) {
+            if (mn[i] == mapId) return AutoSanBoss.TYPE_MAPNGOAI;
+        }
+        int[] vm = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_VDMQ);
+        for (int i = 0; i < vm.length; i++) {
+            if (vm[i] == mapId) return AutoSanBoss.TYPE_VDMQ;
+        }
+        int[] lc = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_LANGCO);
+        for (int i = 0; i < lc.length; i++) {
+            if (lc[i] == mapId) return AutoSanBoss.TYPE_LANGCO;
+        }
+        int[] tg = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_THEGIOI);
+        for (int i = 0; i < tg.length; i++) {
+            if (tg[i] == mapId) return AutoSanBoss.TYPE_THEGIOI;
+        }
+        return -1;
+    }
+
+    /**
+     * Tìm Map ID từ tên Map trong TileMap.mapNames
      */
     public static int findMapIdFromText(String text) {
         if (text == null) return -1;
@@ -92,8 +143,7 @@ public class AutoBossNotice {
                 if (name == null || name.trim().length() == 0) continue;
 
                 String normName = stripAccents(name.toLowerCase());
-                // Bỏ qua tên ngắn < 3 ký tự để tránh khớp nhầm
-                if (normName.length() < 3) continue;
+                if (normName.length() < 3) continue; // Bỏ qua từ quá ngắn
 
                 if (normText.indexOf(normName) >= 0) {
                     if (normName.length() > maxLen) {
@@ -107,28 +157,7 @@ public class AutoBossNotice {
     }
 
     /**
-     * Trích xuất khu (zone) từ chuỗi ví dụ: "khu 3", "zone 12", "k5"
-     */
-    private static int extractZoneFromText(String lower) {
-        try {
-            int idx = lower.indexOf("khu ");
-            if (idx < 0) idx = lower.indexOf("zone ");
-            if (idx >= 0) {
-                int start = lower.indexOf(' ', idx) + 1;
-                int end = start;
-                while (end < lower.length() && Character.isDigit(lower.charAt(end))) {
-                    end++;
-                }
-                if (end > start) {
-                    return Integer.parseInt(lower.substring(start, end));
-                }
-            }
-        } catch (Exception e) {}
-        return -1;
-    }
-
-    /**
-     * Chuyển tiếng Việt có dấu thành không dấu để so sánh chính xác 100%.
+     * Chuyển tiếng Việt có dấu thành không dấu để so sánh chuẩn
      */
     private static String stripAccents(String s) {
         if (s == null) return "";
@@ -164,18 +193,38 @@ public class AutoBossNotice {
     }
 
     /**
-     * Dịch chuyển tới Map và Zone tìm được
+     * Kích hoạt tự động săn cả loại Boss tương ứng
      */
-    private static void triggerHunt(final int mapId, final int zoneId) {
+    private static void triggerHuntType(final int bossType) {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    // Chuyển tới map
-                    TileMap.GoMap(mapId);
-                    if (zoneId >= 0) {
-                        Thread.sleep(500);
-                        Service.gI().gameAL(zoneId); // Đổi khu
+                    // Ưu tiên dùng AutoBossEvent nếu đang dùng TS Ưu Tiên, hoặc dùng AutoSanBoss
+                    if (AutoBossEvent.isEnabled) {
+                        int priority = 0;
+                        if (bossType == AutoSanBoss.TYPE_VDMQ || bossType == AutoSanBoss.TYPE_LANGCO) priority = 1;
+                        else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) priority = 2;
+                        else if (bossType == AutoSanBoss.TYPE_THEGIOI) priority = 3;
+                        AutoBossEvent.togglePriority(priority);
+                    } else {
+                        if (bossType == AutoSanBoss.TYPE_VDMQ) AutoSanBoss.toggleVM();
+                        else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) AutoSanBoss.toggleMN();
+                        else if (bossType == AutoSanBoss.TYPE_LANGCO) AutoSanBoss.toggleLangCo();
+                        else if (bossType == AutoSanBoss.TYPE_THEGIOI) AutoSanBoss.toggleTheGioi();
                     }
+                } catch (Exception e) {}
+            }
+        }).start();
+    }
+
+    /**
+     * Dịch chuyển tới 1 map riêng lẻ (nếu không nằm trong 4 nhóm trên)
+     */
+    private static void triggerDirectMap(final int mapId) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    TileMap.GoMap(mapId);
                 } catch (Exception e) {}
             }
         }).start();
