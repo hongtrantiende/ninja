@@ -56,6 +56,7 @@ public final class NamMod implements IActionListener {
         if (AutoBossEvent.isEnabled) tsLabel += " (" + AutoBossEvent.priorityName() + ")";
         tsLabel += " \u25b8";
         items.addElement(command(tsLabel, TS_BOSS_MENU));
+        items.addElement(command("Auto Boss qua Chat: " + onOff(AutoBossNotice.isEnabled), AUTO_BOSS_NOTICE));
         // Cai dat San Boss
         int disCount = AutoSanBoss.disabledMaps.size();
         String cfgLabel = "C\u00e0i \u0111\u1eb7t S\u0103n Boss";
@@ -63,7 +64,6 @@ public final class NamMod implements IActionListener {
         cfgLabel += " \u25b8";
         items.addElement(command(cfgLabel, CFG_BOSS_MENU));
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
-        items.addElement(command("Auto Boss qua Chat: " + onOff(AutoBossNotice.isEnabled), AUTO_BOSS_NOTICE));
 
 
         // === Hút VP & Tiện ích ===
