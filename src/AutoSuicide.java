@@ -167,8 +167,8 @@ public final class AutoSuicide implements Runnable {
                         if (myChar == null || myChar.cName == null) continue;
                         if (myChar.statusMe == 14 || myChar.cHP <= 0) continue;
 
-                        // Nhay that: nhan phim nhay (keyPressedz[5])
-                        GameCanvas.keyPressedz[5] = true;
+                        // Nhay that: khinh cong len JUMP_HEIGHT px (ghost move)
+                        Char.gameAC(myChar.cx, myChar.cy - JUMP_HEIGHT);
 
                     } catch (Exception e) {
                         try { Thread.sleep(2000); } catch (Exception ex) {}
@@ -228,7 +228,11 @@ public final class AutoSuicide implements Runnable {
                 }
             }
         } catch (Exception e) {}
+        // Auto-start threads neu config da luu enabled
+        if (isEnabled && !isRunning) start();
+        if (isJumpEnabled && !isJumpRunning) startJump();
     }
+
 
     /** Reset config ve mac dinh */
     public static void resetConfig() {

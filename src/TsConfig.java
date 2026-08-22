@@ -135,40 +135,46 @@ public final class TsConfig implements CommandListener {
 
     public void commandAction(Command c, Displayable d) {
         if (c == cmdLuu) {
-            int errCount = 0;
+            StringBuffer errors = new StringBuffer();
 
             // === TsBoost ===
             try {
-                int v = Integer.parseInt(tfAttackDelay.getString().trim());
-                if (v >= 0 && v <= 5000) TsBoost.ATTACK_DELAY_MS = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfAttackDelay.getString(), -1);
+                if (v >= 0 && v <= 5000) TsBoost.ATTACK_DELAY_MS = v;
+                else errors.append("Delay danh(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Delay danh, "); }
 
             try {
-                int v = Integer.parseInt(tfIdleDelay.getString().trim());
-                if (v >= 0 && v <= 5000) TsBoost.IDLE_DELAY_MS = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfIdleDelay.getString(), -1);
+                if (v >= 0 && v <= 5000) TsBoost.IDLE_DELAY_MS = v;
+                else errors.append("Delay quai(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Delay quai, "); }
 
             try {
-                int v = Integer.parseInt(tfRange.getString().trim());
-                if (v >= 50 && v <= 2000) TsBoost.MAX_ATTACK_RANGE = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfRange.getString(), -1);
+                if (v >= 10 && v <= 2000) TsBoost.MAX_ATTACK_RANGE = v;
+                else errors.append("Tam(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Tam, "); }
 
             try {
-                int v = Integer.parseInt(tfSkillReselect.getString().trim());
-                if (v >= 1000 && v <= 60000) TsBoost.SKILL_RESELECT_MS = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfSkillReselect.getString(), -1);
+                if (v >= 100 && v <= 60000) TsBoost.SKILL_RESELECT_MS = v;
+                else errors.append("Skill(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Skill, "); }
 
             try {
-                int v = Integer.parseInt(tfMaxMob.getString().trim());
-                if (v >= 1 && v <= 20) TsBoost.MAX_MOB_PER_ATTACK = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfMaxMob.getString(), -1);
+                if (v >= 1 && v <= 20) TsBoost.MAX_MOB_PER_ATTACK = v;
+                else errors.append("MaxMob(").append(v).append("), ");
+            } catch (Exception e) { errors.append("MaxMob, "); }
 
             // === Cooldown ===
             TsBoost.isCooldownEnabled = cgCooldown.isSelected(0);
             try {
-                int v = Integer.parseInt(tfCooldownMs.getString().trim());
-                if (v >= 200 && v <= 10000) TsBoost.COOLDOWN_MS = v; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfCooldownMs.getString(), -1);
+                if (v >= 50 && v <= 30000) TsBoost.COOLDOWN_MS = v;
+                else errors.append("CD(").append(v).append("), ");
+            } catch (Exception e) { errors.append("CD, "); }
             TsBoost.saveConfigToRMS();
 
             // === AutoSuicide ===
@@ -177,14 +183,16 @@ public final class TsConfig implements CommandListener {
             AutoSuicide.triggerMode = cgTriggerMode.getSelectedIndex();
 
             try {
-                int v = Integer.parseInt(tfSuicideTimeout.getString().trim());
-                if (v >= 5 && v <= 300) AutoSuicide.IDLE_TIMEOUT_MS = v * 1000; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfSuicideTimeout.getString(), -1);
+                if (v >= 3 && v <= 600) AutoSuicide.IDLE_TIMEOUT_MS = v * 1000;
+                else errors.append("Timeout(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Timeout, "); }
 
             try {
-                int v = Integer.parseInt(tfSuicideCheck.getString().trim());
-                if (v >= 1 && v <= 60) AutoSuicide.CHECK_INTERVAL_MS = v * 1000; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfSuicideCheck.getString(), -1);
+                if (v >= 1 && v <= 120) AutoSuicide.CHECK_INTERVAL_MS = v * 1000;
+                else errors.append("Check(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Check, "); }
 
             if (AutoSuicide.isEnabled && !wasEnabled) {
                 AutoSuicide.start();
@@ -197,9 +205,10 @@ public final class TsConfig implements CommandListener {
             AutoSuicide.isJumpEnabled = cgJump.isSelected(0);
 
             try {
-                int v = Integer.parseInt(tfJumpInterval.getString().trim());
-                if (v >= 5 && v <= 300) AutoSuicide.JUMP_INTERVAL_MS = v * 1000; else errCount++;
-            } catch (Exception e) { errCount++; }
+                int v = safeParseInt(tfJumpInterval.getString(), -1);
+                if (v >= 3 && v <= 600) AutoSuicide.JUMP_INTERVAL_MS = v * 1000;
+                else errors.append("Jump(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Jump, "); }
 
             if (AutoSuicide.isJumpEnabled && !wasJump) {
                 AutoSuicide.startJump();
@@ -209,10 +218,10 @@ public final class TsConfig implements CommandListener {
 
             AutoSuicide.saveConfigToRMS();
 
-            if (errCount == 0) {
+            if (errors.length() == 0) {
                 GameScr.gameAC("TS Config: \u0110\u00e3 l\u01b0u!");
             } else {
-                GameScr.gameAC("TS Config: L\u01b0u (" + errCount + " l\u1ed7i, gi\u1eef c\u0169)");
+                GameScr.gameAC("TS: L\u1ed7i: " + errors.toString());
             }
         } else if (c == cmdReset) {
             TsBoost.resetConfig();
@@ -224,5 +233,25 @@ public final class TsConfig implements CommandListener {
             return;
         }
         Display.getDisplay(GameMidlet.instance).setCurrent(MotherCanvas.gI());
+    }
+
+    /**
+     * An toan parse int tu TextField. Strip tat ca ky tu khong phai so.
+     * J2ME Loader co the tra ve chuoi co ky tu an hoac space la.
+     */
+    private static int safeParseInt(String s, int fallback) {
+        if (s == null) return fallback;
+        // Strip moi thu khong phai digit
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '0' && ch <= '9') sb.append(ch);
+        }
+        if (sb.length() == 0) return fallback;
+        try {
+            return Integer.parseInt(sb.toString());
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 }

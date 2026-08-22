@@ -17,6 +17,10 @@ public final class AutoBossEvent implements Runnable {
     private static boolean disableAfterTest;
     private static final long ROUND_RECHECK_TIME = 600000L;
 
+    static {
+        loadConfigFromRMS();
+    }
+
     private AutoBossEvent() {}
 
     public static void toggle() {
@@ -30,6 +34,7 @@ public final class AutoBossEvent implements Runnable {
             lastWindowKey = -1;
             GameScr.gameAC("TSBoss: ON (" + priorityName() + ") - xong luot dau, quet lai 10 phut");
         }
+        saveConfigToRMS();
     }
 
     /** Chon loai nao thi bat luon, an lai loai dang bat thi tat. */
@@ -49,6 +54,7 @@ public final class AutoBossEvent implements Runnable {
             }
             GameScr.gameAC("TSBoss: ON (" + priorityName() + ")");
         }
+        saveConfigToRMS();
     }
 
     public static String priorityName() {
@@ -76,6 +82,7 @@ public final class AutoBossEvent implements Runnable {
         savedAuto = null;
         savedMap = -1;
         savedZone = -1;
+        saveConfigToRMS();
     }
 
     public static void testNow() {
@@ -570,6 +577,34 @@ public final class AutoBossEvent implements Runnable {
 
     private static void sleep(long ms) {
         try { Thread.sleep(ms); } catch (InterruptedException e) {}
+    }
+
+    // === RMS ===
+
+    /** Luu isEnabled + eventPriority vao RMS */
+    public static void saveConfigToRMS() {
+        try {
+            RMS.gameAA("boss_event_cfg", (isEnabled ? 1 : 0) + ";" + eventPriority);
+        } catch (Exception e) {}
+    }
+
+    /** Load isEnabled + eventPriority tu RMS. Auto-start thread neu enabled. */
+    public static void loadConfigFromRMS() {
+        try {
+            String data = RMS.gameAC("boss_event_cfg");
+            if (data != null && data.length() > 0) {
+                int sep = data.indexOf(';');
+                if (sep > 0) {
+                    isEnabled = Integer.parseInt(data.substring(0, sep).trim()) == 1;
+                    eventPriority = Integer.parseInt(data.substring(sep + 1).trim());
+                }
+            }
+        } catch (Exception e) {}
+        // Auto-start monitor thread neu config da luu enabled
+        if (isEnabled) {
+            new Thread(new AutoBossEvent()).start();
+            lastWindowKey = -1;
+        }
     }
 
     /** Hoi sinh nhanh neu nhan vat dang chet (statusMe==14 hoac cHP<=0). */

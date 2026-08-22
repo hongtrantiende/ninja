@@ -145,17 +145,21 @@ public final class BossConfig implements CommandListener {
             AutoSanBoss.saveToRMS();
 
             // Luu gio spawn
-            int errCount = 0;
-            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_VDMQ, tfVDMQ.getString())) errCount++;
-            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_MAPNGOAI, tfMapNgoai.getString())) errCount++;
-            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_LANGCO, tfLangCo.getString())) errCount++;
-            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_THEGIOI, tfTheGioi.getString())) errCount++;
+            StringBuffer errMsg = new StringBuffer();
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_VDMQ, tfVDMQ.getString()))
+                errMsg.append("VDMQ, ");
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_MAPNGOAI, tfMapNgoai.getString()))
+                errMsg.append("MapNgoai, ");
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_LANGCO, tfLangCo.getString()))
+                errMsg.append("LangCo, ");
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_THEGIOI, tfTheGioi.getString()))
+                errMsg.append("TheGioi, ");
             AutoSanBoss.saveBossHoursToRMS();
 
             int disabled = AutoSanBoss.disabledMaps.size();
             StringBuffer msg = new StringBuffer("Boss Config: \u0110\u00e3 l\u01b0u");
             if (disabled > 0) msg.append(" (").append(disabled).append(" map t\u1eaft)");
-            if (errCount > 0) msg.append(" | ").append(errCount).append(" gi\u1edd l\u1ed7i");
+            if (errMsg.length() > 0) msg.append(" | Gi\u1edd l\u1ed7i: ").append(errMsg);
             GameScr.gameAC(msg.toString());
         } else if (c == cmdReset) {
             // Reset gio spawn ve mac dinh

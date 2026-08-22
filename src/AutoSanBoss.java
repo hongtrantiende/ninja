@@ -261,7 +261,7 @@ public class AutoSanBoss implements Runnable {
         {7, 10, 15, 23},                                       // Làng Cổ
         {12, 21}                                                // Thế Giới
     };
-    private static int[][] BOSS_HOURS = {
+    public static int[][] BOSS_HOURS = {
         {6, 13, 19, 23},
         {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},
         {7, 10, 15, 23},

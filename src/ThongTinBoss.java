@@ -8,14 +8,16 @@ public class ThongTinBoss {
         public String name;
         public String mapInfo;
         public int[] hours;
+        public int bossType; // AutoSanBoss.TYPE_VDMQ, etc.
         public int secondsLeft;
         public boolean isLive;
         public String nextHourStr;
 
-        public BossData(String name, String mapInfo, int[] hours) {
+        public BossData(String name, String mapInfo, int[] hours, int bossType) {
             this.name = name;
             this.mapInfo = mapInfo;
             this.hours = hours;
+            this.bossType = bossType;
         }
 
         public void updateTime(int currentSecOfDay) {
@@ -49,10 +51,10 @@ public class ThongTinBoss {
     }
 
     private static BossData[] bosses = new BossData[] {
-        new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}),
-        new BossData("MapNgoai", "Lv45: 14,15,16 | Lv55: 44,67,70 | Lv65: 24,41,45 | Lv75: 18,36,54", new int[] {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}),
-        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {7, 10, 15, 23}),
-        new BossData("Th\u1ebf Gi\u1edbi", "M20", new int[] {12, 21})
+        new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}, AutoSanBoss.TYPE_VDMQ),
+        new BossData("MapNgoai", "Lv45: 14,15,16 | Lv55: 44,67,70 | Lv65: 24,41,45 | Lv75: 18,36,54", new int[] {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}, AutoSanBoss.TYPE_MAPNGOAI),
+        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {7, 10, 15, 23}, AutoSanBoss.TYPE_LANGCO),
+        new BossData("Th\u1ebf Gi\u1edbi", "M20", new int[] {12, 21}, AutoSanBoss.TYPE_THEGIOI)
     };
 
     public static void toggle() {
@@ -64,8 +66,18 @@ public class ThongTinBoss {
         }
     }
 
+    /** Dong bo gio boss tu AutoSanBoss.BOSS_HOURS vao bosses[].hours */
+    private static void syncBossHours() {
+        for (int i = 0; i < bosses.length; i++) {
+            bosses[i].hours = AutoSanBoss.BOSS_HOURS[bosses[i].bossType];
+        }
+    }
+
     public static void paint(mGraphics g) {
         if (!isEnable) return;
+
+        // Sync gio tu AutoSanBoss.BOSS_HOURS (user co the da chinh trong BossConfig)
+        syncBossHours();
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int curH = cal.get(Calendar.HOUR_OF_DAY);
