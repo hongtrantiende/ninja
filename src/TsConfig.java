@@ -128,9 +128,7 @@ public final class TsConfig implements CommandListener {
     public static void select() {
         TsBoost.loadConfigFromRMS();
         AutoSuicide.loadConfigFromRMS();
-        if (instance == null) {
-            instance = new TsConfig();
-        }
+        instance = new TsConfig();
         instance.loadCurrentState();
         Display.getDisplay(GameMidlet.instance).setCurrent(instance.form);
     }

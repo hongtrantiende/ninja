@@ -167,10 +167,8 @@ public final class AutoSuicide implements Runnable {
                         if (myChar == null || myChar.cName == null) continue;
                         if (myChar.statusMe == 14 || myChar.cHP <= 0) continue;
 
-                        // Nhay that: di chuyen len JUMP_HEIGHT px
-                        int cx = myChar.cx;
-                        int cy = myChar.cy;
-                        Char.gameAC(cx, cy - JUMP_HEIGHT);
+                        // Nhay that: nhan phim nhay (keyPressedz[5])
+                        GameCanvas.keyPressedz[5] = true;
 
                     } catch (Exception e) {
                         try { Thread.sleep(2000); } catch (Exception ex) {}
