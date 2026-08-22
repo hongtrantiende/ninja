@@ -13,6 +13,9 @@ public final class AutoSuicide implements Runnable {
     public static int IDLE_TIMEOUT_MS = DEF_IDLE_TIMEOUT_MS;
     public static int CHECK_INTERVAL_MS = DEF_CHECK_INTERVAL_MS;
 
+    /** 0 = AK only, 1 = TS only, 2 = Ca hai */
+    public static int triggerMode = 2;
+
     public static boolean isEnabled = false;
     private static boolean isRunning = false;
     private static Thread thread;
@@ -36,6 +39,18 @@ public final class AutoSuicide implements Runnable {
     }
 
     private AutoSuicide() {}
+
+    /** Check auto dang chay theo triggerMode */
+    private static boolean isAutoActive() {
+        boolean akActive = Code.gameAB != null;
+        boolean tsActive = Code.gameAB instanceof TanSat;
+        switch (triggerMode) {
+            case 0: return akActive && !tsActive; // AK only (not TS)
+            case 1: return tsActive;               // TS only
+            case 2: return akActive;               // Ca hai (any auto)
+            default: return akActive;
+        }
+    }
 
     // ===================== TU SAT =====================
 
@@ -74,7 +89,7 @@ public final class AutoSuicide implements Runnable {
             try {
                 Thread.sleep(CHECK_INTERVAL_MS);
 
-                if (Code.gameAB == null) {
+                if (!isAutoActive()) {
                     lastMoveTime = System.currentTimeMillis();
                     continue;
                 }
@@ -146,7 +161,7 @@ public final class AutoSuicide implements Runnable {
                         Thread.sleep(JUMP_INTERVAL_MS);
 
                         // Chi nhay khi dang treo auto
-                        if (Code.gameAB == null) continue;
+                        if (!isAutoActive()) continue;
 
                         Char myChar = Char.getMyChar();
                         if (myChar == null || myChar.cName == null) continue;
@@ -174,11 +189,12 @@ public final class AutoSuicide implements Runnable {
 
     // ===================== RMS =====================
 
-    /** Luu config vao RMS. Format: "timeout;interval;enabled;jumpInterval;jumpEnabled" */
+    /** Luu config vao RMS. Format: "timeout;interval;enabled;jumpInterval;jumpEnabled;triggerMode" */
     public static void saveConfigToRMS() {
         try {
             String data = IDLE_TIMEOUT_MS + ";" + CHECK_INTERVAL_MS + ";"
-                + (isEnabled ? 1 : 0) + ";" + JUMP_INTERVAL_MS + ";" + (isJumpEnabled ? 1 : 0);
+                + (isEnabled ? 1 : 0) + ";" + JUMP_INTERVAL_MS + ";"
+                + (isJumpEnabled ? 1 : 0) + ";" + triggerMode;
             RMS.gameAA("auto_suicide_cfg", data);
         } catch (Exception e) {}
     }
@@ -188,9 +204,9 @@ public final class AutoSuicide implements Runnable {
         try {
             String data = RMS.gameAC("auto_suicide_cfg");
             if (data != null && data.length() > 0) {
-                int[] vals = new int[5];
+                int[] vals = new int[6];
                 int idx = 0, start = 0;
-                for (int i = 0; i <= data.length() && idx < 5; i++) {
+                for (int i = 0; i <= data.length() && idx < 6; i++) {
                     if (i == data.length() || data.charAt(i) == ';') {
                         vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
                         start = i + 1;
@@ -209,6 +225,9 @@ public final class AutoSuicide implements Runnable {
                 if (idx >= 5) {
                     isJumpEnabled = vals[4] == 1;
                 }
+                if (idx >= 6) {
+                    triggerMode = vals[5];
+                }
             }
         } catch (Exception e) {}
     }
@@ -218,5 +237,6 @@ public final class AutoSuicide implements Runnable {
         IDLE_TIMEOUT_MS = DEF_IDLE_TIMEOUT_MS;
         CHECK_INTERVAL_MS = DEF_CHECK_INTERVAL_MS;
         JUMP_INTERVAL_MS = DEF_JUMP_INTERVAL_MS;
+        triggerMode = 2;
     }
 }

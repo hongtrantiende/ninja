@@ -834,7 +834,7 @@ implements Runnable {
                             if (var23 >= GameScr.vItemMap.size()) {
                                 if (var28 == null) break;
                                 Service.gI().gameAQ(var28.itemMapID);
-                                if (ExploitConfig.isDupePickup) {
+                                if (ExploitConfig.isDupePickup && ExploitConfig.isActive()) {
                                     for (int dpI = 0; dpI < ExploitConfig.DUPE_PICKUP_COUNT; dpI++) {
                                         Auto.Sleep(10L);
                                         Service.gI().gameAQ(var28.itemMapID);

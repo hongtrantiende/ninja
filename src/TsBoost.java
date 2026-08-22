@@ -348,7 +348,7 @@ public class TsBoost implements Runnable {
                 Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
             }
             // Fast Attack: gui them N packet attack
-            if (ExploitConfig.isFastAttack) {
+            if (ExploitConfig.isFastAttack && ExploitConfig.isActive()) {
                 int atkType = cachedSkillId >= 0 ? 2 : 1;
                 for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
                     try { Thread.sleep(5); } catch (Exception ex) {}

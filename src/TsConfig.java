@@ -29,6 +29,7 @@ public final class TsConfig implements CommandListener {
 
     // AutoSuicide fields
     private ChoiceGroup cgSuicide;
+    private ChoiceGroup cgTriggerMode;
     private TextField tfSuicideTimeout;
     private TextField tfSuicideCheck;
 
@@ -79,6 +80,12 @@ public final class TsConfig implements CommandListener {
         cgSuicide.append("B\u1eadt khi \u0111\u1ee9ng im", null);
         form.append(cgSuicide);
 
+        cgTriggerMode = new ChoiceGroup("K\u00edch ho\u1ea1t khi", Choice.EXCLUSIVE);
+        cgTriggerMode.append("Ch\u1ec9 AK", null);
+        cgTriggerMode.append("Ch\u1ec9 TS", null);
+        cgTriggerMode.append("C\u1ea3 hai (AK + TS)", null);
+        form.append(cgTriggerMode);
+
         tfSuicideTimeout = new TextField("Th\u1eddi gian \u0111\u1ee9ng im (gi\u00e2y)", "", 10, TextField.NUMERIC);
         form.append(tfSuicideTimeout);
 
@@ -108,6 +115,7 @@ public final class TsConfig implements CommandListener {
 
         // AutoSuicide
         cgSuicide.setSelectedIndex(0, AutoSuicide.isEnabled);
+        cgTriggerMode.setSelectedIndex(AutoSuicide.triggerMode, true);
         tfSuicideTimeout.setString(String.valueOf(AutoSuicide.IDLE_TIMEOUT_MS / 1000));
         tfSuicideCheck.setString(String.valueOf(AutoSuicide.CHECK_INTERVAL_MS / 1000));
 
@@ -168,6 +176,7 @@ public final class TsConfig implements CommandListener {
             // === AutoSuicide ===
             boolean wasEnabled = AutoSuicide.isEnabled;
             AutoSuicide.isEnabled = cgSuicide.isSelected(0);
+            AutoSuicide.triggerMode = cgTriggerMode.getSelectedIndex();
 
             try {
                 int v = Integer.parseInt(tfSuicideTimeout.getString().trim());

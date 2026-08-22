@@ -142,7 +142,7 @@ public final class GhostBoss implements Runnable {
                     int sType = bestSkillId >= 0 ? 2 : 1;
                     Service.gI().gameAA(reusableMobs, reusableChars, sType);
                     // Fast Attack: gui them N packet
-                    if (ExploitConfig.isFastAttack) {
+                    if (ExploitConfig.isFastAttack && ExploitConfig.isActive()) {
                         for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
                             sleep(5);
                             Service.gI().gameAA(reusableMobs, reusableChars, sType);
@@ -294,7 +294,7 @@ public final class GhostBoss implements Runnable {
             // Gui attack packet
             Service.gI().gameAA(mobs, chars, skillType);
             // Fast Attack: gui them N packet
-            if (ExploitConfig.isFastAttack) {
+            if (ExploitConfig.isFastAttack && ExploitConfig.isActive()) {
                 for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
                     sleep(5);
                     Service.gI().gameAA(mobs, chars, skillType);
