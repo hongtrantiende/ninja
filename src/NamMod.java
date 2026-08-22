@@ -25,6 +25,14 @@ public final class NamMod implements IActionListener {
     // Cai dat San Boss: mo Form checkbox
     private static final int CFG_BOSS_MENU = 120140;
 
+    // Cai dat CN Test (exploit)
+    private static final int CFG_EXPLOIT_MENU = 120150;
+
+    // Cai dat Tan Sat
+    private static final int CFG_TS_MENU = 120160;
+    private static final int AUTO_SUICIDE = 120161;
+    private static final int AUTO_JUMP = 120162;
+
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -66,10 +74,23 @@ public final class NamMod implements IActionListener {
             : "OFF";
         items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
+        // === Cài đặt Tàn Sát ===
+        items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
+        String suicideLabel = "Auto T\u1ef1 S\u00e1t: " + onOff(AutoSuicide.isEnabled);
+        if (AutoSuicide.isEnabled) suicideLabel += " (" + (AutoSuicide.IDLE_TIMEOUT_MS / 1000) + "s)";
+        items.addElement(command(suicideLabel, AUTO_SUICIDE));
+        String jumpLabel = "Auto Nh\u1ea3y: " + onOff(AutoSuicide.isJumpEnabled);
+        if (AutoSuicide.isJumpEnabled) jumpLabel += " (" + (AutoSuicide.JUMP_INTERVAL_MS / 1000) + "s)";
+        items.addElement(command(jumpLabel, AUTO_JUMP));
+
         // === Tiện ích Khác ===
         items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled), TS_VIP_MAP));
         items.addElement(command("TS Tu Luy\u1ec7n: " + onOff(AutoTuLuyen.isEnabled), TS_TU_LUYEN));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
+
+        // === Exploit / Test ===
+        items.addElement(command("C\u00e0i \u0111\u1eb7t CN Test \u25b8", CFG_EXPLOIT_MENU));
+
         GameCanvas.menu.gameAA(items);
     }
 
@@ -120,6 +141,15 @@ public final class NamMod implements IActionListener {
                 return;
             case CFG_BOSS_MENU:
                 BossConfig.select();
+                return;
+            case CFG_TS_MENU:
+                TsConfig.select();
+                return;
+            case AUTO_SUICIDE:
+                AutoSuicide.toggle();
+                return;
+            case AUTO_JUMP:
+                AutoSuicide.toggleJump();
                 return;
             case AUTO_BOSS:
                 AutoSanBoss.toggle();
@@ -184,6 +214,10 @@ public final class NamMod implements IActionListener {
                 return;
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();
+                return;
+
+            case CFG_EXPLOIT_MENU:
+                ExploitConfig.select();
                 return;
 
             default:

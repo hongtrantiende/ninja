@@ -117,6 +117,7 @@ public final class AutoBossEvent implements Runnable {
                 // Cho quet xong 1 map test
                 while (isEnabled && inEvent) {
                     if (AutoSanBoss.consumeEventRoundCompleted()) break;
+                    if (!AutoSanBoss.isRunning) break;
                     sleep(500L);
                 }
 
@@ -242,22 +243,65 @@ public final class AutoBossEvent implements Runnable {
         } catch (Exception e) { return false; }
     }
 
+    /** Check xem co boss nao dang active (trong 40P) phu hop voi eventPriority hien tai khong */
+    private static boolean anyBossActiveForPriority() {
+        switch (eventPriority) {
+            case 1: // VDMQ + Lang Co
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ)
+                    || AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
+            case 2: // MapNgoai
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPNGOAI);
+            case 3: // TheGioi
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_THEGIOI);
+            default: // Mac dinh = tat ca
+                for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
+                    if (AutoSanBoss.isBossActive(i)) return true;
+                }
+                return false;
+        }
+    }
+
     private static int currentWindowKey() {
+        if (!anyBossActiveForPriority()) return -1;
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int hour = c.get(Calendar.HOUR_OF_DAY);
-        if (c.get(Calendar.MINUTE) >= 40 || !isSpawnHour(hour)) return -1;
         return c.get(Calendar.YEAR) * 100000 + c.get(Calendar.DAY_OF_YEAR) * 100 + hour;
     }
 
-    private static boolean isSpawnHour(int h) {
-        int[] hours = {1,3,5,6,7,9,10,11,12,13,15,17,19,21,23};
-        for (int i = 0; i < hours.length; i++) if (hours[i] == h) return true;
+    /** Kiem tra mat ket noi */
+    private static boolean isDisconnected() {
+        try {
+            Char c = Char.getMyChar();
+            if (c == null || c.cName == null) return true;
+            return false;
+        } catch (Exception e) { return true; }
+    }
+
+    /** Cho game tu reconnect, tra ve true neu ok, false neu timeout */
+    private static boolean waitForReconnect() {
+        GameScr.gameAC("TSBoss: M\u1ea5t k\u1ebft n\u1ed1i! Ch\u1edd...");
+        for (int i = 0; i < 120 && isEnabled; i++) {
+            sleep(1000L);
+            if (!isDisconnected()) {
+                sleep(3000L);
+                GameScr.gameAC("TSBoss: \u0110\u00e3 k\u1ebft n\u1ed1i l\u1ea1i!");
+                return true;
+            }
+        }
         return false;
     }
 
     public void run() {
         while (isEnabled) {
             try {
+                // Check disconnect dau moi vong
+                if (isDisconnected()) {
+                    if (!waitForReconnect()) break;
+                    // Sau reconnect, reset lastWindowKey de co the trigger lai
+                    lastWindowKey = -1;
+                    continue;
+                }
+
                 int key = currentWindowKey();
                 // CHI leader moi tu dong bat event khi den gio boss
                 // Thanh vien chi nhan lenh tu truong nhom qua pkm -4/-5
@@ -323,10 +367,30 @@ public final class AutoBossEvent implements Runnable {
         // === Luot 1: Quet + goi ae fang boss ===
         while (isEnabled && inEvent) {
             if (AutoSanBoss.consumeEventRoundCompleted()) break;
+            // Neu AutoSanBoss da dung (disconnect/error) -> thoat luot
+            if (!AutoSanBoss.isRunning) {
+                GameScr.gameAC("TSBoss: AutoSanBoss d\u1eebng, k\u1ebft th\u00fac l\u01b0\u1ee3t");
+                break;
+            }
+            if (isDisconnected()) {
+                if (!waitForReconnect()) { finishEvent(false); return; }
+                // Reconnect ok nhung AutoSanBoss da chet -> ket thuc event, cho trigger lai
+                if (!AutoSanBoss.isRunning) {
+                    lastWindowKey = -1;
+                    finishEvent(false);
+                    return;
+                }
+            }
             sleep(500L);
         }
 
         if (!isEnabled || !inEvent) { finishEvent(false); return; }
+        // Neu AutoSanBoss da chet (disconnect/loi) -> ket thuc som, reset key de trigger lai
+        if (!AutoSanBoss.isRunning) {
+            lastWindowKey = -1;
+            finishEvent(false);
+            return;
+        }
 
         // Xong luot 1: gui nhom ve farm
         membersSentBack = true;
@@ -339,6 +403,15 @@ public final class AutoBossEvent implements Runnable {
         GameScr.gameAC("TSBoss: Leader qu\u00e9t th\u00eam l\u01b0\u1ee3t 2...");
         while (isEnabled && inEvent) {
             if (AutoSanBoss.consumeEventRoundCompleted()) break;
+            if (!AutoSanBoss.isRunning) break;
+            if (isDisconnected()) {
+                if (!waitForReconnect()) { finishEvent(false); return; }
+                if (!AutoSanBoss.isRunning) {
+                    lastWindowKey = -1;
+                    finishEvent(false);
+                    return;
+                }
+            }
             sleep(500L);
         }
 

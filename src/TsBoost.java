@@ -18,13 +18,104 @@ public class TsBoost implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // === CONFIG (toi uu cho 20 instances) ===
-    private static final int ATTACK_DELAY_MS = 200;     // 200ms/attack (cho TS goc danh truoc)
-    private static final int IDLE_DELAY_MS = 500;        // 500ms khi het quai
-    private static final int MAX_ATTACK_RANGE = 400;     // Range danh toi da (px)
-    private static final int SKILL_RESELECT_MS = 15000;   // Chon lai skill moi 15s
+    // === CONFIG (co the chinh sua, luu RMS) ===
+    private static final int DEF_ATTACK_DELAY_MS = 200;
+    private static final int DEF_IDLE_DELAY_MS = 500;
+    private static final int DEF_MAX_ATTACK_RANGE = 400;
+    private static final int DEF_SKILL_RESELECT_MS = 15000;
+    private static final int DEF_MAX_MOB_PER_ATTACK = 6;
+    private static final int DEF_COOLDOWN_MS = 1500;  // 1.5s cooldown per mob
+
+    public static int ATTACK_DELAY_MS = DEF_ATTACK_DELAY_MS;
+    public static int IDLE_DELAY_MS = DEF_IDLE_DELAY_MS;
+    public static int MAX_ATTACK_RANGE = DEF_MAX_ATTACK_RANGE;
+    public static int SKILL_RESELECT_MS = DEF_SKILL_RESELECT_MS;
+    public static int MAX_MOB_PER_ATTACK = DEF_MAX_MOB_PER_ATTACK;
+    public static boolean isCooldownEnabled = false;
+    public static int COOLDOWN_MS = DEF_COOLDOWN_MS;
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
-    private static final int MAX_MOB_PER_ATTACK = 6;  // Gioi han mob/lan danh (tranh crash)
+
+    // === MOB COOLDOWN TRACKING (circular buffer) ===
+    private static final int CD_SIZE = 16;
+    private static final int[] cdX = new int[CD_SIZE];
+    private static final int[] cdY = new int[CD_SIZE];
+    private static final long[] cdTime = new long[CD_SIZE];
+    private static int cdIdx = 0;
+
+    static {
+        loadConfigFromRMS();
+    }
+
+    /** Luu config TS vao RMS. Format: "val1;val2;val3;val4;val5;cooldownEnabled;cooldownMs" */
+    public static void saveConfigToRMS() {
+        try {
+            String data = ATTACK_DELAY_MS + ";" + IDLE_DELAY_MS + ";"
+                + MAX_ATTACK_RANGE + ";" + SKILL_RESELECT_MS + ";" + MAX_MOB_PER_ATTACK
+                + ";" + (isCooldownEnabled ? 1 : 0) + ";" + COOLDOWN_MS;
+            RMS.gameAA("ts_boost_cfg", data);
+        } catch (Exception e) {}
+    }
+
+    /** Load config TS tu RMS */
+    public static void loadConfigFromRMS() {
+        try {
+            String data = RMS.gameAC("ts_boost_cfg");
+            if (data != null && data.length() > 0) {
+                int[] vals = new int[7];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 7; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 5) {
+                    ATTACK_DELAY_MS = vals[0];
+                    IDLE_DELAY_MS = vals[1];
+                    MAX_ATTACK_RANGE = vals[2];
+                    SKILL_RESELECT_MS = vals[3];
+                    MAX_MOB_PER_ATTACK = vals[4];
+                }
+                if (idx >= 6) {
+                    isCooldownEnabled = vals[5] == 1;
+                }
+                if (idx >= 7) {
+                    COOLDOWN_MS = vals[6];
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Reset config ve mac dinh */
+    public static void resetConfig() {
+        ATTACK_DELAY_MS = DEF_ATTACK_DELAY_MS;
+        IDLE_DELAY_MS = DEF_IDLE_DELAY_MS;
+        MAX_ATTACK_RANGE = DEF_MAX_ATTACK_RANGE;
+        SKILL_RESELECT_MS = DEF_SKILL_RESELECT_MS;
+        MAX_MOB_PER_ATTACK = DEF_MAX_MOB_PER_ATTACK;
+        isCooldownEnabled = false;
+        COOLDOWN_MS = DEF_COOLDOWN_MS;
+    }
+
+    /** Danh dau mob tai (x,y) vua bi danh */
+    private static void markMobCooldown(int mx, int my) {
+        cdX[cdIdx] = mx;
+        cdY[cdIdx] = my;
+        cdTime[cdIdx] = System.currentTimeMillis();
+        cdIdx = (cdIdx + 1) % CD_SIZE;
+    }
+
+    /** Kiem tra mob tai (x,y) co dang cooldown khong */
+    private static boolean isMobOnCooldown(int mx, int my) {
+        if (!isCooldownEnabled) return false;
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < CD_SIZE; i++) {
+            if (cdX[i] == mx && cdY[i] == my && now - cdTime[i] < COOLDOWN_MS) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // === REUSABLE VECTORS (tranh GC) ===
     private static final MyVector reusableMobs = new MyVector();
@@ -225,6 +316,8 @@ public class TsBoost implements Runnable {
                 Object o = GameScr.vMob.elementAt(i);
                 if (o instanceof Mob) {
                     Mob mob = (Mob) o;
+                    // Skip mob dang cooldown
+                    if (isMobOnCooldown(mob.x, mob.y)) continue;
                     if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
                         if (Math.abs(cx - mob.x) + Math.abs(cy - mob.y) <= MAX_ATTACK_RANGE) {
                             reusableMobs.addElement(mob);
@@ -254,7 +347,24 @@ public class TsBoost implements Runnable {
             } else {
                 Service.gI().gameAA(mobs, reusableChars, 1); // Danh thuong
             }
+            // Fast Attack: gui them N packet attack
+            if (ExploitConfig.isFastAttack) {
+                int atkType = cachedSkillId >= 0 ? 2 : 1;
+                for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
+                    try { Thread.sleep(5); } catch (Exception ex) {}
+                    Service.gI().gameAA(mobs, reusableChars, atkType);
+                }
+            }
             attacksSent++;
+            // Danh dau cooldown cho cac mob vua danh
+            if (isCooldownEnabled) {
+                for (int m = 0; m < mobs.size(); m++) {
+                    try {
+                        Mob mob = (Mob) mobs.elementAt(m);
+                        markMobCooldown(mob.x, mob.y);
+                    } catch (Exception ex) {}
+                }
+            }
         } catch (Exception e) {}
     }
 

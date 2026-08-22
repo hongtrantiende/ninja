@@ -1004,5 +1004,104 @@ Dù dòng 1507 restart PkBoss, nếu hồi sinh về nhà thì PkBoss mới chư
   5. Khi đã ở Thôn/Trường an toàn, `PkBoss` bắt đầu di chuyển đường tắt sang map boss.
 - Áp dụng cho cả **Trưởng nhóm (`beginLeaderEvent`, `testNow`)** và **Thành viên nhóm (`ChatRouter.startPartyBoss`)**.
 
+## 2026-08-23: Mob Cooldown — Chống Đánh Trượt (TsBoost)
+
+### Vấn đề
+TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server nhưng client chưa nhận packet xóa. Đây là server-side desync, game gốc cũng bị.
+
+### Giải pháp: Circular Buffer Cooldown
+- Thêm `isCooldownEnabled` + `COOLDOWN_MS` (default 1500ms, OFF) vào TsBoost config
+- Circular buffer 16 slot lưu `(x, y, timestamp)` của mob vừa đánh
+- `collectMobsInRange()`: skip mob có tọa độ trùng với buffer chưa hết cooldown
+- `fireAttack()`: sau khi đánh, đánh dấu tọa độ mob vào buffer
+- RMS format mở rộng 5→7 fields, backward compat: `idx >= 5` vẫn load bình thường
+
+### Kỹ thuật
+- **Tracking by position** (không phải mobId) vì mobId bị reuse khi mob respawn
+- **Circular buffer** tránh GC — `cdIdx = (cdIdx + 1) % CD_SIZE`
+- Cài đặt trong **TsConfig** form (checkbox + textfield)
+
+## 2026-08-23: Auto Suicide & Auto Jump
+
+### Auto Suicide (AutoSuicide.java)
+- Monitor thread kiểm tra tọa độ nhân vật mỗi `CHECK_INTERVAL_MS` (default 5s)
+- Nếu tọa độ không đổi quá `IDLE_TIMEOUT_MS` (default 30s) → gọi `Code.gameAN()` tự sát
+- Chỉ kích hoạt khi auto đang chạy (`Code.gameAB != null`)
+- Mặc định TẮT
+
+### Auto Jump
+- Thread gửi `Char.gameAC(cx, cy - 50)` mỗi `JUMP_INTERVAL_MS` (default 30s) để reset tọa độ server
+- Phải gửi move THẬT (Char.gameAC) — move ảo không reset server-side coords
+- Mặc định TẮT
+
+### Persistence
+- Cả 2 lưu chung RMS key `auto_suicide_cfg` format: `enabled;timeout;interval;jumpEnabled;jumpInterval`
+- Toggle từ NamMod trigger `AutoSuicide.saveConfigToRMS()` ngay lập tức
+- Cài đặt chi tiết trong TsConfig form
+
+## 2026-08-23: ExploitConfig — Centralized Exploit Settings
+
+### Architecture
+- **ExploitConfig.java**: Form cài đặt tất cả exploit, tách khỏi NamMod
+- NamMod chỉ có nút "Cài đặt CN Test ▸" → mở ExploitConfig form
+- Mọi exploit mặc định **TẮT**, user tự bật từng cái test
+- RMS key `exploit_cfg`, format 15 fields backward compat
+
+### 6 Exploit Features
+| # | Tên | Trạng thái | Config |
+|---|-----|-----------|--------|
+| 1 | Fast Attack | ✅ Implemented | Số lần gửi thêm (1-20, default 3) |
+| 2 | Dupe Pickup | ✅ Implemented | Số lần nhặt thêm (1-20, default 3) |
+| 3 | Item Use Race | ☐ Config only | Số lần dùng thêm (chưa hook) |
+| 4 | NPC Repeat | ✅ Implemented + Test button | NPC Type/Opt1/Opt2/Count/Delay |
+| 5 | Multi-hit | ☐ Config only | Số cặp skill+thường (chưa hook) |
+| 6 | Ghost NPC | ☐ Config only | Checkbox (chưa hook) |
+
+### NPC Repeat — Test NPC VIP 7
+- Nút "Test NPC Spam" trong form → spawn thread
+- Thread gửi `Service.gI().gameAC(npcT, opt1, 0)` + `Service.gI().gameAC(npcT, opt2, 0)` × N lần
+- Default: NPC 47 (VIP), Opt1=0 (Nhận quà), Opt2=6 (VIP 7)
+- Gửi packet trực tiếp — **KHÔNG cần NPC trên map, KHÔNG check coin client-side**
+- Server tự check coin/VIP level → nếu server yếu (không lock giữa checks) có thể nhận quà nhiều lần
+
+### Migration từ NamMod
+- `NamMod.isDupePickup` → `ExploitConfig.isDupePickup`
+- `NamMod.isFastAttack` → `ExploitConfig.isFastAttack`
+- References cập nhật: Code.java, TsBoost.java, GhostBoss.java (2 chỗ)
+- Dupe Pickup: hard-coded x3 → configurable loop `ExploitConfig.DUPE_PICKUP_COUNT`
+- Fast Attack: hard-coded x2 → configurable loop `ExploitConfig.FAST_ATTACK_COUNT`
+
+## 2026-08-23: Server Exploit Analysis — Packet Structure
+
+### Attack Packet (Message 4/73/60/61)
+- Client chỉ gửi `mobId` (byte) — server tự tính damage, tự quyết kill
+- **KHÔNG THỂ fake mob kill** — kill logic 100% server-side
+- `mobId` là ID tạm (0-255) do server gán khi mob spawn
+
+### NPC Interact Packet (Message 29)
+- `Service.gI().gameAC(npcType, option, param)` → 3 bytes
+- **Client KHÔNG check coin** khi interact NPC — gửi packet trực tiếp OK
+- `GameScr.gameAB(47, 0, 0)` check NPC tồn tại trên map (`gameAI()`)
+- Bypass: gọi `Service.gI().gameAC()` trực tiếp bỏ qua NPC check
+
+### Pickup Packet (gameAQ)
+- Gửi `itemMapID` (int) — server check khoảng cách
+- Ghost Move đã bypass check khoảng cách (đã chứng minh hoạt động)
+- Dupe: gửi cùng `itemMapID` nhiều lần nhanh — server có race condition
+
+### Server Validation Summary
+| Gì | Mức | Bypass |
+|----|-----|--------|
+| Mob exists khi attack | Chặt | Không |
+| Damage server-side | Chặt | Không |
+| Khoảng cách nhặt item | Yếu | Ghost Move ✅ |
+| Khoảng cách NPC | Yếu | Direct packet ✅ |
+| Vị trí nhân vật | Yếu | Char.gameAC() spoof ✅ |
+| Rate limit attack | Chưa rõ | Fast Attack x3+ chưa bị kick |
+| Item pickup race | Yếu | Dupe x3+ hoạt động ✅ |
+
+### patch_class_j2me.py
+- Thêm `ExploitConfig`, `TsConfig`, `AutoSuicide` vào `mod_classes` set
+- Tổng 54 class files patched (tăng từ 49)
 
 

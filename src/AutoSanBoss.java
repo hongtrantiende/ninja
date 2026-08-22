@@ -42,6 +42,7 @@ public class AutoSanBoss implements Runnable {
 
     static {
         loadFromRMS();
+        loadBossHoursFromRMS();
     }
 
     public static void loadFromRMS() {
@@ -76,6 +77,88 @@ public class AutoSanBoss implements Runnable {
                 sb.append(disabledMaps.elementAt(i).toString());
             }
             RMS.gameAA("dis_boss_maps", sb.toString());
+        } catch (Exception e) {}
+    }
+
+    // === Boss Hours RMS ===
+
+    /** Lay chuoi gio spawn cua 1 loai boss, vd "6,13,19,23" */
+    public static String getBossHoursStr(int bossType) {
+        int[] hours = BOSS_HOURS[bossType];
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < hours.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(hours[i]);
+        }
+        return sb.toString();
+    }
+
+    /** Set gio spawn tu chuoi, vd "6,13,19,23". Tra ve true neu hop le. */
+    public static boolean setBossHoursFromStr(int bossType, String str) {
+        try {
+            if (str == null || str.trim().length() == 0) return false;
+            // Dem so luong phan tu
+            int count = 1;
+            for (int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) == ',') count++;
+            }
+            int[] hours = new int[count];
+            int idx = 0;
+            int start = 0;
+            for (int i = 0; i <= str.length(); i++) {
+                if (i == str.length() || str.charAt(i) == ',') {
+                    String token = str.substring(start, i).trim();
+                    if (token.length() == 0) return false;
+                    int h = Integer.parseInt(token);
+                    if (h < 0 || h > 23) return false;
+                    hours[idx++] = h;
+                    start = i + 1;
+                }
+            }
+            BOSS_HOURS[bossType] = hours;
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Reset gio spawn ve mac dinh */
+    public static void resetBossHours(int bossType) {
+        int[] def = DEFAULT_BOSS_HOURS[bossType];
+        int[] copy = new int[def.length];
+        for (int i = 0; i < def.length; i++) copy[i] = def[i];
+        BOSS_HOURS[bossType] = copy;
+    }
+
+    /** Luu gio spawn vao RMS. Format: "type0|type1|type2|type3" */
+    public static void saveBossHoursToRMS() {
+        try {
+            StringBuffer sb = new StringBuffer();
+            for (int t = 0; t < BOSS_HOURS.length; t++) {
+                if (t > 0) sb.append('|');
+                sb.append(getBossHoursStr(t));
+            }
+            RMS.gameAA("boss_hours", sb.toString());
+        } catch (Exception e) {}
+    }
+
+    /** Load gio spawn tu RMS */
+    public static void loadBossHoursFromRMS() {
+        try {
+            String data = RMS.gameAC("boss_hours");
+            if (data != null && data.length() > 0) {
+                // Split by '|'
+                int typeIdx = 0;
+                int start = 0;
+                for (int i = 0; i <= data.length() && typeIdx < BOSS_HOURS.length; i++) {
+                    if (i == data.length() || data.charAt(i) == '|') {
+                        String part = data.substring(start, i);
+                        setBossHoursFromStr(typeIdx, part);
+                        typeIdx++;
+                        start = i + 1;
+                    }
+                }
+            }
         } catch (Exception e) {}
     }
 
@@ -171,12 +254,18 @@ public class AutoSanBoss implements Runnable {
     };
     private static final int[] MAPNGOAI_LEVELS = {45, 55, 65, 75};
 
-    // Khung gio spawn (gio)
-    private static final int[][] BOSS_HOURS = {
+    // Khung gio spawn (gio) — co the chinh sua
+    private static final int[][] DEFAULT_BOSS_HOURS = {
         {6, 13, 19, 23},                                       // VDMQ
         {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},            // MapNgoai (gio le)
         {7, 10, 15, 23},                                       // Làng Cổ
         {12, 21}                                                // Thế Giới
+    };
+    private static int[][] BOSS_HOURS = {
+        {6, 13, 19, 23},
+        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},
+        {7, 10, 15, 23},
+        {12, 21}
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -570,8 +659,8 @@ public class AutoSanBoss implements Runnable {
         }
         eventHuntMode = true;
         eventRoundCompleted = false;
-        eventHuntTypes = null;
-        toggleInternal(true, TYPE_MAPNGOAI);
+        eventHuntTypes = new int[]{TYPE_MAPNGOAI};
+        toggleInternal(true, TYPE_ALL);
     }
 
     /** TS Boss chi san TheGioi */
@@ -1129,7 +1218,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Kiem tra boss co dang trong khung gio spawn khong (40 phut sau gio spawn)
      */
-    private boolean isBossActive(int bossType) {
+    public static boolean isBossActive(int bossType) {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int h = cal.get(Calendar.HOUR_OF_DAY);
         int m = cal.get(Calendar.MINUTE);
@@ -1816,14 +1905,19 @@ public class AutoSanBoss implements Runnable {
                         sleepSeconds(2);
                     }
                 } else if (forcedBossType >= 0) {
-                    // === CHE DO FORCE 1 LOAI: San 1 loai boss cu the, khong check gio ===
-                    huntBossType(forcedBossType);
-
-                    // Sau khi quet xong 1 round, doi 10s roi quet lai
-                    if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
-                    if (checkStillRunning()) {
-                        GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", qu\u00e9t l\u1ea1i sau 10s...");
-                        sleepSeconds(10);
+                    // === CHE DO FORCE 1 LOAI ===
+                    if (eventHuntMode && !isBossActive(forcedBossType)) {
+                        // Event mode: boss chua den gio -> doi 30s
+                        GameScr.gameAC("TSB: " + BOSS_NAMES[forcedBossType] + " ch\u01b0a \u0111\u1ebfn gi\u1edd, \u0111\u1ee3i 30s...");
+                        sleepSeconds(30);
+                    } else {
+                        huntBossType(forcedBossType);
+                        // Sau khi quet xong 1 round, doi 10s roi quet lai
+                        if (eventHuntMode && checkStillRunning()) eventRoundCompleted = true;
+                        if (checkStillRunning()) {
+                            GameScr.gameAC("TSB: Xong " + BOSS_NAMES[forcedBossType] + ", qu\u00e9t l\u1ea1i sau 10s...");
+                            sleepSeconds(10);
+                        }
                     }
                 } else {
                     // === CHE DO TU DONG: Quet theo lich spawn ===
