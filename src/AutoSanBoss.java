@@ -2008,6 +2008,30 @@ public class AutoSanBoss implements Runnable {
         String prefix = treoMode ? "TREO" : "TSB";
         GameScr.gameAC(prefix + ": San " + BOSS_NAMES[bossType] + " (" + enabledCount + "/" + maps.length + " maps)");
 
+        // Ưu tiên map đang đứng: nếu đang ở 1 trong các map boss → quét map đó trước
+        // Copy mảng để tránh thay đổi BOSS_MAPS gốc
+        int curMap = TileMap.mapID;
+        boolean needReorder = false;
+        for (int i = 1; i < maps.length; i++) {
+            if (maps[i] == curMap && isMapEnabled(curMap)) {
+                needReorder = true;
+                break;
+            }
+        }
+        if (needReorder) {
+            int[] reordered = new int[maps.length];
+            System.arraycopy(maps, 0, reordered, 0, maps.length);
+            for (int i = 1; i < reordered.length; i++) {
+                if (reordered[i] == curMap) {
+                    int tmp = reordered[0];
+                    reordered[0] = reordered[i];
+                    reordered[i] = tmp;
+                    break;
+                }
+            }
+            maps = reordered;
+        }
+
         for (int mi = 0; mi < maps.length && checkStillRunning(); mi++) {
             // Skip map bi tat trong cai dat
             if (!isMapEnabled(maps[mi])) continue;
