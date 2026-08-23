@@ -75,6 +75,9 @@ python scripts/patch_effectauto.py build/unpacked/EffectAuto.class
 
 # 4e. Đẩy vị trí HS lượng/Lọc Đồ xuống thấp hơn
 python scripts/patch_hsluong_pos.py build/unpacked/GameScr.class
+
+# 4f. Hook AutoBossNotice vào ChatManager (bắt thông báo Boss kênh thế giới)
+python scripts/patch_chatmanager_boss.py build/unpacked/
 ```
 
 ### Bước 5: Xóa folder javax stubs & Đóng gói JAR
@@ -122,6 +125,7 @@ Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gố
 | `fix_gamescr_thongke.py` | Rename "paint"→"draaw" tránh conflict | ❌ Chạy 1 lần trên JAR gốc |
 | `patch_effectauto.py` | Fix EffectAuto array size 20→100 | ✅ Có |
 | `patch_hsluong_pos.py` | Đẩy HS lượng/Lọc Đồ xuống 30px | ❌ Chạy 1 lần trên JAR gốc |
+| `patch_chatmanager_boss.py` | Hook AutoBossNotice vào ChatManager (bắt TB Boss kênh TG) | ✅ Có |
 
 ---
 

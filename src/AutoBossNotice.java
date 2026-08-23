@@ -7,6 +7,8 @@
  */
 public class AutoBossNotice {
     public static boolean isEnabled = true; // Mặc định BẬT
+    /** Bật debug = true để in ra mọi tin nhắn nhận được (xem format boss notification) */
+    public static boolean debugMode = false;
     private static long lastTriggerTime = 0;
     private static String lastNotice = "";
 
@@ -41,6 +43,11 @@ public class AutoBossNotice {
     public static void onReceiveMessage(String text) {
         if (!isEnabled || text == null || text.length() == 0) return;
 
+        // Debug: In ra mọi tin nhắn nhận được để kiểm tra format
+        if (debugMode) {
+            GameScr.gameAC("[DBG] Chat: " + text);
+        }
+
         // Anti-spam / Debounce 5s cho cùng tin nhắn
         long now = System.currentTimeMillis();
         if (text.equals(lastNotice) && now - lastTriggerTime < 5000L) return;
@@ -49,6 +56,10 @@ public class AutoBossNotice {
 
         // Kiểm tra từ khóa thông báo boss xuất hiện
         if (!isBossMessage(lower)) return;
+
+        if (debugMode) {
+            GameScr.gameAC("[DBG] MATCH Boss: " + text);
+        }
 
         lastNotice = text;
         lastTriggerTime = now;

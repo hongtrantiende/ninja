@@ -191,6 +191,11 @@ public class ChatRouter {
             AutoBossNotice.toggle();
             return true;
         }
+        if (text.equals("debugboss")) {
+            AutoBossNotice.debugMode = !AutoBossNotice.debugMode;
+            GameScr.gameAC("Debug Boss: " + (AutoBossNotice.debugMode ? "ON" : "OFF"));
+            return true;
+        }
         if (text.equals("tsbosstest")) {
             AutoBossEvent.testNow();
             return true;
