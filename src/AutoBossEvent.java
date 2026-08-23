@@ -4,11 +4,11 @@ import java.util.TimeZone;
 /** Uu tien boss khi dang TS; moi may tu luu va khoi phuc map/khu/auto cua minh. */
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
-    /** 0 = mac dinh (tat ca), 1 = chi VDMQ+LangCo, 2 = chi MapNgoai, 3 = chi TheGioi */
+    /** 0=tat ca, 1=VDMQ+LC, 2=MapNgoai, 3=TheGioi, 4=LangCo, 5=VDMQ */
     public static int eventPriority;
     /** So luot quet them sau luot 1 (0 = khong quet them, 1 = mac dinh, 2-9 = nhieu luot) */
     public static int extraRounds = 1;
-    private static boolean inEvent;
+    public static boolean inEvent;
     private static boolean membersSentBack;
     private static Auto savedAuto;
     private static int savedMap = -1;
@@ -18,6 +18,10 @@ public final class AutoBossEvent implements Runnable {
     private static boolean forceAllNext;
     private static boolean disableAfterTest;
     private static final long ROUND_RECHECK_TIME = 600000L;
+    /** Lưu eventPriority gốc khi triggerImmediate ghi đè */
+    private static int savedEventPriority = -1;
+    /** Nếu TS Boss chưa bật trước triggerImmediate → tắt lại sau hunt */
+    private static boolean wasEnabledBeforeTrigger = true;
 
     static {
         loadConfigFromRMS();
@@ -64,7 +68,9 @@ public final class AutoBossEvent implements Runnable {
             case 1: return "VDMQ+L\u00e0ngC\u1ed5";
             case 2: return "MapNgo\u00e0i";
             case 3: return "Th\u1ebf Gi\u1edbi";
-            default: return "M\u1eb7c \u0111\u1ecbnh";
+            case 4: return "L\u00e0ng C\u1ed5";
+            case 5: return "V\u0110MQ";
+            default: return "T\u1ea5t c\u1ea3";
         }
     }
 
@@ -143,6 +149,11 @@ public final class AutoBossEvent implements Runnable {
      */
     public static void triggerImmediate(int p) {
         AutoSanBoss.ignoreBossHourCheck = true;
+        // Lưu priority gốc của user (chỉ lưu lần đầu, tránh ghi đè khi gọi liên tiếp)
+        if (savedEventPriority < 0) {
+            savedEventPriority = eventPriority;
+        }
+        wasEnabledBeforeTrigger = isEnabled;
         eventPriority = p;
         if (inEvent) {
             AutoSanBoss.stopEventHunt();
@@ -288,6 +299,10 @@ public final class AutoBossEvent implements Runnable {
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPNGOAI);
             case 3: // TheGioi
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_THEGIOI);
+            case 4: // Lang Co only
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
+            case 5: // VDMQ only
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ);
             default: // Mac dinh = tat ca
                 for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
                     if (AutoSanBoss.isBossActive(i)) return true;
@@ -393,6 +408,12 @@ public final class AutoBossEvent implements Runnable {
                 case 3:
                     AutoSanBoss.startEventHuntTG();
                     break;
+                case 4:
+                    AutoSanBoss.startEventHuntLC();
+                    break;
+                case 5:
+                    AutoSanBoss.startEventHuntVDMQ();
+                    break;
                 default:
                     AutoSanBoss.startEventHuntAll();
                     break;
@@ -475,6 +496,17 @@ public final class AutoBossEvent implements Runnable {
         if (disableAfterTest) {
             disableAfterTest = false;
             isEnabled = false;
+        }
+        // Khôi phục priority gốc sau khi hunt từ TB Boss xong
+        if (savedEventPriority >= 0) {
+            eventPriority = savedEventPriority;
+            savedEventPriority = -1;
+            GameScr.gameAC("TSBoss: Kh\u00f4i ph\u1ee5c \u01b0u ti\u00ean: " + priorityName());
+        }
+        // Nếu TS Boss chưa bật trước trigger → tắt lại
+        if (!wasEnabledBeforeTrigger) {
+            isEnabled = false;
+            wasEnabledBeforeTrigger = true;
         }
         AutoSanBoss.ignoreBossHourCheck = false;
     }

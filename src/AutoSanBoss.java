@@ -675,6 +675,30 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(true, TYPE_ALL);
     }
 
+    /** TS Boss chi san Lang Co */
+    public static void startEventHuntLC() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = new int[]{TYPE_LANGCO};
+        toggleInternal(true, TYPE_ALL);
+    }
+
+    /** TS Boss chi san VDMQ */
+    public static void startEventHuntVDMQ() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = new int[]{TYPE_VDMQ};
+        toggleInternal(true, TYPE_ALL);
+    }
+
     /** TS Boss Test: quet dung 1 map test duy nhat */
     public static void startEventHuntTest1Map(int mapId) {
         if (isRunning) {

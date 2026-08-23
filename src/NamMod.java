@@ -16,6 +16,8 @@ public final class NamMod implements IActionListener {
     private static final int TS_BOSS_MN = 120131;
     private static final int TS_BOSS_TG = 120132;
     private static final int TS_BOSS_TEST = 120133;
+    private static final int TS_BOSS_LC = 120134;
+    private static final int TS_BOSS_VDMQ = 120135;
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
@@ -56,7 +58,6 @@ public final class NamMod implements IActionListener {
         if (AutoBossEvent.isEnabled) tsLabel += " (" + AutoBossEvent.priorityName() + ")";
         tsLabel += " \u25b8";
         items.addElement(command(tsLabel, TS_BOSS_MENU));
-        items.addElement(command("Auto Boss qua Chat: " + onOff(AutoBossNotice.isEnabled), AUTO_BOSS_NOTICE));
         // Cai dat San Boss
         int disCount = AutoSanBoss.disabledMaps.size();
         String cfgLabel = "C\u00e0i \u0111\u1eb7t S\u0103n Boss";
@@ -121,8 +122,10 @@ public final class NamMod implements IActionListener {
         MyVector items = new MyVector();
         boolean on = AutoBossEvent.isEnabled;
         int p = AutoBossEvent.eventPriority;
-        items.addElement(command("M\u1eb7c \u0111\u1ecbnh (t\u1ea5t c\u1ea3)" + (on && p == 0 ? " \u2714" : ""), TS_BOSS_DEFAULT));
-        items.addElement(command("Ch\u1ec9 VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
+        items.addElement(command("T\u1ea5t c\u1ea3" + (on && p == 0 ? " \u2714" : ""), TS_BOSS_DEFAULT));
+        items.addElement(command("Ch\u1ec9 V\u0110MQ" + (on && p == 5 ? " \u2714" : ""), TS_BOSS_VDMQ));
+        items.addElement(command("Ch\u1ec9 L\u00e0ng C\u1ed5" + (on && p == 4 ? " \u2714" : ""), TS_BOSS_LC));
+        items.addElement(command("VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
         items.addElement(command("Ch\u1ec9 Th\u1ebf Gi\u1edbi" + (on && p == 3 ? " \u2714" : ""), TS_BOSS_TG));
         items.addElement(command("Test TS Boss (1 Map)", TS_BOSS_TEST));
@@ -158,15 +161,18 @@ public final class NamMod implements IActionListener {
             case TS_BOSS_TG:
                 AutoBossEvent.togglePriority(3);
                 return;
+            case TS_BOSS_LC:
+                AutoBossEvent.togglePriority(4);
+                return;
+            case TS_BOSS_VDMQ:
+                AutoBossEvent.togglePriority(5);
+                return;
             case TS_BOSS_TEST:
                 AutoBossEvent.testNow();
                 return;
 
             case LICH_BOSS:
                 ThongTinBoss.toggle();
-                return;
-            case AUTO_BOSS_NOTICE:
-                AutoBossNotice.toggle();
                 return;
             case BOSS_VDMQ:
                 AutoSanBoss.toggleVM();

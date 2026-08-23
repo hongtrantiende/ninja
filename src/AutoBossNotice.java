@@ -1,16 +1,20 @@
 /**
- * AutoBossNotice — Tự động đọc vị Boss từ Kênh Chat / Thông báo Server
- * 
- * Khi nhận được tin nhắn thông báo Boss xuất hiện:
- * 1. Đọc vị xem thuộc loại Boss nào (Map Ngoài, VĐMQ, Làng Cổ, Thế Giới) qua tên Map hoặc từ khóa.
- * 2. Tự động kích hoạt chế độ Săn Boss tương ứng (săn toàn bộ các map của loại Boss đó và tự quét tìm khu).
+ * AutoBossNotice — Công cụ hỗ trợ: Lắng nghe thông báo Boss từ Chat Server
+ *
+ * Chỉ làm 1 việc: Phát hiện boss xuất hiện → Gọi TS Boss ưu tiên đánh.
+ * Toàn bộ logic săn boss (lưu vị trí, quét map, về farm) do AutoBossEvent xử lý.
+ *
+ * Flow: Chat → nhận diện loại boss → AutoBossEvent.triggerImmediate(eventPrio)
  */
 public class AutoBossNotice {
-    public static boolean isEnabled = true; // Mặc định BẬT
-    /** Bật debug = true để in ra mọi tin nhắn nhận được (xem format boss notification) */
+    public static boolean isEnabled = true;
+    /** Bật debug = true để in ra mọi tin nhắn nhận được */
     public static boolean debugMode = false;
     private static long lastTriggerTime = 0;
     private static String lastNotice = "";
+
+    // Tên hiển thị cho từng loại boss
+    private static final String[] TYPE_NAMES = {"V\u0110MQ", "Map Ngo\u00e0i", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi"};
 
     static {
         loadConfigFromRMS();
@@ -34,7 +38,7 @@ public class AutoBossNotice {
     public static void toggle() {
         isEnabled = !isEnabled;
         saveConfigToRMS();
-        GameScr.gameAC("Auto S\u0103n Boss qua Chat: " + (isEnabled ? "ON" : "OFF"));
+        GameScr.gameAC("TB Boss (Chat): " + (isEnabled ? "ON" : "OFF"));
     }
 
     /**
@@ -43,77 +47,131 @@ public class AutoBossNotice {
     public static void onReceiveMessage(String text) {
         if (!isEnabled || text == null || text.length() == 0) return;
 
-        // Debug: In ra mọi tin nhắn nhận được để kiểm tra format
         if (debugMode) {
             GameScr.gameAC("[DBG] Chat: " + text);
         }
 
-        // Anti-spam / Debounce 5s cho cùng tin nhắn
-        long now = System.currentTimeMillis();
-        if (text.equals(lastNotice) && now - lastTriggerTime < 5000L) return;
-
         String lower = text.toLowerCase();
 
-        // Kiểm tra từ khóa thông báo boss xuất hiện
-        if (!isBossMessage(lower)) return;
+        // === Bước 1: Kiểm tra đây có phải thông báo boss XUẤT HIỆN không ===
+        if (!isBossSpawnMessage(lower)) return;
 
-        if (debugMode) {
-            GameScr.gameAC("[DBG] MATCH Boss: " + text);
-        }
-
+        // Anti-spam: cùng tin nhắn trong 5s → bỏ qua
+        long now = System.currentTimeMillis();
+        if (text.equals(lastNotice) && now - lastTriggerTime < 5000L) return;
         lastNotice = text;
         lastTriggerTime = now;
 
-        // 1. Kiểm tra theo tên Map trong tin nhắn
-        int mapId = findMapIdFromText(text);
-        int bossType = -1;
-
-        if (mapId >= 0) {
-            bossType = getBossTypeFromMap(mapId);
+        if (debugMode) {
+            GameScr.gameAC("[DBG] MATCH spawn: " + text);
         }
 
-        // 2. Nếu chưa tìm thấy qua mapId, kiểm tra theo từ khóa tên loại Boss trong chat
+        // === Bước 2: Nhận diện LOẠI BOSS từ từ khóa ===
+        int bossType = detectBossType(lower, text);
+
         if (bossType < 0) {
-            if (lower.indexOf("map ngo\u00e0i") >= 0 || lower.indexOf("map ngoai") >= 0) {
-                bossType = AutoSanBoss.TYPE_MAPNGOAI;
-            } else if (lower.indexOf("vdmq") >= 0 || lower.indexOf("v\u01b0\u01a1ng qu\u1ed1c") >= 0 || lower.indexOf("vuong quoc") >= 0) {
-                bossType = AutoSanBoss.TYPE_VDMQ;
-            } else if (lower.indexOf("l\u00e0ng c\u1ed5") >= 0 || lower.indexOf("lang co") >= 0) {
-                bossType = AutoSanBoss.TYPE_LANGCO;
-            } else if (lower.indexOf("th\u1ebf gi\u1edbi") >= 0 || lower.indexOf("the gioi") >= 0) {
-                bossType = AutoSanBoss.TYPE_THEGIOI;
+            if (debugMode) {
+                GameScr.gameAC("[DBG] Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c lo\u1ea1i boss");
             }
+            return;
         }
 
-        // 3. Thực hiện kích hoạt Săn Boss theo nhóm loại Boss
-        if (bossType == AutoSanBoss.TYPE_MAPNGOAI) {
-            String detail = (mapId >= 0 && TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? (" t\u1ea1i " + TileMap.mapNames[mapId]) : "";
-            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS MAP NGO\u00C0I" + detail + " -> S\u0103n to\u00e0n b\u1ed9 Map Ngo\u00e0i!");
-            triggerHuntType(AutoSanBoss.TYPE_MAPNGOAI);
-        } else if (bossType == AutoSanBoss.TYPE_VDMQ) {
-            String detail = (mapId >= 0 && TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? (" t\u1ea1i " + TileMap.mapNames[mapId]) : "";
-            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS V\u0110MQ" + detail + " -> S\u0103n to\u00e0n b\u1ed9 V\u0110MQ!");
-            triggerHuntType(AutoSanBoss.TYPE_VDMQ);
-        } else if (bossType == AutoSanBoss.TYPE_LANGCO) {
-            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS L\u00C0NG C\u1ED0 -> S\u0103n L\u00e0ng C\u1ed5!");
-            triggerHuntType(AutoSanBoss.TYPE_LANGCO);
-        } else if (bossType == AutoSanBoss.TYPE_THEGIOI) {
-            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS TH\u1EAE GI\u1EDAI -> S\u0103n Th\u1ebf Gi\u1edbi!");
-            triggerHuntType(AutoSanBoss.TYPE_THEGIOI);
-        } else if (mapId >= 0) {
-            // Map riêng lẻ không thuộc 4 nhóm trên
-            String mapName = (TileMap.mapNames != null && mapId < TileMap.mapNames.length) ? TileMap.mapNames[mapId] : ("Map " + mapId);
-            GameScr.gameAC("\uD83D\uDCE2 [\u0110\u1ECCC V\u1EAE] BOSS " + mapName + " -> S\u0103n ngay!");
-            triggerDirectMap(mapId);
+        String typeName = (bossType >= 0 && bossType < TYPE_NAMES.length) ? TYPE_NAMES[bossType] : "?";
+
+        if (debugMode) {
+            GameScr.gameAC("[DBG] Lo\u1ea1i: " + typeName);
         }
+
+        // === Bước 3: Kiểm tra TS Boss đang săn cùng loại chưa ===
+        if (AutoBossEvent.inEvent && AutoSanBoss.isRunning) {
+            GameScr.gameAC("\uD83D\uDCE2 Boss " + typeName + " - TS Boss \u0111ang s\u0103n, b\u1ecf qua");
+            return;
+        }
+
+        // === Bước 4: Gọi TS Boss ưu tiên đánh ===
+        GameScr.gameAC("\uD83D\uDCE2 Boss " + typeName + " xu\u1ea5t hi\u1ec7n! G\u1ecdi TS Boss...");
+        triggerTsBoss(bossType);
     }
 
-    private static boolean isBossMessage(String lower) {
+    /**
+     * Gọi TS Boss ưu tiên để săn loại boss cụ thể.
+     * Nếu TS Boss chưa bật → tự bật tạm.
+     */
+    private static void triggerTsBoss(int bossType) {
+        // Map bossType → eventPrio cho AutoBossEvent
+        int eventPrio;
+        switch (bossType) {
+            case AutoSanBoss.TYPE_THEGIOI:  eventPrio = 3; break;
+            case AutoSanBoss.TYPE_LANGCO:   eventPrio = 4; break;
+            case AutoSanBoss.TYPE_VDMQ:     eventPrio = 5; break;
+            case AutoSanBoss.TYPE_MAPNGOAI: eventPrio = 2; break;
+            default: eventPrio = 0; break; // fallback: all
+        }
+
+        // Gọi AutoBossEvent xử lý hết
+        AutoBossEvent.triggerImmediate(eventPrio);
+    }
+
+    // ==================== NHẬN DIỆN ====================
+
+    /**
+     * Kiểm tra tin nhắn có phải thông báo boss XUẤT HIỆN không.
+     * Loại trừ tin boss CHẾT ("đấm vỡ", "tiêu diệt"...).
+     */
+    private static boolean isBossSpawnMessage(String lower) {
+        // Loại trừ: boss bị giết
+        if (lower.indexOf("\u0111\u1ea5m v\u1ee1") >= 0 || lower.indexOf("dam vo") >= 0
+            || lower.indexOf("ti\u00eau di\u1ec7t") >= 0 || lower.indexOf("tieu diet") >= 0
+            || lower.indexOf("h\u1ea1 g\u1ee5c") >= 0 || lower.indexOf("ha guc") >= 0
+            || lower.indexOf("\u0111\u00e3 gi\u1ebft") >= 0 || lower.indexOf("da giet") >= 0) {
+            return false;
+        }
+
+        // Chỉ match: boss xuất hiện / phục sinh
         return (lower.indexOf("xu\u1ea5t hi\u1ec7n") >= 0 || lower.indexOf("xuat hien") >= 0
-             || lower.indexOf("boss") >= 0
-             || lower.indexOf("th\u1ea7n th\u00fa") >= 0 || lower.indexOf("than thu") >= 0
              || lower.indexOf("ph\u1ee5c sinh") >= 0 || lower.indexOf("phuc sinh") >= 0);
     }
+
+    /**
+     * Nhận diện loại boss từ từ khóa trong tin nhắn.
+     * Ưu tiên từ khóa đặc trưng trước, fallback sang tên map.
+     */
+    private static int detectBossType(String lower, String originalText) {
+        // === Từ khóa đặc trưng (chính xác nhất) ===
+
+        // "Boss Vùng đất ma quỷ đã xuất hiện..." → VĐMQ
+        if (lower.indexOf("v\u00f9ng \u0111\u1ea5t ma qu\u1ef7") >= 0 || lower.indexOf("vung dat ma quy") >= 0
+            || lower.indexOf("vdmq") >= 0 || lower.indexOf("v\u01b0\u01a1ng qu\u1ed1c") >= 0 || lower.indexOf("vuong quoc") >= 0) {
+            return AutoSanBoss.TYPE_VDMQ;
+        }
+
+        // "Thần thú đã xuất hiện tại..." → Map Ngoài
+        if (lower.indexOf("th\u1ea7n th\u00fa") >= 0 || lower.indexOf("than thu") >= 0
+            || lower.indexOf("map ngo\u00e0i") >= 0 || lower.indexOf("map ngoai") >= 0) {
+            return AutoSanBoss.TYPE_MAPNGOAI;
+        }
+
+        // Làng Cổ
+        if (lower.indexOf("l\u00e0ng c\u1ed5") >= 0 || lower.indexOf("lang co") >= 0) {
+            return AutoSanBoss.TYPE_LANGCO;
+        }
+
+        // Thế Giới (Boss Server) — map: Chân thác Kitajima
+        if (lower.indexOf("th\u1ebf gi\u1edbi") >= 0 || lower.indexOf("the gioi") >= 0
+            || lower.indexOf("kitajima") >= 0) {
+            return AutoSanBoss.TYPE_THEGIOI;
+        }
+
+        // === Fallback: tìm tên map trong TileMap.mapNames ===
+        int mapId = findMapIdFromText(originalText);
+        if (mapId >= 0) {
+            return getBossTypeFromMap(mapId);
+        }
+
+        return -1;
+    }
+
+    // ==================== UTILITY ====================
 
     /**
      * Xác định xem Map ID thuộc nhóm loại Boss nào
@@ -154,7 +212,7 @@ public class AutoBossNotice {
                 if (name == null || name.trim().length() == 0) continue;
 
                 String normName = stripAccents(name.toLowerCase());
-                if (normName.length() < 3) continue; // Bỏ qua từ quá ngắn
+                if (normName.length() < 3) continue;
 
                 if (normText.indexOf(normName) >= 0) {
                     if (normName.length() > maxLen) {
@@ -168,7 +226,7 @@ public class AutoBossNotice {
     }
 
     /**
-     * Chuyển tiếng Việt có dấu thành không dấu để so sánh chuẩn
+     * Chuyển tiếng Việt có dấu thành không dấu
      */
     private static String stripAccents(String s) {
         if (s == null) return "";
@@ -176,69 +234,30 @@ public class AutoBossNotice {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             switch (c) {
-                case 'à': case 'á': case 'ạ': case 'ả': case 'ã':
-                case 'â': case 'ầ': case 'ấ': case 'ậ': case 'ẩ': case 'ẫ':
-                case 'ă': case 'ằ': case 'ắ': case 'ặ': case 'ẳ': case 'ẵ':
+                case '\u00e0': case '\u00e1': case '\u1ea1': case '\u1ea3': case '\u00e3':
+                case '\u00e2': case '\u1ea7': case '\u1ea5': case '\u1eAD': case '\u1ea9': case '\u1eab':
+                case '\u0103': case '\u1eb1': case '\u1eaf': case '\u1eb7': case '\u1eb3': case '\u1eb5':
                     sb.append('a'); break;
-                case 'è': case 'é': case 'ẹ': case 'ẻ': case 'ẽ':
-                case 'ê': case 'ề': case 'ế': case 'ệ': case 'ể': case 'ễ':
+                case '\u00e8': case '\u00e9': case '\u1eb9': case '\u1ebb': case '\u1ebd':
+                case '\u00ea': case '\u1ec1': case '\u1ebf': case '\u1ec7': case '\u1ec3': case '\u1ec5':
                     sb.append('e'); break;
-                case 'ì': case 'í': case 'ị': case 'ỉ': case 'ĩ':
+                case '\u00ec': case '\u00ed': case '\u1ecb': case '\u1ec9': case '\u0129':
                     sb.append('i'); break;
-                case 'ò': case 'ó': case 'ọ': case 'ỏ': case 'õ':
-                case 'ô': case 'ồ': case 'ố': case 'ộ': case 'ổ': case 'ỗ':
-                case 'ơ': case 'ờ': case 'ớ': case 'ợ': case 'ở': case 'ỡ':
+                case '\u00f2': case '\u00f3': case '\u1ecd': case '\u1ecf': case '\u00f5':
+                case '\u00f4': case '\u1ed3': case '\u1ed1': case '\u1ed9': case '\u1ed5': case '\u1ed7':
+                case '\u01a1': case '\u1edd': case '\u1edb': case '\u1ee3': case '\u1edf': case '\u1ee1':
                     sb.append('o'); break;
-                case 'ù': case 'ú': case 'ụ': case 'ủ': case 'ũ':
-                case 'ư': case 'ừ': case 'ứ': case 'ự': case 'ử': case 'ữ':
+                case '\u00f9': case '\u00fa': case '\u1ee5': case '\u1ee7': case '\u0169':
+                case '\u01b0': case '\u1eeb': case '\u1ee9': case '\u1ef1': case '\u1eed': case '\u1eef':
                     sb.append('u'); break;
-                case 'ỳ': case 'ý': case 'ỵ': case 'ỷ': case 'ỹ':
+                case '\u1ef3': case '\u00fd': case '\u1ef5': case '\u1ef7': case '\u1ef9':
                     sb.append('y'); break;
-                case 'đ':
+                case '\u0111':
                     sb.append('d'); break;
                 default:
                     sb.append(c); break;
             }
         }
         return sb.toString();
-    }
-
-    /**
-     * Kích hoạt tự động săn cả loại Boss tương ứng (Bỏ qua giờ spawn, săn ngay lập tức)
-     */
-    private static void triggerHuntType(final int bossType) {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    AutoSanBoss.ignoreBossHourCheck = true;
-                    int priority = 0;
-                    if (bossType == AutoSanBoss.TYPE_VDMQ || bossType == AutoSanBoss.TYPE_LANGCO) priority = 1;
-                    else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) priority = 2;
-                    else if (bossType == AutoSanBoss.TYPE_THEGIOI) priority = 3;
-
-                    if (AutoBossEvent.isEnabled) {
-                        AutoBossEvent.triggerImmediate(priority);
-                    } else {
-                        if (bossType == AutoSanBoss.TYPE_VDMQ) AutoSanBoss.toggleVM();
-                        else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) AutoSanBoss.toggleMN();
-                        else if (bossType == AutoSanBoss.TYPE_LANGCO) AutoSanBoss.toggleLangCo();
-                        else if (bossType == AutoSanBoss.TYPE_THEGIOI) AutoSanBoss.toggleTheGioi();
-                    }
-                } catch (Exception e) {}
-            }
-        }).start();
-    }
-
-    /**
-     * Dịch chuyển tới 1 map riêng lẻ (nếu không nằm trong 4 nhóm trên)
-     */
-    private static void triggerDirectMap(final int mapId) {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    TileMap.GoMap(mapId);
-                } catch (Exception e) {}
-            }
-        }).start();
     }
 }
