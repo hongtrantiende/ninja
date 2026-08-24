@@ -1619,8 +1619,9 @@ public class AutoSanBoss implements Runnable {
         restoreDummyAuto();
 
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            try { Auto.gameAA(zone); } catch (Exception e) {}
-            sleep(300);
+            GameScr.gameAC("TREO: Qu\u00e9t M" + mapID + " K" + zone + "...");
+            changeZoneLangCo(zone);
+            sleep(500);
 
             if (TileMap.mapID != mapID) {
                 GameScr.gameAC("TREO: B\u1ecb tho\u00e1t M" + mapID + " -> M" + TileMap.mapID);
@@ -1632,28 +1633,25 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (hasBossOnCurrentMap()) {
-                sleep(150);
-                if (hasBossOnCurrentMap()) {
-                    GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
-                    sendPartyCommand("pkm -2");
-                    sleep(50);
-                    sendPartyCommand("pkm " + mapID);
-                    sleep(300);
-                    sendPartyCommand("pkk " + TileMap.zoneID);
-                    sleep(1500);
-                    sendPartyCommand("pke");
+                GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
+                sendPartyCommand("pkm -2");
+                sleep(50);
+                sendPartyCommand("pkm " + mapID);
+                sleep(300);
+                sendPartyCommand("pkk " + TileMap.zoneID);
+                sleep(1500);
+                sendPartyCommand("pke");
 
-                    while (checkStillRunning() && hasBossOnCurrentMap()) {
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                        }
-                        restoreDummyAuto();
-                        sleep(500);
+                while (checkStillRunning() && hasBossOnCurrentMap()) {
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
-                    GameScr.gameAC("TREO: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
-                    grabAllItems();
-                    return true;
+                    restoreDummyAuto();
+                    sleep(500);
                 }
+                GameScr.gameAC("TREO: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                grabAllItems();
+                return true;
             }
             restoreDummyAuto();
         }
@@ -1721,13 +1719,13 @@ public class AutoSanBoss implements Runnable {
 
             // 3. Ki\u1ec3m tra map v\u1eeba v\u00e0o
             if (curMap == 135 && !langCoScanned135) {
-                GameScr.gameAC("TSB: V\u00e0o M135, qu\u00e9t boss...");
+                GameScr.gameAC("TSB: V\u00e0o M135, qu\u00e9t K0->K2...");
                 boolean found = scanLangCoZones(135);
                 langCoScanned135 = true;
                 if (found) return true;
                 returnToLangCoHub();
             } else if (curMap == 136 && !langCoScanned136) {
-                GameScr.gameAC("TSB: V\u00e0o M136, qu\u00e9t boss...");
+                GameScr.gameAC("TSB: V\u00e0o M136, qu\u00e9t K0->K2...");
                 boolean found = scanLangCoZones(136);
                 langCoScanned136 = true;
                 if (found) return true;
@@ -1753,8 +1751,9 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean scanLangCoZones(int mapID) {
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            try { Auto.gameAA(zone); } catch (Exception e) {}
-            sleep(300);
+            GameScr.gameAC("TSB: Qu\u00e9t M" + mapID + " K" + zone + "...");
+            changeZoneLangCo(zone);
+            sleep(500);
 
             if (TileMap.mapID != mapID) {
                 GameScr.gameAC("TSB: B\u1ecb tho\u00e1t M" + mapID + " -> M" + TileMap.mapID);
@@ -1766,44 +1765,42 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (hasBossOnCurrentMap()) {
-                sleep(150);
-                if (hasBossOnCurrentMap()) {
-                    GameScr.gameAC("TSB: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
-                    sendPartyCommand("pkm -2");
-                    sleep(50);
-                    sendPartyCommand("pkm " + mapID);
-                    sleep(300);
-                    sendPartyCommand("pkk " + TileMap.zoneID);
-                    sleep(1500);
-                    sendPartyCommand("pke");
+                GameScr.gameAC("TSB: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
+                sendPartyCommand("pkm -2");
+                sleep(50);
+                sendPartyCommand("pkm " + mapID);
+                sleep(300);
+                sendPartyCommand("pkk " + TileMap.zoneID);
+                sleep(1500);
+                sendPartyCommand("pke");
 
-                    try {
-                        PkBoss pk = new PkBoss(mapID);
-                        pk.zoneID = TileMap.zoneID;
-                        Code.gameAA(pk);
-                    } catch (Exception e) {}
+                try {
+                    PkBoss pk = new PkBoss(mapID);
+                    pk.zoneID = TileMap.zoneID;
+                    Code.gameAA(pk);
+                } catch (Exception e) {}
 
-                    while (checkStillRunning() && hasBossOnCurrentMap()) {
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                        }
-                        lockBossFocus();
-                        sleep(500);
+                while (checkStillRunning() && hasBossOnCurrentMap()) {
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
-
-                    if (Code.gameAB instanceof PkBoss) {
-                        Code.gameAC();
-                    }
-                    restoreDummyAuto();
-
-                    GameScr.gameAC("TSB: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
-                    grabAllItems();
-                    sendPartyCommand("pkm -6");
-                    return true;
+                    lockBossFocus();
+                    sleep(500);
                 }
+
+                if (Code.gameAB instanceof PkBoss) {
+                    Code.gameAC();
+                }
+                restoreDummyAuto();
+
+                GameScr.gameAC("TSB: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                grabAllItems();
+                sendPartyCommand("pkm -6");
+                return true;
             }
             restoreDummyAuto();
         }
+        GameScr.gameAC("TSB: M" + mapID + " kh\u00f4ng c\u00f3 boss");
         return false;
     }
 
