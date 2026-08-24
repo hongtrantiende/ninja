@@ -25,16 +25,17 @@ public class AutoSanBoss implements Runnable {
     /** Override thu tu uu tien boss cho TS event (null = dung HUNT_PRIORITY mac dinh) */
     static int[] eventHuntTypes;
 
-    // 4 loai boss (VDMQ, MapNgoai, LangCo, TheGioi)
+    // 5 loai boss (VDMQ, MapNgoai, LangCo, TheGioi, MapVIP)
     public static final int TYPE_VDMQ = 0;
     public static final int TYPE_MAPNGOAI = 1;
     public static final int TYPE_LANGCO = 2;
     public static final int TYPE_THEGIOI = 3;
-    public static final int TYPE_ALL = 4;
-    public static final int TYPE_TEST_1MAP = 5;
+    public static final int TYPE_MAPVIP = 4;
+    public static final int TYPE_ALL = 5;
+    public static final int TYPE_TEST_1MAP = 6;
     public static int testMapId = 141;
 
-    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "T\u1ea5t C\u1ea3", "Test 1 Map"};
+    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "Map VIP", "T\u1ea5t C\u1ea3", "Test 1 Map"};
 
     // === CAI DAT: per-map filtering ===
     /** Danh sach map ID bi tat (khong san). Mac dinh rong = tat ca duoc san. */
@@ -170,6 +171,7 @@ public class AutoSanBoss implements Runnable {
         if (bossType == TYPE_VDMQ) return new int[]{141,142,143};
         if (bossType == TYPE_LANGCO) return new int[]{135,136};
         if (bossType == TYPE_THEGIOI) return new int[]{20};
+        if (bossType == TYPE_MAPVIP) return new int[]{195};
         return new int[0];
     }
 
@@ -234,15 +236,16 @@ public class AutoSanBoss implements Runnable {
         return count;
     }
 
-    /** Thu tu uu tien quet boss: Lang Co > VDMQ > TheGioi > MapNgoai */
-    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
+    /** Thu tu uu tien quet boss: MapVIP > Lang Co > VDMQ > TheGioi > MapNgoai */
+    private static final int[] HUNT_PRIORITY = {TYPE_MAPVIP, TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
 
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
         {141, 142, 143},   // VDMQ
         {},                // MapNgoai
         {135, 136},        // Làng Cổ
-        {20}               // Thế Giới
+        {20},              // Thế Giới
+        {195}              // Map VIP
     };
 
     // Map IDs cua MapNgoai theo level (12 maps)
@@ -259,13 +262,15 @@ public class AutoSanBoss implements Runnable {
         {6, 13, 19, 23},                                       // VDMQ
         {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},            // MapNgoai (gio le)
         {7, 10, 15, 23},                                       // Làng Cổ
-        {12, 21}                                                // Thế Giới
+        {12, 21},                                               // Thế Giới
+        {6, 12, 20, 23}                                         // Map VIP
     };
     public static int[][] BOSS_HOURS = {
         {6, 13, 19, 23},
         {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},
         {7, 10, 15, 23},
-        {12, 21}
+        {12, 21},
+        {6, 12, 20, 23}
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -535,6 +540,13 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * tspkbmv - San boss Map VIP (M195) ngay lap tuc
+     */
+    public static void toggleMapVIP() {
+        toggleInternal(checkHasPartyOrFriends(), TYPE_MAPVIP);
+    }
+
+    /**
      * tspkball - San TAT CA boss 24/24 nguyen ngay
      */
     public static void toggleALL() {
@@ -566,6 +578,11 @@ public class AutoSanBoss implements Runnable {
     /** treotg - Treo boss TheGioi */
     public static void toggleTreoTheGioi() {
         toggleTreoInternal(TYPE_THEGIOI);
+    }
+
+    /** treomv - Treo boss MapVIP */
+    public static void toggleTreoMapVIP() {
+        toggleTreoInternal(TYPE_MAPVIP);
     }
 
     private static void toggleTreoInternal(int bossType) {
@@ -666,6 +683,18 @@ public class AutoSanBoss implements Runnable {
         eventHuntMode = true;
         eventRoundCompleted = false;
         eventHuntTypes = new int[]{TYPE_VDMQ};
+        toggleInternal(true, TYPE_ALL);
+    }
+
+    /** TS Boss chi san MapVIP */
+    public static void startEventHuntMapVIP() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = new int[]{TYPE_MAPVIP};
         toggleInternal(true, TYPE_ALL);
     }
 
@@ -1262,9 +1291,10 @@ public class AutoSanBoss implements Runnable {
      * Tra ve -1 neu khong co boss nao
      */
     private int findActiveBoss() {
-        for (int i = 0; i < TYPE_ALL; i++) {
-            if (isBossTypeEnabled(i) && isBossActive(i)) {
-                return i;
+        for (int i = 0; i < HUNT_PRIORITY.length; i++) {
+            int t = HUNT_PRIORITY[i];
+            if (isBossTypeEnabled(t) && isBossActive(t)) {
+                return t;
             }
         }
         return -1;
@@ -1277,7 +1307,10 @@ public class AutoSanBoss implements Runnable {
         if (bossType == TYPE_MAPNGOAI) {
             return getMapNgoaiMaps();
         }
-        return BOSS_MAPS[bossType];
+        if (bossType >= 0 && bossType < BOSS_MAPS.length) {
+            return BOSS_MAPS[bossType];
+        }
+        return new int[0];
     }
 
     /**
@@ -1453,6 +1486,11 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean treoScanMap(int mapID) {
         if (!checkStillRunning()) return false;
+
+        // === XU LY MAP VIP (M195) — vao qua NPC ===
+        if (mapID == 195) {
+            return treoScanMapVIP();
+        }
 
         // === XU LY LANG CO RIENG — quet co hoi (giong pkLangCoMap) ===
         if (mapID == 135 || mapID == 136) {
@@ -1661,6 +1699,272 @@ public class AutoSanBoss implements Runnable {
      * @param requestedMap map \u0111\u01b0\u1ee3c g\u1ecdi t\u1eeb huntBossType (135 ho\u1eb7c 136)
      * @return true n\u1ebfu t\u00ecm th\u1ea5y v\u00e0 \u0111\u00e1nh boss xong
      */
+
+    // ======================== MAP VIP (M195) ========================
+
+    /**
+     * Vao Map VIP (M195) qua NPC VIP (type 47, option 4).
+     * Neu dang o map gated (192, Lang Co, Tu Luyen) -> tu sat ve thon truoc.
+     * @return true neu da vao M195 thanh cong
+     */
+    private boolean enterMapVIP() {
+        if (TileMap.mapID == 195) return true;
+
+        // LUON tu sat ve thon truoc — NPC VIP chi co o thon
+        int curMap = TileMap.mapID;
+        if (TileMap.isLangCo(curMap)) {
+            cleanKhaoDiLenh();
+        }
+
+        // Dung moi auto dang chay
+        LockGame.gameBK();
+        if (Code.gameAB != null && !(Code.gameAB instanceof SanBossHolder)) {
+            Code.gameAB = null;
+        }
+
+        GameScr.gameAC("TSB: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o Map VIP...");
+        try { Code.gameAN(); } catch (Exception e) {}
+        sleep(1500);
+
+        // Hoi sinh tai thon
+        for (int r = 0; r < 15 && checkStillRunning(); r++) {
+            try {
+                Char me = Char.getMyChar();
+                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                GameCanvas.endDlg();
+                sleep(20);
+                LockGame.gameAA = true;
+                if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                    Service.gI().gameAL();
+                } else {
+                    Service.gI().gameAK();
+                    TileMap.gameAF();
+                }
+                LockGame.gameAA = false;
+                sleep(500);
+            } catch (Exception e) { break; }
+        }
+        sleep(1500);
+
+        if (TileMap.mapID == 195) return true;
+
+        // Goi NPC VIP (type 47, option 4) de vao M195
+        GameScr.gameAC("TSB: G\u1ecdi NPC VIP v\u00e0o M195...");
+        for (int retry = 0; retry < 3 && checkStillRunning(); retry++) {
+            if (TileMap.mapID == 195) return true;
+
+            try {
+                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
+            } catch (Exception e) {
+                GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP!");
+                sleep(3000);
+                continue;
+            }
+
+            // Cho vao map (toi da 15s)
+            for (int w = 0; w < 150 && checkStillRunning(); w++) {
+                sleep(100);
+                if (TileMap.mapID == 195) {
+                    GameScr.gameAC("TSB: \u0110\u00e3 v\u00e0o M195!");
+                    sleep(500);
+                    return true;
+                }
+            }
+
+            GameScr.gameAC("TSB: Th\u1eed l\u1ea1i v\u00e0o M195 (l\u1ea7n " + (retry + 2) + ")...");
+            sleep(2000);
+        }
+
+        if (TileMap.mapID != 195) {
+            GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c M195!");
+        }
+        return TileMap.mapID == 195;
+    }
+
+    /**
+     * Thoat M195 ve thon (tu sat + hoi sinh) de co the di san boss map khac.
+     */
+    private void exitMapVIP() {
+        if (TileMap.mapID != 195) return;
+        GameScr.gameAC("TSB: Tho\u00e1t M195...");
+        try { Code.gameAN(); } catch (Exception e) {}
+        sleep(1000);
+        for (int r = 0; r < 10 && checkStillRunning(); r++) {
+            try {
+                Char me = Char.getMyChar();
+                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                GameCanvas.endDlg();
+                sleep(20);
+                LockGame.gameAA = true;
+                if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                    Service.gI().gameAL();
+                } else {
+                    Service.gI().gameAK();
+                    TileMap.gameAF();
+                }
+                LockGame.gameAA = false;
+                sleep(500);
+            } catch (Exception e) { break; }
+        }
+        sleep(1000);
+    }
+
+    /**
+     * San boss Map VIP (M195): vao qua NPC, quet khu, PkBoss danh boss.
+     */
+    private boolean pkBossMapVIP() {
+        if (!checkStillRunning()) return false;
+
+        // Thoat Lang Co neu dang o
+        if (TileMap.isLangCo(TileMap.mapID)) {
+            finishLangCoAndExit();
+        }
+
+        // 1. Vao M195 qua NPC
+        if (!enterMapVIP()) return false;
+        if (!checkStillRunning()) return false;
+
+        restoreDummyAuto();
+
+        GameScr.gameAC("TSB: Qu\u00e9t boss M195...");
+
+        // 2. Quet khu K0 -> K29
+        for (int zone = 0; zone < MAX_ZONES && checkStillRunning(); zone++) {
+            try { Auto.gameAA(zone); } catch (Exception e) {}
+            sleep(100);
+            for (int w = 0; w < 15 && checkStillRunning() && TileMap.zoneID != zone; w++) {
+                sleep(200);
+            }
+
+            if (isDisconnected()) {
+                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+            }
+
+            if (TileMap.mapID != 195) {
+                GameScr.gameAC("TSB: B\u1ecb tho\u00e1t M195!");
+                return false;
+            }
+
+            // Double check boss
+            if (hasBossOnCurrentMap()) {
+                sleep(150);
+                if (hasBossOnCurrentMap()) {
+                    GameScr.gameAC("TSB: Boss M195 K" + zone + "!");
+
+                    // Gui lenh nhom
+                    sendPartyCommand("pkm -1");
+                    sleep(50);
+                    sendPartyCommand("pkm 195");
+                    sleep(300);
+                    sendPartyCommand("pkk " + zone);
+                    sleep(1500);
+                    sendPartyCommand("pke");
+
+                    // Bat PkBoss danh
+                    try {
+                        PkBoss pk = new PkBoss(195);
+                        pk.zoneID = zone;
+                        Code.gameAA(pk);
+                    } catch (Exception e) {}
+
+                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        lockBossFocus();
+                        sleep(500);
+                    }
+
+                    if (Code.gameAB instanceof PkBoss) {
+                        Code.gameAC();
+                    }
+                    restoreDummyAuto();
+
+                    GameScr.gameAC("TSB: Boss M195 K" + zone + " \u0111\u00e3 ch\u1ebft!");
+                    grabAllItems();
+                    sendPartyCommand("pkm -6");
+                    return true;
+                }
+            }
+            restoreDummyAuto();
+        }
+
+        GameScr.gameAC("TSB: Kh\u00f4ng th\u1ea5y boss M195");
+        return false;
+    }
+
+    /**
+     * Treo boss Map VIP (M195): vao qua NPC, quet khu, KHONG danh - chi doi boss chet.
+     */
+    private boolean treoScanMapVIP() {
+        if (!checkStillRunning()) return false;
+
+        // Thoat Lang Co neu dang o
+        if (TileMap.isLangCo(TileMap.mapID)) {
+            finishLangCoAndExit();
+        }
+
+        // 1. Vao M195 qua NPC
+        if (!enterMapVIP()) return false;
+        if (!checkStillRunning()) return false;
+
+        if (Code.gameAB instanceof PkBoss) {
+            Code.gameAC();
+        }
+        restoreDummyAuto();
+
+        GameScr.gameAC("TREO: Qu\u00e9t M195...");
+
+        // 2. Quet khu K0 -> K29
+        for (int zone = 0; zone < MAX_ZONES && checkStillRunning(); zone++) {
+            try { Auto.gameAA(zone); } catch (Exception e) {}
+            sleep(100);
+            for (int w = 0; w < 15 && checkStillRunning() && TileMap.zoneID != zone; w++) {
+                sleep(200);
+            }
+
+            if (isDisconnected()) {
+                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+            }
+
+            if (TileMap.mapID != 195) {
+                GameScr.gameAC("TREO: B\u1ecb tho\u00e1t M195!");
+                return false;
+            }
+
+            // Double check boss
+            if (hasBossOnCurrentMap()) {
+                sleep(150);
+                if (hasBossOnCurrentMap()) {
+                    GameScr.gameAC("TREO: Boss M195 K" + TileMap.zoneID + "!");
+                    sendPartyCommand("pkm -2");
+                    sleep(50);
+                    sendPartyCommand("pkm 195");
+                    sleep(300);
+                    sendPartyCommand("pkk " + TileMap.zoneID);
+                    sleep(1500);
+                    sendPartyCommand("pke");
+
+                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        restoreDummyAuto();
+                        sleep(500);
+                    }
+                    GameScr.gameAC("TREO: Boss M195 K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                    grabAllItems();
+                    return true;
+                }
+            }
+            restoreDummyAuto();
+        }
+
+        GameScr.gameAC("TREO: Kh\u00f4ng th\u1ea5y boss M195");
+        return false;
+    }
+
+    // ======================== LANG CO (M135-136) ========================
     private boolean pkLangCoMap(int requestedMap) {
         if (!checkStillRunning()) return false;
         // Da quet ca 2 map trong lan goi truoc (huntBossType goi 2 lan)
@@ -1809,6 +2113,8 @@ public class AutoSanBoss implements Runnable {
         if (!checkStillRunning()) return false;
         if (mapID == 135 || mapID == 136) {
             return pkLangCoMap(mapID);
+        } else if (mapID == 195) {
+            return pkBossMapVIP();
         } else {
             if (TileMap.isLangCo(TileMap.mapID)) {
                 finishLangCoAndExit();

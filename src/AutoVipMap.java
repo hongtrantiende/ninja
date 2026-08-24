@@ -1,6 +1,6 @@
 /**
- * Auto re-enter VIP "Map Up Luong" (M196) khi chet hoac mat ket noi.
- * Flow: Hoi sinh tai thon -> talk NPC 47 option 5 -> vao M196.
+ * Auto re-enter VIP "Map Up Luong" (M195) khi chet hoac mat ket noi.
+ * Flow: Hoi sinh tai thon -> talk NPC 47 option 5 -> vao M195.
  * NPC VIP nam ngay map thon (cho hoi sinh), KHONG can GoMap.
  *
  * Su dung: go "tsvip" de bat/tat.
@@ -11,7 +11,7 @@ public final class AutoVipMap {
     public static boolean isEnabled;
 
     /** Map dich (Map Up Luong) */
-    public static int targetMapID = 196;
+    public static int targetMapID = 195;
 
     /** NPC type ID (VIP [47]) */
     public static int npcType = 47;

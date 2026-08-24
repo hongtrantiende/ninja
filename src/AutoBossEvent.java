@@ -4,7 +4,7 @@ import java.util.TimeZone;
 /** Uu tien boss khi dang TS; moi may tu luu va khoi phuc map/khu/auto cua minh. */
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
-    /** 0=tat ca, 1=VDMQ+LC, 2=MapNgoai, 3=TheGioi, 4=LangCo, 5=VDMQ */
+    /** 0=tat ca, 1=VDMQ+LC, 2=MapNgoai, 3=TheGioi, 4=LangCo, 5=VDMQ, 6=MapVIP */
     public static int eventPriority;
     /** So luot quet them sau luot 1 (0 = khong quet them, 1 = mac dinh, 2-9 = nhieu luot) */
     public static int extraRounds = 1;
@@ -70,6 +70,7 @@ public final class AutoBossEvent implements Runnable {
             case 3: return "Th\u1ebf Gi\u1edbi";
             case 4: return "L\u00e0ng C\u1ed5";
             case 5: return "V\u0110MQ";
+            case 6: return "Map VIP";
             default: return "T\u1ea5t c\u1ea3";
         }
     }
@@ -176,7 +177,7 @@ public final class AutoBossEvent implements Runnable {
 
     public static void exitGatedMapIfNeeded() {
         int curMap = TileMap.mapID;
-        boolean isGated = curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
+        boolean isGated = curMap == 195 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
                 || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
         if (!isGated) return;
 
@@ -304,6 +305,8 @@ public final class AutoBossEvent implements Runnable {
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
             case 5: // VDMQ only
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ);
+            case 6: // Map VIP
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP);
             default: // Mac dinh = tat ca
                 for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
                     if (AutoSanBoss.isBossActive(i)) return true;
@@ -371,6 +374,9 @@ public final class AutoBossEvent implements Runnable {
             case 5: // VDMQ only
                 min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ);
                 break;
+            case 6: // Map VIP
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP);
+                break;
             default: // Tat ca
                 for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
                     int s = AutoSanBoss.getSecondsTillNextBoss(i);
@@ -417,6 +423,8 @@ public final class AutoBossEvent implements Runnable {
                 if (AutoSanBoss.isMapEnabled(142)) return 142;
                 if (AutoSanBoss.isMapEnabled(143)) return 143;
                 return 141;
+            case 6: // Map VIP — vao qua NPC, khong can GoMap truoc
+                return -1;
             default: // Tat ca
                 if (AutoSanBoss.isMapEnabled(141)) return 141;
                 return 14;
@@ -498,8 +506,10 @@ public final class AutoBossEvent implements Runnable {
         int preSec = getSecondsTillNextForPriority();
         if (preSec > 0 && preSec <= PRE_SPAWN_SECONDS) {
             int firstMap = getFirstMapForPriority();
-            GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
-            travelToMap(firstMap);
+            if (firstMap > 0) {
+                GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
+                travelToMap(firstMap);
+            }
             // Cho den dung gio boss spawn
             while (isEnabled && inEvent) {
                 int s = getSecondsTillNextForPriority();
@@ -532,6 +542,9 @@ public final class AutoBossEvent implements Runnable {
                     break;
                 case 5:
                     AutoSanBoss.startEventHuntVDMQ();
+                    break;
+                case 6:
+                    AutoSanBoss.startEventHuntMapVIP();
                     break;
                 default:
                     AutoSanBoss.startEventHuntAll();

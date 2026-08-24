@@ -25,17 +25,19 @@ public final class BossConfig implements CommandListener {
     private final Command cmdHuy;
     private final Command cmdReset;
 
-    // 4 ChoiceGroup cho 4 loai boss
+    // 5 ChoiceGroup cho 5 loai boss
     private ChoiceGroup cgVDMQ;
     private ChoiceGroup cgMapNgoai;
     private ChoiceGroup cgLangCo;
     private ChoiceGroup cgTheGioi;
+    private ChoiceGroup cgMapVIP;
 
     // 4 TextField cho gio spawn
     private TextField tfVDMQ;
     private TextField tfMapNgoai;
     private TextField tfLangCo;
     private TextField tfTheGioi;
+    private TextField tfMapVIP;
 
     // Extra rounds cho TS Boss uu tien
     private TextField tfExtraRounds;
@@ -47,6 +49,7 @@ public final class BossConfig implements CommandListener {
     private final int[] mapsMN;
     private final int[] mapsLC;
     private final int[] mapsTG;
+    private final int[] mapsMV;
 
     private BossConfig() {
         cmdLuu = new Command("L\u01b0u", Command.OK, 1);
@@ -57,6 +60,7 @@ public final class BossConfig implements CommandListener {
         mapsMN = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_MAPNGOAI);
         mapsLC = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_LANGCO);
         mapsTG = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_THEGIOI);
+        mapsMV = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_MAPVIP);
 
         buildForm();
     }
@@ -104,6 +108,15 @@ public final class BossConfig implements CommandListener {
         }
         form.append(cgTheGioi);
 
+        // === Map VIP ===
+        tfMapVIP = new TextField("Gi\u1edd Map VIP", "", 100, TextField.ANY);
+        form.append(tfMapVIP);
+        cgMapVIP = new ChoiceGroup("Map VIP - Map", Choice.MULTIPLE);
+        for (int i = 0; i < mapsMV.length; i++) {
+            cgMapVIP.append("Map " + mapsMV[i], null);
+        }
+        form.append(cgMapVIP);
+
         // === TS Boss uu tien: so luot quet them ===
         tfExtraRounds = new TextField("L\u01b0\u1ee3t qu\u00e9t th\u00eam (0=kh\u00f4ng, 1=m\u1eb7c \u0111\u1ecbnh)", "", 5, TextField.NUMERIC);
         form.append(tfExtraRounds);
@@ -115,12 +128,14 @@ public final class BossConfig implements CommandListener {
         loadGroup(cgMapNgoai, mapsMN);
         loadGroup(cgLangCo, mapsLC);
         loadGroup(cgTheGioi, mapsTG);
+        loadGroup(cgMapVIP, mapsMV);
 
         // Load gio spawn
         tfVDMQ.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_VDMQ));
         tfMapNgoai.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_MAPNGOAI));
         tfLangCo.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_LANGCO));
         tfTheGioi.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_THEGIOI));
+        tfMapVIP.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_MAPVIP));
 
         // Extra rounds
         tfExtraRounds.setString(String.valueOf(AutoBossEvent.extraRounds));
@@ -155,6 +170,7 @@ public final class BossConfig implements CommandListener {
             saveGroup(cgMapNgoai, mapsMN);
             saveGroup(cgLangCo, mapsLC);
             saveGroup(cgTheGioi, mapsTG);
+            saveGroup(cgMapVIP, mapsMV);
             AutoSanBoss.saveToRMS();
 
             // Luu gio spawn
@@ -167,6 +183,8 @@ public final class BossConfig implements CommandListener {
                 errMsg.append("LangCo, ");
             if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_THEGIOI, tfTheGioi.getString()))
                 errMsg.append("TheGioi, ");
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_MAPVIP, tfMapVIP.getString()))
+                errMsg.append("MapVIP, ");
             AutoSanBoss.saveBossHoursToRMS();
 
             // Luu extra rounds
@@ -195,6 +213,7 @@ public final class BossConfig implements CommandListener {
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPNGOAI);
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_LANGCO);
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_THEGIOI);
+            AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPVIP);
             AutoSanBoss.saveBossHoursToRMS();
             // Cap nhat lai text field
             loadCurrentState();
