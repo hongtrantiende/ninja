@@ -97,7 +97,7 @@ public class ChatRouter {
             }
             return;
         }
-        if (auto != null && auto.mapID > 0) {
+        if (auto != null && auto.mapID > 0 && !AutoBossEvent.inEvent) {
             int curMap = TileMap.mapID;
             if (curMap == 192 || curMap == 195 || curMap == 196 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
                 try { Code.gameAN(); } catch (Exception e) {}
