@@ -23,7 +23,7 @@ public final class NamMod implements IActionListener {
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
-    private static final int TS_VIP_MAP2 = 120128;
+    private static final int TS_VIP_MAP2 = 120145;
     private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
     private static final int BOSS_MAP_VIP = 120126;
