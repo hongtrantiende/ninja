@@ -401,6 +401,71 @@ public final class AutoBossEvent implements Runnable {
         if (Code.gameAB == travel) Code.gameAB = null;
     }
 
+    /**
+     * Pre-spawn: vao Map VIP (M195) qua NPC truoc khi boss spawn.
+     * Tu sat ve thon → hoi sinh → goi NPC VIP → vao M195.
+     */
+    private static void preSpawnEnterMapVIP() {
+        if (TileMap.mapID == 195) return;
+
+        // Dung auto dang chay
+        LockGame.gameBK();
+        if (Code.gameAB != null && !(Code.gameAB instanceof SanBossHolder)) {
+            Code.gameAB = null;
+        }
+
+        // Tu sat ve thon
+        GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M195 ch\u1edd s\u1eb5n...");
+        if (TileMap.isLangCo(TileMap.mapID)) {
+            AutoSanBoss.cleanKhaoDiLenh();
+        }
+        try { Code.gameAN(); } catch (Exception e) {}
+        sleep(1500L);
+
+        // Hoi sinh tai thon
+        for (int r = 0; r < 15 && isEnabled; r++) {
+            try {
+                Char me = Char.getMyChar();
+                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                GameCanvas.endDlg();
+                sleep(20L);
+                LockGame.gameAA = true;
+                if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                    Service.gI().gameAL();
+                } else {
+                    Service.gI().gameAK();
+                    TileMap.gameAF();
+                }
+                LockGame.gameAA = false;
+                sleep(500L);
+            } catch (Exception e) { break; }
+        }
+        sleep(1500L);
+
+        if (TileMap.mapID == 195) return;
+
+        // Goi NPC VIP (type 47, option 4) vao M195
+        GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M195...");
+        for (int retry = 0; retry < 3 && isEnabled; retry++) {
+            if (TileMap.mapID == 195) return;
+            try {
+                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
+            } catch (Exception e) {
+                sleep(3000L);
+                continue;
+            }
+            // Cho vao map (toi da 15s)
+            for (int w = 0; w < 150 && isEnabled; w++) {
+                sleep(100L);
+                if (TileMap.mapID == 195) {
+                    GameScr.gameAC("TSBoss: \u0110\u00e3 v\u00e0o M195, ch\u1edd boss spawn...");
+                    return;
+                }
+            }
+            sleep(2000L);
+        }
+    }
+
     private static int getFirstMapForPriority() {
         switch (eventPriority) {
             case 1: // VDMQ + Lang Co
@@ -509,6 +574,9 @@ public final class AutoBossEvent implements Runnable {
             if (firstMap > 0) {
                 GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
                 travelToMap(firstMap);
+            } else if (eventPriority == 6) {
+                // Map VIP: vao M195 qua NPC truoc khi boss spawn
+                preSpawnEnterMapVIP();
             }
             // Cho den dung gio boss spawn
             while (isEnabled && inEvent) {
