@@ -1758,7 +1758,14 @@ public class AutoSanBoss implements Runnable {
 
                 GameScr.gameAC("TSB: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o Map VIP...");
                 try { Code.gameAN(); } catch (Exception e) {}
-                sleep(200);
+                // Doi nhan vat chet that su (toi da 3s)
+                for (int d = 0; d < 30 && checkStillRunning(); d++) {
+                    sleep(100);
+                    try {
+                        Char me2 = Char.getMyChar();
+                        if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
+                    } catch (Exception e) {}
+                }
 
                 // Hoi sinh tai thon
                 for (int r = 0; r < 15 && checkStillRunning(); r++) {
@@ -2071,7 +2078,14 @@ public class AutoSanBoss implements Runnable {
                 }
                 GameScr.gameAC("TSB: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o Map VIP2...");
                 try { Code.gameAN(); } catch (Exception e) {}
-                sleep(200);
+                // Doi nhan vat chet that su (toi da 3s)
+                for (int d = 0; d < 30 && checkStillRunning(); d++) {
+                    sleep(100);
+                    try {
+                        Char me2 = Char.getMyChar();
+                        if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
+                    } catch (Exception e) {}
+                }
                 for (int r = 0; r < 15 && checkStillRunning(); r++) {
                     try {
                         Char me = Char.getMyChar();
