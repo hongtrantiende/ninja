@@ -234,7 +234,7 @@ def main():
         'AutoDoiDiem', 'AutoFilter', 'AutoNhanDa', 'AutoTsXa',
         'AutoTuLuyen', 'AutoVipMap', 'AutoVT55', 'InfoMe', 'mResources',
         'Skill', 'AutoFakePkb', 'BossConfig', 'ExploitConfig', 'TsConfig',
-        'AutoSuicide'
+        'AutoSuicide', 'AutoBossNotice'
     }
     
     patched = 0
