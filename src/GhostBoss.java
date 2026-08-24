@@ -384,16 +384,17 @@ public final class GhostBoss implements Runnable {
     private void respawnFast() {
         for (int i = 0; i < 10 && isRunning; i++) {
             try {
-                GameCanvas.endDlg(); sleep(10);
+                GameCanvas.endDlg(); sleep(20);
                 Auto.gameAN.removeAllElements();
                 Auto.gameAM = false;
-                GameScr.gameAB(5, 0, 0); sleep(10);
+                LockGame.gameAA = true;
                 if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                     Service.gI().gameAL();
                 } else {
                     Service.gI().gameAK();
                     TileMap.gameAF();
                 }
+                LockGame.gameAA = false;
                 sleep(300);
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
             } catch (Exception e) { return; }

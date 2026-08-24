@@ -195,13 +195,13 @@ public final class AutoBossEvent implements Runnable {
                 Char me = Char.getMyChar();
                 if (me != null && me.statusMe != 14 && me.cHP > 0) break;
                 GameCanvas.endDlg();
-                sleep(10L);
+                sleep(20L);
                 Auto.gameAN.removeAllElements();
                 Auto.gameAM = false;
-                GameScr.gameAB(5, 0, 0);
-                sleep(10L);
+                LockGame.gameAA = true;
                 Service.gI().gameAK();
                 TileMap.gameAF();
+                LockGame.gameAA = false;
                 sleep(300L);
             } catch (Exception ex) {}
         }
@@ -668,13 +668,13 @@ public final class AutoBossEvent implements Runnable {
                                 Char me = Char.getMyChar();
                                 if (me != null && me.statusMe != 14 && me.cHP > 0) break;
                                 GameCanvas.endDlg();
-                                sleep(10L);
+                                sleep(20L);
                                 Auto.gameAN.removeAllElements();
                                 Auto.gameAM = false;
-                                GameScr.gameAB(5, 0, 0);
-                                sleep(10L);
+                                LockGame.gameAA = true;
                                 Service.gI().gameAK(); // Ve lang (LUON LUON)
                                 TileMap.gameAF();
+                                LockGame.gameAA = false;
                                 sleep(300L);
                             } catch (Exception ex) {}
                         }
@@ -806,17 +806,17 @@ public final class AutoBossEvent implements Runnable {
             if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
                 for (int retry = 0; retry < 10; retry++) {
                     GameCanvas.endDlg();
-                    sleep(10L);
+                    sleep(20L);
                     Auto.gameAN.removeAllElements();
                     Auto.gameAM = false;
-                    GameScr.gameAB(5, 0, 0);
-                    sleep(10L);
+                    LockGame.gameAA = true;
                     if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                         Service.gI().gameAL();
                     } else {
                         Service.gI().gameAK();
                         TileMap.gameAF();
                     }
+                    LockGame.gameAA = false;
                     sleep(300L);
                     if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 }

@@ -280,7 +280,7 @@ public class AutoSanBoss implements Runnable {
         Char.DungCoLenh = false;
     }
 
-    /** Finishes Lang Co hunt, sends pkm -6 to party, and uses Khao Di Lenh / Co Lenh or suicides back to village to exit Lang Co immediately. */
+    /** Finishes Lang Co hunt, sends pkm -6 to party, and suicides back to village to exit Lang Co immediately. */
     public static void finishLangCoAndExit() {
         try {
             if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
@@ -288,68 +288,62 @@ public class AutoSanBoss implements Runnable {
             }
         } catch (Exception e) {}
 
-        // Xoa sach item 35/37/490 TRUOC khi tu sat — Code.gameAN() se KHONG gui
-        // packet tu sat neu Char.gameAJ(35/37) tra true (con item trong bag)
-        cleanKhaoDiLenh();
-        sleep(300L);
+        if (!TileMap.isLangCo(TileMap.mapID)) return;
 
-        // 1. Neu van con o Lang Co -> Tu sat de ve tone/lang ngoai
+        // Xoa sach item 35/37/490 TRUOC khi tu sat
+        cleanKhaoDiLenh();
+        sleep(200L);
+
+        // Tu sat 1 lan duy nhat de ve lang
         if (TileMap.isLangCo(TileMap.mapID)) {
             suicideAndEnsureAlive();
         }
 
-        // Double check: neu van con o Lang Co -> tu sat lan 2
-        if (TileMap.isLangCo(TileMap.mapID)) {
-            // Clean lai lan nua phong truong hop server tra item ve
-            cleanKhaoDiLenh();
-            sleep(200L);
-            suicideAndEnsureAlive();
+        // Cho den khi thuc su roi khoi Lang Co (toi da 5 giay)
+        for (int w = 0; w < 50 && TileMap.isLangCo(TileMap.mapID); w++) {
+            sleep(100L);
         }
     }
 
     /**
-     * Tu sat CHAC CHAN (khong bi skip boi item 35/37) roi hoi sinh.
-     * 1. Thu Code.gameAN() truoc (chuan game)
-     * 2. Neu van chua chet (gameAN bi skip) -> gui truc tiep Service.gI().gameAE()
-     * 3. Hoi sinh bang GameScr.gameAB(5,0,0) + respawn packet
+     * Tu sat roi hoi sinh ve lang.
      */
     private static void suicideAndEnsureAlive() {
         try {
-            // Thu tu sat bang lenh game chuan
-            try { Code.gameAN(); } catch (Exception e) {}
-            sleep(800L);
-
-            // Neu gameAN() khong gui packet tu sat (vi item 35/37 chua xoa kip)
-            // -> gui truc tiep packet tu sat Service.gI().gameAE()
             if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
-                try { Service.gI().gameAE(); } catch (Exception e) {}
-                sleep(800L);
+                try { Code.gameAN(); } catch (Exception e) {}
+                sleep(400L);
+
+                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                    try { Service.gI().gameAE(); } catch (Exception e) {}
+                }
             }
 
-            // Hoi sinh
+            for (int w = 0; w < 20 && (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0); w++) {
+                sleep(100L);
+            }
+
             respawnIfDead();
         } catch (Exception e) {}
     }
 
-    /** Hoi sinh nhanh neu dang chet - dung cho finishLangCoAndExit va suicideAndEnsureAlive.
-     *  Dung GameScr.gameAB(5,0,0) truoc respawn packet de client dong bo trang thai chet dung. */
+    /** Hoi sinh nhanh neu dang chet - dung cho finishLangCoAndExit va suicideAndEnsureAlive. */
     private static void respawnIfDead() {
         try {
             if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
                 for (int retry = 0; retry < 10; retry++) {
                     GameCanvas.endDlg();
-                    sleep(10L);
+                    sleep(20L);
                     Auto.gameAN.removeAllElements();
                     Auto.gameAM = false;
-                    // Mo dialog hoi sinh truoc (dong bo client state)
-                    GameScr.gameAB(5, 0, 0);
-                    sleep(10L);
+                    LockGame.gameAA = true;
                     if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                         Service.gI().gameAL();
                     } else {
                         Service.gI().gameAK();
                         TileMap.gameAF();
                     }
+                    LockGame.gameAA = false;
                     sleep(300L);
                     if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 }
@@ -1176,13 +1170,11 @@ public class AutoSanBoss implements Runnable {
             if (isDisconnected()) return;
             try {
                 GameCanvas.endDlg();
-                sleep(10);
+                sleep(20);
                 // Clear state giong Auto.gameAA(boolean)
                 Auto.gameAN.removeAllElements();
                 Auto.gameAM = false;
-                // Mo dialog hoi sinh truoc (dong bo client state — fix desync Kiet Suc)
-                GameScr.gameAB(5, 0, 0);
-                sleep(10);
+                LockGame.gameAA = true;
                 // Gui packet hoi sinh chuan game goc
                 if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                     Service.gI().gameAL();  // Hoi sinh luong (tai cho)
@@ -1190,6 +1182,7 @@ public class AutoSanBoss implements Runnable {
                     Service.gI().gameAK();  // Hoi sinh ve lang
                     TileMap.gameAF();       // Refresh map
                 }
+                LockGame.gameAA = false;
                 sleep(300);
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
                     return;

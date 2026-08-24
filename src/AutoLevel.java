@@ -259,17 +259,17 @@ public class AutoLevel implements Runnable {
                 for (int r = 0; r < 10 && isRunning; r++) {
                     try {
                         GameCanvas.endDlg();
-                        sleep(10);
+                        sleep(20);
                         Auto.gameAN.removeAllElements();
                         Auto.gameAM = false;
-                        GameScr.gameAB(5, 0, 0);
-                        sleep(10);
+                        LockGame.gameAA = true;
                         if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                             Service.gI().gameAL();
                         } else {
                             Service.gI().gameAK();
                             TileMap.gameAF();
                         }
+                        LockGame.gameAA = false;
                     } catch (Exception e) {}
                     sleep(300);
                     if (myChar.statusMe != 14 && myChar.cHP > 0) break;

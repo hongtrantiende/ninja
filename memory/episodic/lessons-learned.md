@@ -1117,9 +1117,13 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
    - **Nguyên nhân gốc rễ:** Trong luồng game loop của [`src/Code.java`](file:///root/ninja/src/Code.java) (dòng 753-820) chứa toàn bộ đoạn code vi dịch cũ (Auto Luyện Đá / Tự Mua Cổ Lệnh / Mở Rương Đồ NPC 4). Khi nhân vật xuất hiện ở làng/trường học, đoạn code này tự động gọi `Service.gI().gameAI(4)` (tương tác NPC rương) và `GameScr.gameAB(5,0,0)` (mở menu rương).
    - **Khắc phục triệt để:** **XÓA SẠCH HOÀN TOÀN** toàn bộ khối code tự động tương tác NPC rương/luyện đá này khỏi [`src/Code.java`](file:///root/ninja/src/Code.java). Trong toàn bộ dự án hiện tại không còn bất kỳ lệnh nào gọi `Service.gI().gameAI(4)` tự động nữa.
 
-5. **Cơ Chế Quét Khu Làng Cổ (135 & 136):**
-   - **Bản chất Làng Cổ:** Để đổi khu ở Làng Cổ (K0, K1, K2), `Auto.gameAA(zone)` gửi gói tin `Service.gI().gameAA(zone, itemIndex)` kèm Cổ Lệnh (ID 490, 37, 35).
-   - **Tốc độ quét:** Sử dụng cơ chế đổi khu nhanh nguyên bản: duyệt `zone = 0..2`, gọi `Auto.gameAA(zone)` và `sleep(300)` để nhận dữ liệu quái ngay lập tức mà không dùng vòng lặp chờ chặn (blocking wait) tránh làm trễ nhịp quét Làng Cổ.
+6. **Sửa Triệt Để Lỗi Tự Sát 2 Lần & Vào NPC Rương Đồ Sau Khi Về Làng:**
+   - **Nguyên nhân gốc rễ 1 (NPC Rương Đồ):** Trong tất cả các hàm hồi sinh (`respawnIfDead`, `respawnFast`, `respawnQuick`, `ensureAlive`), trước đây đều chứa dòng `GameScr.gameAB(5, 0, 0)`. Trong game engine J2ME gốc, `gameAB(npcId, option, 0)` là hàm **di chuyển đến NPC và mở menu đối thoại** (NPC 5 là Okane / Rương Đồ). Vì vậy mỗi khi chết/hồi sinh, nhân vật tự động chạy đến NPC Rương Đồ.
+   - **Nguyên nhân gốc rễ 2 (Tự sát lặp 2 lần):** Trong `finishLangCoAndExit()`, sau khi tự sát lần 1, nhân vật đang chuyển map về làng nhưng `TileMap.mapID` chưa kịp đồng bộ (vẫn mang ID map Làng Cổ cũ trong vài trăm ms đầu). Đoạn code cũ có điều kiện `if (TileMap.isLangCo(TileMap.mapID))` lần 2 lập tức kích hoạt và gửi tiếp 1 packet tự sát nữa khi nhân vật vừa xuất hiện ở làng.
+   - **Khắc phục triệt để:**
+     1. **Xóa sạch toàn bộ lệnh `GameScr.gameAB(5, 0, 0)`** khỏi tất cả các file (`AutoSanBoss`, `AutoBossEvent`, `ChatRouter`, `AutoLevel`, `GhostBoss`). Khi hồi sinh chỉ gửi packet chuẩn `Service.gI().gameAK()` (về làng) hoặc `gameAL()` (tại chỗ) kèm `LockGame.gameAA = true`.
+     2. Viết lại `finishLangCoAndExit()` chỉ tự sát 1 lần duy nhất, sau đó có vòng lặp chờ cho đến khi nhân vật thực sự rời khỏi Làng Cổ (`!TileMap.isLangCo(TileMap.mapID)`) mới kết thúc.
+
 
 
 

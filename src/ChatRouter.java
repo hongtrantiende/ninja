@@ -116,22 +116,21 @@ public class ChatRouter {
         }
     }
 
-    /** Hoi sinh nhanh trong ChatRouter (chat thread).
-     *  Fix desync: GameScr.gameAB(5,0,0) truoc respawn packet de client dong bo. */
+    /** Hoi sinh nhanh trong ChatRouter (chat thread). */
     private static void respawnQuick() {
         try {
             for (int i = 0; i < 15; i++) {
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) return;
                 GameCanvas.endDlg();
-                Thread.sleep(10L);
-                GameScr.gameAB(5, 0, 0);
-                Thread.sleep(10L);
+                Thread.sleep(20L);
+                LockGame.gameAA = true;
                 if (Code.HoiSinhLuong && Char.getMyChar().luong > 0) {
                     Service.gI().gameAL();
                 } else {
                     Service.gI().gameAK();
                     TileMap.gameAF();
                 }
+                LockGame.gameAA = false;
                 Thread.sleep(300L);
             }
         } catch (Exception e) {}
