@@ -274,37 +274,10 @@ public class AutoSanBoss implements Runnable {
     private static final int MAX_ZONES = 30;
     private static final int RECONNECT_TIMEOUT = 120; // Cho toi da 2 phut de reconnect
 
-    /** Cleans Khao Di Lenh / Co Lenh (ID 490, 35, 37) from both inventory (arrItemBag) and trunk (arrItemBox) to exit Lang Co cleanly. */
+    /** Tat co Co Lenh / Khao Di Lenh de khong tu dung lai khi thoat Lang Co. */
     public static void cleanKhaoDiLenh() {
         Char.MuaCoLenh = false;
         Char.DungCoLenh = false;
-        try {
-            Char myChar = Char.getMyChar();
-            if (myChar != null) {
-                // 1. Quet Hanh trang (arrItemBag)
-                if (myChar.arrItemBag != null) {
-                    for (int i = 0; i < myChar.arrItemBag.length; i++) {
-                        Item item = myChar.arrItemBag[i];
-                        if (item != null && item.template != null && (item.template.id == 490 || item.template.id == 35 || item.template.id == 37)) {
-                            try { Service.gI().gameAE(item.indexUI); } catch (Exception e) {}
-                            try { Service.gI().gameAR(item.indexUI); } catch (Exception e) {}
-                            myChar.arrItemBag[i] = null;
-                        }
-                    }
-                }
-                // 2. Quet Tu do / Ruong (arrItemBox)
-                if (myChar.arrItemBox != null) {
-                    for (int i = 0; i < myChar.arrItemBox.length; i++) {
-                        Item item = myChar.arrItemBox[i];
-                        if (item != null && item.template != null && (item.template.id == 490 || item.template.id == 35 || item.template.id == 37)) {
-                            try { Service.gI().gameAE(item.indexUI); } catch (Exception e) {}
-                            try { Service.gI().gameAR(item.indexUI); } catch (Exception e) {}
-                            myChar.arrItemBox[i] = null;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {}
     }
 
     /** Finishes Lang Co hunt, sends pkm -6 to party, and uses Khao Di Lenh / Co Lenh or suicides back to village to exit Lang Co immediately. */
@@ -1232,7 +1205,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Lay danh sach map ID cho boss MapNgoai dua tren level nhan vat
      */
-    private int[] getMapNgoaiMaps() {
+    public static int[] getMapNgoaiMaps() {
         // Boss MapNgoai spawn tren 12 map (da loc)
         return new int[] {
             14, 15, 16,
@@ -1468,10 +1441,22 @@ public class AutoSanBoss implements Runnable {
         } catch (Exception e) {}
     }
 
+    private boolean returnToLangCoHub() {
+        if (TileMap.mapID == 138) return true;
+        if (!TileMap.isLangCo(TileMap.mapID)) return false;
+        try {
+            TileMap.gameAJ(0);
+            TileMap.gameAF();
+        } catch (Exception e) {}
+        for (int w = 0; w < 100 && checkStillRunning() && TileMap.mapID != 138; w++) {
+            sleep(100);
+        }
+        sleep(300);
+        return TileMap.mapID == 138;
+    }
+
     /**
-     * TREO MODE: Quet khu tuan tu K0->K29 tren 1 map.
-     * Dung Auto.gameAA(zone) de doi khu (giong PkBoss bytecode).
-     * KHONG danh boss, chi tim va dung cho.
+     * Scan 1 map o che do TREO BOSS (PkBoss tu dong danh, leader khong party).
      */
     private boolean treoScanMap(int mapID) {
         if (!checkStillRunning()) return false;
@@ -1493,39 +1478,45 @@ public class AutoSanBoss implements Runnable {
             }
             restoreDummyAuto();
 
-            for (int retry = 0; retry < 15 && checkStillRunning(); retry++) {
+            for (int retry = 0; retry < 25 && checkStillRunning(); retry++) {
                 if (langCoScanned135 && langCoScanned136) break;
 
-                int curMap = TileMap.mapID;
-
-                if (curMap != 135 && curMap != 136) {
-                    if (curMap != 138) {
-                        try { TileMap.gameAJ(0); TileMap.gameAF(); } catch (Exception e) {}
-                        for (int w = 0; w < 100 && checkStillRunning() && TileMap.mapID != 138; w++) sleep(100);
-                        if (TileMap.mapID != 138) continue;
-                        sleep(300);
+                // 1. Phai ve M138 truoc khi qua cong
+                if (TileMap.mapID != 138) {
+                    if (TileMap.mapID == 135 && !langCoScanned135) {
+                        // Dang o 135 chua quet -> quet luon ben duoi
+                    } else if (TileMap.mapID == 136 && !langCoScanned136) {
+                        // Dang o 136 chua quet -> quet luon ben duoi
+                    } else {
+                        returnToLangCoHub();
                     }
-                    GameScr.gameAC("TREO: Neck c\u1ed5ng (l\u1ea7n " + (retry + 1) + ")");
+                }
+
+                // 2. Tu M138: qua cong random
+                if (TileMap.mapID == 138) {
+                    GameScr.gameAC("TREO: Qua c\u1ed5ng LC (l\u1ea7n " + (retry + 1) + ")");
                     try { TileMap.gameAJ(0); TileMap.gameAF(); } catch (Exception e) {}
                     for (int w = 0; w < 100 && checkStillRunning() && TileMap.mapID == 138; w++) sleep(100);
                     sleep(800);
-                    curMap = TileMap.mapID;
                 }
+
+                int curMap = TileMap.mapID;
 
                 if (curMap == 135 && !langCoScanned135) {
                     GameScr.gameAC("TREO: V\u00e0o M135, qu\u00e9t boss...");
                     boolean found = scanLangCoZonesForTreo(135);
                     langCoScanned135 = true;
                     if (found) return true;
+                    returnToLangCoHub();
                 } else if (curMap == 136 && !langCoScanned136) {
                     GameScr.gameAC("TREO: V\u00e0o M136, qu\u00e9t boss...");
                     boolean found = scanLangCoZonesForTreo(136);
                     langCoScanned136 = true;
                     if (found) return true;
-                } else if ((curMap == 135 && langCoScanned135) || (curMap == 136 && langCoScanned136)) {
-                    GameScr.gameAC("TREO: M" + curMap + " \u0111\u00e3 qu\u00e9t, quay v\u1ec1...");
-                } else if (curMap != 138) {
-                    GameScr.gameAC("TREO: V\u00e0o M" + curMap + " (kh\u00f4ng boss), quay v\u1ec1...");
+                    returnToLangCoHub();
+                } else if (curMap == 134 || curMap == 137 || (curMap == 135 && langCoScanned135) || (curMap == 136 && langCoScanned136)) {
+                    GameScr.gameAC("TREO: V\u00e0o M" + curMap + " (kh\u00f4ng c\u1ea7n), v\u1ec1 M138...");
+                    returnToLangCoHub();
                 }
             }
 
@@ -1697,29 +1688,24 @@ public class AutoSanBoss implements Runnable {
         }
         restoreDummyAuto();
 
-        // T\u1ed1i \u0111a 15 l\u1ea7n qua c\u1ed5ng (\u0111\u1ee7 \u0111\u1ec3 cover c\u1ea3 2 map)
-        for (int retry = 0; retry < 15 && checkStillRunning(); retry++) {
+        // T\u1ed1i \u0111a 25 l\u1ea7n qua c\u1ed5ng (\u0111\u1ee7 \u0111\u1ec3 cover c\u1ea3 2 map)
+        for (int retry = 0; retry < 25 && checkStillRunning(); retry++) {
             if (langCoScanned135 && langCoScanned136) break;
 
-            int curMap = TileMap.mapID;
-
-            // N\u1ebfu \u0111ang \u1edf map boss r\u1ed3i th\u00ec kh\u00f4ng c\u1ea7n neck
-            if (curMap != 135 && curMap != 136) {
-                // Ph\u1ea3i \u1edf M138 tr\u01b0\u1edbc
-                if (curMap != 138) {
-                    try {
-                        TileMap.gameAJ(0);
-                        TileMap.gameAF();
-                    } catch (Exception e) {}
-                    for (int w = 0; w < 100 && checkStillRunning() && TileMap.mapID != 138; w++) {
-                        sleep(100);
-                    }
-                    if (TileMap.mapID != 138) continue;
-                    sleep(300);
+            // 1. Phai ve M138 truoc khi qua cong
+            if (TileMap.mapID != 138) {
+                if (TileMap.mapID == 135 && !langCoScanned135) {
+                    // Dang o 135 chua quet -> quet luon ben duoi
+                } else if (TileMap.mapID == 136 && !langCoScanned136) {
+                    // Dang o 136 chua quet -> quet luon ben duoi
+                } else {
+                    returnToLangCoHub();
                 }
+            }
 
-                // T\u1eeb M138: qua c\u1ed5ng random
-                GameScr.gameAC("TSB: Neck c\u1ed5ng (l\u1ea7n " + (retry + 1) + ")");
+            // 2. Tu M138: qua cong random
+            if (TileMap.mapID == 138) {
+                GameScr.gameAC("TSB: Qua c\u1ed5ng LC (l\u1ea7n " + (retry + 1) + ")");
                 try {
                     TileMap.gameAJ(0);
                     TileMap.gameAF();
@@ -1729,29 +1715,31 @@ public class AutoSanBoss implements Runnable {
                     sleep(100);
                 }
                 sleep(800);
-                curMap = TileMap.mapID;
             }
 
-            // Ki\u1ec3m tra map v\u1eeba v\u00e0o
+            int curMap = TileMap.mapID;
+
+            // 3. Ki\u1ec3m tra map v\u1eeba v\u00e0o
             if (curMap == 135 && !langCoScanned135) {
                 GameScr.gameAC("TSB: V\u00e0o M135, qu\u00e9t boss...");
                 boolean found = scanLangCoZones(135);
                 langCoScanned135 = true;
                 if (found) return true;
+                returnToLangCoHub();
             } else if (curMap == 136 && !langCoScanned136) {
                 GameScr.gameAC("TSB: V\u00e0o M136, qu\u00e9t boss...");
                 boolean found = scanLangCoZones(136);
                 langCoScanned136 = true;
                 if (found) return true;
-            } else if ((curMap == 135 && langCoScanned135) || (curMap == 136 && langCoScanned136)) {
-                GameScr.gameAC("TSB: M" + curMap + " \u0111\u00e3 qu\u00e9t, quay v\u1ec1...");
-            } else if (curMap != 138) {
-                GameScr.gameAC("TSB: V\u00e0o M" + curMap + " (kh\u00f4ng boss), quay v\u1ec1...");
+                returnToLangCoHub();
+            } else if (curMap == 134 || curMap == 137 || (curMap == 135 && langCoScanned135) || (curMap == 136 && langCoScanned136)) {
+                GameScr.gameAC("TSB: V\u00e0o M" + curMap + " (kh\u00f4ng c\u1ea7n), v\u1ec1 M138...");
+                returnToLangCoHub();
             }
         }
 
         if (!langCoScanned135 || !langCoScanned136) {
-            GameScr.gameAC("TSB: L\u00e0ng C\u1ed5 h\u1ebft l\u01b0\u1ee3t qu\u00e9t");
+            GameScr.gameAC("TSB: L\u00e0ng C\u1ed5 h\u1ebft l\u01b0\u1ee3t th\u1eed c\u1ed5ng");
         } else {
             GameScr.gameAC("TSB: L\u00e0ng C\u1ed5 h\u1ebft boss");
         }

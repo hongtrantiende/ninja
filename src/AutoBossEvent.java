@@ -381,6 +381,48 @@ public final class AutoBossEvent implements Runnable {
         return min;
     }
 
+    public static void travelToMap(int targetMap) {
+        if (TileMap.mapID == targetMap) return;
+        if (targetMap == 138 || TileMap.isLangCo(targetMap)) {
+            AutoSanBoss.ensureInLangCo();
+            return;
+        }
+        PkBoss travel = new PkBoss(targetMap);
+        Code.gameAB = travel;
+        for (int i = 0; i < 600 && isEnabled && inEvent && TileMap.mapID != targetMap; i++) {
+            sleep(100L);
+        }
+        if (Code.gameAB == travel) Code.gameAB = null;
+    }
+
+    private static int getFirstMapForPriority() {
+        switch (eventPriority) {
+            case 1: // VDMQ + Lang Co
+                if (AutoSanBoss.isMapEnabled(141)) return 141;
+                if (AutoSanBoss.isMapEnabled(142)) return 142;
+                if (AutoSanBoss.isMapEnabled(143)) return 143;
+                return 138;
+            case 2: // MapNgoai
+                int[] mnMaps = AutoSanBoss.getMapNgoaiMaps();
+                for (int i = 0; i < mnMaps.length; i++) {
+                    if (AutoSanBoss.isMapEnabled(mnMaps[i])) return mnMaps[i];
+                }
+                return 14;
+            case 3: // TheGioi
+                return 65;
+            case 4: // Lang Co
+                return 138;
+            case 5: // VDMQ
+                if (AutoSanBoss.isMapEnabled(141)) return 141;
+                if (AutoSanBoss.isMapEnabled(142)) return 142;
+                if (AutoSanBoss.isMapEnabled(143)) return 143;
+                return 141;
+            default: // Tat ca
+                if (AutoSanBoss.isMapEnabled(141)) return 141;
+                return 14;
+        }
+    }
+
     public void run() {
         while (isEnabled) {
             try {
@@ -407,7 +449,6 @@ public final class AutoBossEvent implements Runnable {
                     int secLeft = getSecondsTillNextForPriority();
                     if (secLeft > 0 && secLeft <= PRE_SPAWN_SECONDS) {
                         preSpawnTriggered = true;
-                        AutoSanBoss.ignoreBossHourCheck = true;
                         // Tinh gio boss sap toi (khong dung Calendar.add vi J2ME khong co)
                         Calendar fc = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
                         int curSec = fc.get(Calendar.HOUR_OF_DAY) * 3600 + fc.get(Calendar.MINUTE) * 60 + fc.get(Calendar.SECOND);
@@ -429,7 +470,7 @@ public final class AutoBossEvent implements Runnable {
         pauseLeaderAndWaitStable();
         inEvent = true;
         membersSentBack = false;
-        GameScr.gameAC("TSBoss: Den gio boss - luu M" + savedMap + " K" + savedZone);
+        GameScr.gameAC("TSBoss: Chu\u1ea9n b\u1ecb s\u0103n boss! L\u01b0u M" + savedMap + " K" + savedZone);
         AutoSanBoss.autoInviteFriends();
         sleep(1000L);
         sendParty("pkm -4");
@@ -452,6 +493,24 @@ public final class AutoBossEvent implements Runnable {
                 }
             }
         }).start();
+
+        // Neu chua den gio (dang o che do pre-spawn): chay den map cho san va dung doi
+        int preSec = getSecondsTillNextForPriority();
+        if (preSec > 0 && preSec <= PRE_SPAWN_SECONDS) {
+            int firstMap = getFirstMapForPriority();
+            GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
+            travelToMap(firstMap);
+            // Cho den dung gio boss spawn
+            while (isEnabled && inEvent) {
+                int s = getSecondsTillNextForPriority();
+                if (s <= 0 || s > 3600) break;
+                GameScr.gameAC("TSBoss: Ch\u1edd t\u1ea1i M" + TileMap.mapID + " (" + s + "s)...");
+                for (int w = 0; w < 20 && isEnabled && inEvent; w++) sleep(100L);
+            }
+            GameScr.gameAC("TSBoss: \u0110\u00fang gi\u1edd! B\u1eaft \u0111\u1ea7u s\u0103n boss!");
+        }
+
+        AutoSanBoss.ignoreBossHourCheck = false;
 
         boolean huntAll = forceAllNext;
         forceAllNext = false;
