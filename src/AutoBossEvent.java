@@ -181,6 +181,20 @@ public final class AutoBossEvent implements Runnable {
                 || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
         if (!isGated) return;
 
+        // Neu priority la MapVIP, chi clean LC roi de enterMapVIP xu ly
+        if (eventPriority == 6) {
+            if (TileMap.isLangCo(curMap)) {
+                AutoSanBoss.cleanKhaoDiLenh();
+                sleep(300L);
+            }
+            // Dung auto nhung KHONG tu sat — preSpawnEnterMapVIP/enterMapVIP se lam
+            LockGame.gameBK();
+            if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                Code.gameAB = null;
+            }
+            return;
+        }
+
         if (curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)) {
             AutoSanBoss.cleanKhaoDiLenh();
         }
