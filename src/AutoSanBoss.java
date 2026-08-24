@@ -290,7 +290,7 @@ public class AutoSanBoss implements Runnable {
         Char.DungCoLenh = false;
     }
 
-    /** Finishes Lang Co hunt, sends pkm -6 to party, and suicides back to village to exit Lang Co immediately. */
+    /** Finishes Lang Co hunt, sends pkm -6 to party, and uses NPC 7 at M138 to return to village. */
     public static void finishLangCoAndExit() {
         try {
             if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
@@ -300,18 +300,42 @@ public class AutoSanBoss implements Runnable {
 
         if (!TileMap.isLangCo(TileMap.mapID)) return;
 
-        // Xoa sach item 35/37/490 TRUOC khi tu sat
+        // Xoa sach item KDL
         cleanKhaoDiLenh();
         sleep(200L);
 
-        // Tu sat 1 lan duy nhat de ve lang
-        if (TileMap.isLangCo(TileMap.mapID)) {
-            suicideAndEnsureAlive();
+        // Neu dang o M135/136, chuyen ve M138 (zone 0 = cong vao)
+        if (TileMap.mapID == 135 || TileMap.mapID == 136) {
+            try { Auto.gameAA(0); } catch (Exception e) {}
+            for (int w = 0; w < 50 && (TileMap.mapID == 135 || TileMap.mapID == 136); w++) {
+                sleep(100L);
+            }
         }
 
-        // Cho den khi thuc su roi khoi Lang Co (toi da 5 giay)
-        for (int w = 0; w < 50 && TileMap.isLangCo(TileMap.mapID); w++) {
-            sleep(100L);
+        // O M138: dung NPC 7 nut so 4 (index 3) de ve lang
+        if (TileMap.mapID == 138) {
+            for (int retry = 0; retry < 3; retry++) {
+                try {
+                    GameScr.gameAB(7, 3, 0);
+                } catch (Exception e) {
+                    sleep(1000L);
+                    continue;
+                }
+                // Cho roi khoi Lang Co (toi da 10s)
+                for (int w = 0; w < 100 && TileMap.isLangCo(TileMap.mapID); w++) {
+                    sleep(100L);
+                }
+                if (!TileMap.isLangCo(TileMap.mapID)) return;
+                sleep(500L);
+            }
+        }
+
+        // Fallback: neu NPC that bai, tu sat ve thon
+        if (TileMap.isLangCo(TileMap.mapID)) {
+            suicideAndEnsureAlive();
+            for (int w = 0; w < 50 && TileMap.isLangCo(TileMap.mapID); w++) {
+                sleep(100L);
+            }
         }
     }
 

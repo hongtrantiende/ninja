@@ -82,18 +82,7 @@ public class ChatRouter {
         if (auto != null && auto.mapID == -1) {
             AutoSanBoss.startPartyMemberNormal();
             if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
-                Char.MuaCoLenh = false;
-                Char.DungCoLenh = false;
-                AutoSanBoss.cleanKhaoDiLenh();
-                try { Thread.sleep(300L); } catch (InterruptedException e) {}
-                try { Code.gameAN(); } catch (Exception e) {}
-                try { Thread.sleep(800L); } catch (InterruptedException e) {}
-                // Fallback: neu gameAN khong tu sat (item chua xoa kip) -> gui truc tiep
-                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
-                    try { Service.gI().gameAE(); } catch (Exception e) {}
-                    try { Thread.sleep(800L); } catch (InterruptedException e) {}
-                }
-                respawnQuick();
+                AutoSanBoss.finishLangCoAndExit();
             }
             return;
         }
