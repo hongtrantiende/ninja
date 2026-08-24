@@ -351,14 +351,22 @@
 - **Files:** `src/AutoSanBoss.java`
 - **Chưa build JAR** — cần chạy full build flow theo AGENTS.md trước khi test.
 
-## 2026-08-22: Giao Diện Cài Đặt Săn Boss (BossConfig) Dạng Form Checkbox, Lưu RMS & Tự Sát Về Làng
-- **Quyết định:**
-  1. **Tạo Form `BossConfig`**: Cho phép người dùng bật/tắt từng map ID cụ thể cho 4 loại boss (VDMQ, Map Ngoài, Làng Cổ, Thế Giới) dạng checkbox trực quan giống menu `SetAuto` gốc.
-  2. **Lưu Vĩnh Viễn Vào RMS (`dis_boss_maps`)**: Danh sách các map bị tắt được lưu vào bộ nhớ máy (RMS) bằng `RMS.gameAA` và đọc tự động bằng `RMS.gameAC` khi khởi động/mở menu, đảm bảo thoát game vào lại vẫn giữ nguyên cài đặt.
-  3. **Lọc Map trong AutoSanBoss**: Thêm `isMapEnabled(mapId)` và `isBossTypeEnabled(type)` để bỏ qua các map/loại boss đã bị tắt trong cài đặt.
-  4. **Thoát map phòng kín khi bắt đầu săn boss (`exitGatedMapIfNeeded`)**: Khi nhân vật đang đứng trong **Map Up Lượng (M196)**, **Map Tu Luyện (M192)** hoặc **Làng Cổ (M135/M136)**: Trước khi `PkBoss` chạy, hệ thống tự động lưu vị trí → tự sát → bấm Về làng (`gameAK`) để xuất hiện ở làng/trường, từ đó `PkBoss` mới có thể đi sang map boss.
-  5. **Tính năng Test TS Boss (1 Map)**: Thêm nút menu `Test TS Boss (1 Map)` và lệnh chat `tsbosstest`: Quét nhanh đúng 1 map test rồi tự động kết thúc và đưa nhân vật về lại đúng map cũ.
-- **Files:** `src/BossConfig.java`, `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`, `.agents/AGENTS.md`
+## 2026-08-24: Tối Ưu Quét Boss Làng Cổ — Cơ Chế Quét Cơ Hội (Opportunistic Scan)
+- **Quyết định:** Viết lại `pkLangCoMap()` và `treoScanMap()` theo cơ chế quét cơ hội: Khi đi qua cổng ngẫu nhiên từ Map 138, nếu rơi vào map boss nào (Map 135 hoặc Map 136) thì lập tức quét 3 khu của map đó luôn và đánh dấu đã quét, sau đó mới tìm map còn lại.
+- **Lý do:** Trước đây bot cố định tìm tuần tự Map 135 trước rồi mới đến Map 136, khiến mỗi lần vào nhầm Map 136 phải quay lại Map 138 retry cổng, gây chậm trễ. Cơ chế cơ hội giúp tiết kiệm tối đa thời gian.
+- **Files:** `src/AutoSanBoss.java`
+
+## 2026-08-24: Tính Năng Pre-spawn 30s Trước Giờ Boss (TS Boss Ưu Tiên)
+- **Quyết định:** Thêm cơ chế đếm ngược trước khi boss spawn trong `AutoBossEvent.run()`:
+  - Khi thời gian còn `<= 30` giây trước giờ boss spawn, tự động lưu vị trí tàn sát, gọi nhóm và di chuyển sẵn ra map boss đứng chờ.
+  - Khi boss vừa xuất hiện đúng giờ, bot lập tức quét khu và tấn công ngay, không sợ bị người khác húp trước.
+  - Thiết lập `lastWindowKey` tính trước cho khung giờ sắp tới để tránh bị lặp (double-trigger).
+- **Files:** `src/AutoBossEvent.java`, `src/AutoSanBoss.java`
+
+## 2026-08-24: Gỡ Bỏ Tính Năng "Auto Boss Qua Chat" & Tạo Stub An Toàn J2ME
+- **Quyết định:** Gỡ bỏ hoàn toàn tính năng Auto Boss qua Chat khỏi UI, menu cấu hình `BossConfig`, và `ChatRouter`. Tạo class stub [`src/AutoBossNotice.java`](file:///root/ninja/src/AutoBossNotice.java) rỗng và đăng ký vào `patch_class_j2me.py` để tránh lỗi `ClassNotFoundException` / `UnsupportedClassVersionError` từ `ChatManager.class` gốc.
+- **Files:** `src/AutoBossNotice.java`, `src/BossConfig.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`
+
 
 
 
