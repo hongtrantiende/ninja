@@ -1729,7 +1729,7 @@ public class AutoSanBoss implements Runnable {
 
             GameScr.gameAC("TSB: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o Map VIP...");
             try { Code.gameAN(); } catch (Exception e) {}
-            sleep(500);
+            sleep(200);
 
             // Hoi sinh tai thon
             for (int r = 0; r < 15 && checkStillRunning(); r++) {
@@ -1746,10 +1746,10 @@ public class AutoSanBoss implements Runnable {
                         TileMap.gameAF();
                     }
                     LockGame.gameAA = false;
-                    sleep(300);
+                    sleep(150);
                 } catch (Exception e) { break; }
             }
-            sleep(500);
+            sleep(200);
         }
 
         if (TileMap.mapID == 195) return true;

@@ -424,7 +424,7 @@ public final class AutoBossEvent implements Runnable {
                 AutoSanBoss.cleanKhaoDiLenh();
             }
             try { Code.gameAN(); } catch (Exception e) {}
-            sleep(500L);
+            sleep(200L);
 
             // Hoi sinh tai thon
             for (int r = 0; r < 15 && isEnabled; r++) {
@@ -441,10 +441,10 @@ public final class AutoBossEvent implements Runnable {
                         TileMap.gameAF();
                     }
                     LockGame.gameAA = false;
-                    sleep(300L);
+                    sleep(150L);
                 } catch (Exception e) { break; }
             }
-            sleep(500L);
+            sleep(200L);
         }
 
         if (TileMap.mapID == 195) return;
