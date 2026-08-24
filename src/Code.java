@@ -750,74 +750,7 @@ implements Runnable {
                                     LockGame.gameAG();
                                 }
                             }
-                            if (var4 < 10 && !(gameAB instanceof As10) && Char.LuyenDa && var3.ctaskId > 9 && var4 > 0 && Code.gameAH()) {
-                                boolean var9 = TileMap.gameAF(TileMap.mapID);
-                                if (var9) {
-                                    var18 = Char.gameAF(490);
-                                    if (var18 == null) var18 = Char.gameAF(37);
-                                    if (Char.LuyenDa && var18 == null && (var18 = Char.gameAF(35)) == null) {
-                                        GameScr.gameAB(4, 0, 0);
-                                        Service.gI().gameAB(14, 29, 2);
-                                        LockGame.gameAG();
-                                        Auto.Sleep(100L);
-                                        var18 = Char.gameAF(490);
-                                        if (var18 == null) var18 = Char.gameAF(35);
-                                    }
-                                    if (var18 != null && !TileMap.isLangCo(TileMap.mapID) && Char.LuyenDa) {
-                                         Service.gI().useItem(var18.indexUI);
-                                         TileMap.gameAF();
-                                     }        
-                                }
-                                if (TileMap.gameAD(TileMap.mapID)) {
-                                    GameScr.gameAB(6, 1, 1);
-                                    LockGame.gameAQ();
-                                    Vector<Item> var25 = new Vector<Item>();
-                                    block19: for (var19 = 0; var19 < Char.LuyenDaMax - 1; ++var19) {
-                                        Item var27;
-                                        var25.removeAllElements();
-                                        for (var23 = 0; var23 < var3.arrItemBag.length; ++var23) {
-                                            var27 = var3.arrItemBag[var23];
-                                            if (var27 == null || var27.template.id != var19) continue;
-                                            var25.addElement(var27);
-                                        }
-                                        while (var25.size() >= 4) {
-                                            var23 = 1;
-                                            for (var5 = var19; var5 < Char.LuyenDaMax - 1 && GameScr.coinUpCrystals[var5] <= var3.yen && var23 << 2 <= var25.size() && var23 < 16; var23 <<= 2, ++var5) {
-                                            }
-                                            if (var23 == 1) break block19;
-                                            GameScr.gameCT = new Item[24];
-                                            for (var6 = 0; var6 < var23; ++var6) {
-                                                GameScr.gameCT[var6] = var27 = (Item)var25.elementAt(0);
-                                                var3.arrItemBag[var27.indexUI] = null;
-                                                var25.removeElementAt(0);
-                                            }
-                                            Service.gI().gameAC(GameScr.gameCT);
-                                            LockGame.gameAA();
-                                            if (GameScr.gameCT[0] == null) continue;
-                                            var3.arrItemBag[GameScr.gameCT[0].indexUI] = GameScr.gameCT[0];
-                                        }
-                                    }
-                                    GameCanvas.endDlg();
-                                }
-                                if (Char.getMyChar().arrItemBox == null) {
-                                    Service.gI().gameAI(4);
-                                    LockGame.gameAS();
-                                }
-                                GameScr.gameAB(5, 0, 0);
-                                var19 = Char.gameBH();
-                                for (var5 = 0; var5 < var3.arrItemBag.length; ++var5) {
-                                    var18 = var3.arrItemBag[var5];
-                                    if (var18 == null || var18.template.id != Char.LuyenDaMax - 1 || var19 <= 0) continue;
-                                    Service.gI().gameAE(var18.indexUI);
-                                    --var19;
-                                }
-                                if (var9) {
-                                    Auto.reAD();
-                                }
-                                var4 = Char.gameBG();
-                                Service.gI().gameAF();
-                                LockGame.gameAS();
-                            }
+                            // Da xoa bo hoan toan tinh nang tu dong luyen da / mo ruong NPC cu de tranh loi
                         }
                     }
                     if (gameAQ) {
