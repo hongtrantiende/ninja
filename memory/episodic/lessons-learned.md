@@ -1117,12 +1117,10 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
    - **Nguyên nhân gốc rễ:** Trong luồng game loop của [`src/Code.java`](file:///root/ninja/src/Code.java) (dòng 753-820) chứa toàn bộ đoạn code vi dịch cũ (Auto Luyện Đá / Tự Mua Cổ Lệnh / Mở Rương Đồ NPC 4). Khi nhân vật xuất hiện ở làng/trường học, đoạn code này tự động gọi `Service.gI().gameAI(4)` (tương tác NPC rương) và `GameScr.gameAB(5,0,0)` (mở menu rương).
    - **Khắc phục triệt để:** **XÓA SẠCH HOÀN TOÀN** toàn bộ khối code tự động tương tác NPC rương/luyện đá này khỏi [`src/Code.java`](file:///root/ninja/src/Code.java). Trong toàn bộ dự án hiện tại không còn bất kỳ lệnh nào gọi `Service.gI().gameAI(4)` tự động nữa.
 
-5. **Sửa Lỗi Làng Cổ Vào Map 135/136 Nhưng Không Đổi Khu Tìm Boss:**
-   - **Nguyên nhân gốc rễ 1:** Trong Làng Cổ không có NPC Cột Chuyển Khu 13. Để đổi khu trong Làng Cổ, game bắt buộc phải gửi gói tin `Service.gI().gameAA(zone, itemIndex)` kèm theo index của Cổ Lệnh trong hành trang. Trong [`src/Auto.java`](file:///root/ninja/src/Auto.java) dòng 254 chỉ tìm item ID `37` và `35`, **hoàn toàn thiếu ID `490`** (Lệnh Bài Làng Cổ / Khảo Dị Lệnh bán ở shop Goshu). Khi nhân vật cầm item 490, `Char.gameAI(37)` và `35` trả về `-1` khiến `Auto.gameAA` return ngay lập tức mà không hề gửi lệnh đổi khu.
-   - **Nguyên nhân gốc rễ 2:** Trong `scanLangCoZones`, trước đây bot gọi `Auto.gameAA(zone)` rồi chỉ `sleep(300)` mà không chờ `TileMap.zoneID == zone`. Khi máy chủ gửi dữ liệu khu về chậm hơn 300ms, bot đã duyệt qua hết K0, K1, K2 trong 1 giây mà chưa kịp đổi khu thực sự và chưa kịp tải danh sách quái.
-   - **Khắc phục triệt để:**
-     1. Bổ sung tìm item `490` vào `Auto.java` (`var2 = Char.gameAI(490);`).
-     2. Thêm vòng lặp đợi `TileMap.zoneID == zone` và delay 300ms để dữ liệu quái/boss từ máy chủ đồng bộ hoàn tất trước khi quét tìm boss.
+5. **Cơ Chế Quét Khu Làng Cổ (135 & 136):**
+   - **Bản chất Làng Cổ:** Để đổi khu ở Làng Cổ (K0, K1, K2), `Auto.gameAA(zone)` gửi gói tin `Service.gI().gameAA(zone, itemIndex)` kèm Cổ Lệnh (ID 490, 37, 35).
+   - **Tốc độ quét:** Sử dụng cơ chế đổi khu nhanh nguyên bản: duyệt `zone = 0..2`, gọi `Auto.gameAA(zone)` và `sleep(300)` để nhận dữ liệu quái ngay lập tức mà không dùng vòng lặp chờ chặn (blocking wait) tránh làm trễ nhịp quét Làng Cổ.
+
 
 
 
