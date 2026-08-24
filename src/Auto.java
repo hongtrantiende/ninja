@@ -251,7 +251,8 @@ public abstract class Auto {
                 if (TileMap.mapID != 99 && TileMap.mapID != 103 && TileMap.mapID != 134 && TileMap.mapID != 135 && TileMap.mapID != 136 && TileMap.mapID != 137) {
                     return;
                 }
-                var2 = Char.gameAI(37);
+                var2 = Char.gameAI(490);
+                if (var2 < 0) var2 = Char.gameAI(37);
                 if (var2 < 0 && (var2 = Char.gameAI(35)) < 0) {
                     return;
                 }
@@ -291,7 +292,8 @@ public abstract class Auto {
                     gameBB = System.currentTimeMillis();
                     return;
                 }
-                var4 = Char.gameAI(37);
+                var4 = Char.gameAI(490);
+                if (var4 < 0) var4 = Char.gameAI(37);
                 if (var4 < 0 && (var4 = Char.gameAI(35)) < 0) {
                     this.zoneID = TileMap.zoneID;
                     gameBB = System.currentTimeMillis();
