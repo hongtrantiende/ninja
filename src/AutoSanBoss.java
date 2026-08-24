@@ -1849,25 +1849,73 @@ public class AutoSanBoss implements Runnable {
             if (hasBossOnCurrentMap()) {
                 sleep(150);
                 if (hasBossOnCurrentMap()) {
-                    GameScr.gameAC("TSB: Boss M195 K" + zone + "!");
+                    int bossZone = zone;
+                    GameScr.gameAC("TSB: Boss M195 K" + bossZone + "!");
 
                     // Gui lenh nhom
                     sendPartyCommand("pkm -1");
                     sleep(50);
                     sendPartyCommand("pkm 195");
                     sleep(300);
-                    sendPartyCommand("pkk " + zone);
+                    sendPartyCommand("pkk " + bossZone);
                     sleep(1500);
                     sendPartyCommand("pke");
 
                     // Bat PkBoss danh
                     try {
                         PkBoss pk = new PkBoss(195);
-                        pk.zoneID = zone;
+                        pk.zoneID = bossZone;
                         Code.gameAA(pk);
                     } catch (Exception e) {}
 
-                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                    // === VONG LAP DANH BOSS — xu ly chet + quay lai ===
+                    int deathCount = 0;
+                    while (checkStillRunning()) {
+                        // Check boss con song
+                        if (TileMap.mapID == 195 && !hasBossOnCurrentMap()) {
+                            // Boss da chet (van o M195 nhung khong thay boss)
+                            break;
+                        }
+
+                        // Check bi thoat M195 (chet ve thon)
+                        if (TileMap.mapID != 195) {
+                            deathCount++;
+                            if (deathCount > 5) {
+                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
+                                break;
+                            }
+                            GameScr.gameAC("TSB: Ch\u1ebft! H\u1ed3i sinh + quay l\u1ea1i M195 (l\u1ea7n " + deathCount + ")...");
+
+                            // Dung PkBoss cu
+                            if (Code.gameAB instanceof PkBoss) {
+                                Code.gameAC();
+                            }
+
+                            // Hoi sinh + vao lai M195
+                            if (!enterMapVIP()) {
+                                GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M195!");
+                                return false;
+                            }
+
+                            // Chuyen ve khu boss
+                            try { Auto.gameAA(bossZone); } catch (Exception e2) {}
+                            sleep(500);
+                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                                sleep(200);
+                            }
+
+                            // Bat PkBoss lai
+                            restoreDummyAuto();
+                            try {
+                                PkBoss pk2 = new PkBoss(195);
+                                pk2.zoneID = bossZone;
+                                Code.gameAA(pk2);
+                            } catch (Exception e2) {}
+
+                            sleep(500);
+                            continue;
+                        }
+
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
@@ -1880,7 +1928,7 @@ public class AutoSanBoss implements Runnable {
                     }
                     restoreDummyAuto();
 
-                    GameScr.gameAC("TSB: Boss M195 K" + zone + " \u0111\u00e3 ch\u1ebft!");
+                    GameScr.gameAC("TSB: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     grabAllItems();
                     sendPartyCommand("pkm -6");
                     return true;
