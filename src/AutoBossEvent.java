@@ -579,7 +579,12 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static int getFirstMapForPriority() {
-        switch (eventPriority) {
+        return getFirstMapForPriority(eventPriority);
+    }
+
+    /** Tra ve map dau tien cho 1 priority cu the. Tach ra de default goi lai theo boss gan nhat. */
+    private static int getFirstMapForPriority(int priority) {
+        switch (priority) {
             case 1: // VDMQ + Lang Co
                 if (AutoSanBoss.isMapEnabled(141)) return 141;
                 if (AutoSanBoss.isMapEnabled(142)) return 142;
@@ -604,11 +609,52 @@ public final class AutoBossEvent implements Runnable {
                 return -1;
             case 7: // Map VIP2 — vao qua NPC, khong can GoMap truoc
                 return -1;
-            default: // Tat ca
+            default: {
+                // Tat ca: dung HUNT_PRIORITY (VIP2 > VIP > LC > VDMQ > TG > MN)
+                // 1. Uu tien boss DANG ACTIVE theo thu tu priority
+                int[] hp = AutoSanBoss.getHuntPriority();
+                for (int i = 0; i < hp.length; i++) {
+                    if (AutoSanBoss.isBossActive(hp[i])) {
+                        return mapForBossType(hp[i]);
+                    }
+                }
+                // 2. Khong co boss active → tim boss SAP SPAWN GAN NHAT
+                int closestType = -1;
+                int closestSec = Integer.MAX_VALUE;
+                for (int i = 0; i < hp.length; i++) {
+                    int s = AutoSanBoss.getSecondsTillNextBoss(hp[i]);
+                    if (s < closestSec) {
+                        closestSec = s;
+                        closestType = hp[i];
+                    } else if (s == closestSec && closestType >= 0) {
+                        // Cung gio spawn → uu tien theo HUNT_PRIORITY (hp[i] co index thap hon = uu tien cao hon)
+                        // hp[i] da duyet theo thu tu uu tien nen khong can doi
+                    }
+                }
+                if (closestType >= 0) return mapForBossType(closestType);
+                // Fallback
                 if (AutoSanBoss.isMapEnabled(141)) return 141;
                 return 14;
+            }
         }
     }
+
+    /** Tra ve map dau tien cho 1 boss type cu the */
+    private static int mapForBossType(int bossType) {
+        if (bossType == AutoSanBoss.TYPE_VDMQ) {
+            return getFirstMapForPriority(5);
+        } else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) {
+            return getFirstMapForPriority(2);
+        } else if (bossType == AutoSanBoss.TYPE_THEGIOI) {
+            return 65;
+        } else if (bossType == AutoSanBoss.TYPE_LANGCO) {
+            return 138;
+        } else if (bossType == AutoSanBoss.TYPE_MAPVIP || bossType == AutoSanBoss.TYPE_MAPVIP2) {
+            return -1; // VIP vao qua NPC
+        }
+        return 14;
+    }
+
 
     public void run() {
         while (isEnabled) {
@@ -688,16 +734,22 @@ public final class AutoBossEvent implements Runnable {
             if (firstMap > 0) {
                 GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
                 travelToMap(firstMap);
-            } else if (eventPriority == 6) {
-                // Map VIP: check cai dat xem bat M196 hay M195
-                if (AutoSanBoss.isMapEnabled(196)) {
+            } else if (firstMap == -1) {
+                // VIP map: vao qua NPC. Xac dinh M195 hay M196
+                boolean needVIP2 = (eventPriority == 7);
+                if (!needVIP2 && eventPriority == 0) {
+                    // Default/All: check boss VIP nao gan nhat
+                    int sVIP1 = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP);
+                    int sVIP2 = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP2);
+                    if (AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP2)) needVIP2 = true;
+                    else if (!AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP) && sVIP2 < sVIP1) needVIP2 = true;
+                }
+                if (!needVIP2 && AutoSanBoss.isMapEnabled(196) && !AutoSanBoss.isMapEnabled(195)) needVIP2 = true;
+                if (needVIP2) {
                     preSpawnEnterMapVIP2();
                 } else {
                     preSpawnEnterMapVIP();
                 }
-            } else if (eventPriority == 7) {
-                // Map VIP2 only: vao M196 qua NPC truoc khi boss spawn
-                preSpawnEnterMapVIP2();
             }
             // Cho den dung gio boss spawn
             while (isEnabled && inEvent) {

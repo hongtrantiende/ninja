@@ -241,6 +241,9 @@ public class AutoSanBoss implements Runnable {
     /** Thu tu uu tien quet boss: MapVIP2 > MapVIP > Lang Co > VDMQ > TheGioi > MapNgoai */
     private static final int[] HUNT_PRIORITY = {TYPE_MAPVIP2, TYPE_MAPVIP, TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
 
+    /** Expose HUNT_PRIORITY cho AutoBossEvent pre-spawn su dung */
+    public static int[] getHuntPriority() { return HUNT_PRIORITY; }
+
     // Map IDs cho moi loai boss
     private static final int[][] BOSS_MAPS = {
         {141, 142, 143},   // VDMQ

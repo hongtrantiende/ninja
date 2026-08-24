@@ -76,8 +76,8 @@ python scripts/patch_effectauto.py build/unpacked/EffectAuto.class
 # 4e. Đẩy vị trí HS lượng/Lọc Đồ xuống thấp hơn
 python scripts/patch_hsluong_pos.py build/unpacked/GameScr.class
 
-# 4f. Hook AutoBossNotice vào ChatManager (bắt thông báo Boss kênh thế giới)
-python scripts/patch_chatmanager_boss.py build/unpacked/
+# 4f. Khôi phục ChatManager.class gốc (patch boss hook phá AngelChip Emulator)
+python -c "import zipfile; z=zipfile.ZipFile('ban goc.jar','r'); open('build/unpacked/ChatManager.class','wb').write(z.read('ChatManager.class')); z.close()"
 ```
 
 ### Bước 5: Xóa folder javax stubs & Đóng gói JAR
@@ -86,7 +86,14 @@ Push-Location build/unpacked
 # BẮT BUỘC: Xóa javax/ stubs do javac tạo ra (nếu để lại J2ME Loader sẽ báo lỗi cài đặt Security / Package Override sau 2s)
 Remove-Item -Recurse -Force javax -ErrorAction SilentlyContinue
 Remove-Item -Force Char.class.bak_effects -ErrorAction SilentlyContinue
-jar cfm ../../Aeharuna.jar META-INF/MANIFEST.MF .
+Pop-Location
+
+# ⚠️ DÙNG jar uf (update) THAY VÌ jar cfm (create)!
+# jar cfm tạo ZIP structure khác → AngelChip Emulator báo "Unable to find MANIFEST"
+git checkout Aeharuna.jar
+$modClasses = Get-ChildItem build/unpacked/*.class | ForEach-Object { $_.Name }
+Push-Location build/unpacked
+jar uf ../../Aeharuna.jar $modClasses
 Pop-Location
 ```
 
@@ -115,6 +122,7 @@ Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gố
 | `patch_gamescr_hsloc.py` | Patch vị trí HS/Lọc (đã có trong JAR) |
 | `patch_black_bg.py` | Xóa nền trời (đã có trong JAR) |
 | `patch_colenh_slot.py` | Fix slot Cổ Lệnh 28→29 (đã có trong JAR) |
+| `patch_chatmanager_boss.py` | ⛔ Hook boss notice vào ChatManager — PHÁ HỎng thanh nút trên AngelChip Emulator PC! Script đã bị xóa. Dùng ChatManager.class gốc từ `ban goc.jar` |
 
 ## ✅ Patches CẦN CHẠY mỗi lần build
 
@@ -125,7 +133,7 @@ Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gố
 | `fix_gamescr_thongke.py` | Rename "paint"→"draaw" tránh conflict | ❌ Chạy 1 lần trên JAR gốc |
 | `patch_effectauto.py` | Fix EffectAuto array size 20→100 | ✅ Có |
 | `patch_hsluong_pos.py` | Đẩy HS lượng/Lọc Đồ xuống 30px | ❌ Chạy 1 lần trên JAR gốc |
-| `patch_chatmanager_boss.py` | Hook AutoBossNotice vào ChatManager (bắt TB Boss kênh TG) | ✅ Có |
+
 
 ---
 
