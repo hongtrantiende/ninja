@@ -23,6 +23,7 @@ public final class NamMod implements IActionListener {
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
+    private static final int TS_VIP_MAP2 = 120128;
     private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
     private static final int BOSS_MAP_VIP = 120126;
@@ -84,7 +85,8 @@ public final class NamMod implements IActionListener {
         items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
 
         // === Tiện ích Khác ===
-        items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled), TS_VIP_MAP));
+        items.addElement(command("TS VIP Map: " + onOff(AutoVipMap.isEnabled && AutoVipMap.targetMapID == 195), TS_VIP_MAP));
+        items.addElement(command("TS VIP Map2: " + onOff(AutoVipMap.isEnabled && AutoVipMap.targetMapID == 196), TS_VIP_MAP2));
         items.addElement(command("TS Tu Luy\u1ec7n: " + onOff(AutoTuLuyen.isEnabled), TS_TU_LUYEN));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
 
@@ -226,6 +228,9 @@ public final class NamMod implements IActionListener {
                 return;
             case TS_VIP_MAP:
                 AutoVipMap.toggle();
+                return;
+            case TS_VIP_MAP2:
+                AutoVipMap.toggle2();
                 return;
             case TS_TU_LUYEN:
                 AutoTuLuyen.toggle();

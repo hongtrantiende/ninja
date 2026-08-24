@@ -24,14 +24,34 @@ public final class AutoVipMap {
 
     private AutoVipMap() {}
 
-    /** Toggle on/off */
+    /** Toggle on/off Map VIP 1 (M195) */
     public static void toggle() {
         isEnabled = !isEnabled;
         if (isEnabled) {
-            GameScr.gameAC("AutoVIP: ON - T\u1ef1 v\u00e0o l\u1ea1i M" + targetMapID + " khi ch\u1ebft/disconnect");
+            targetMapID = 195;
+            menuOption = 4;
+            GameScr.gameAC("AutoVIP: ON - T\u1ef1 v\u00e0o l\u1ea1i M195 khi ch\u1ebft/disconnect");
         } else {
             returning = false;
             GameScr.gameAC("AutoVIP: OFF");
+        }
+    }
+
+    /** Toggle on/off Map VIP 2 (M196) */
+    public static void toggle2() {
+        // Neu dang bat VIP1, tat truoc
+        if (isEnabled && targetMapID == 195) {
+            isEnabled = false;
+            returning = false;
+        }
+        isEnabled = !isEnabled;
+        if (isEnabled) {
+            targetMapID = 196;
+            menuOption = 5;
+            GameScr.gameAC("AutoVIP2: ON - T\u1ef1 v\u00e0o l\u1ea1i M196 khi ch\u1ebft/disconnect");
+        } else {
+            returning = false;
+            GameScr.gameAC("AutoVIP2: OFF");
         }
     }
 
