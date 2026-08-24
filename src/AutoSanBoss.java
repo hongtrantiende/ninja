@@ -391,8 +391,8 @@ public class AutoSanBoss implements Runnable {
 
     /** Ensures character is inside Lang Co. If currently outside, buys Co Lenh / Khao Di Lenh (ID 490/35/37) and uses it to enter Lang Co. */
     public static boolean ensureInLangCo() {
-        Char.MuaCoLenh = true;
-        Char.DungCoLenh = true;
+        Char.MuaCoLenh = false;
+        Char.DungCoLenh = false;
 
         // Dam bao graph map Lang Co duoc thiet lap
         restoreLangCoGraph();
@@ -2120,8 +2120,8 @@ public class AutoSanBoss implements Runnable {
         if (bossType == TYPE_LANGCO) {
             langCoScanned135 = false;
             langCoScanned136 = false;
-            Char.MuaCoLenh = true;
-            Char.DungCoLenh = true;
+            Char.MuaCoLenh = false;
+            Char.DungCoLenh = false;
         } else {
             if (TileMap.isLangCo(TileMap.mapID)) {
                 finishLangCoAndExit();

@@ -750,18 +750,12 @@ implements Runnable {
                                     LockGame.gameAG();
                                 }
                             }
-                            if (Char.MuaCoLenh && TileMap.mapID == 138 && var4 > 1 && !Char.gameAJ(490) && !Char.gameAJ(35) && !Char.gameAJ(37)) {
-                                GameScr.gameAB(4, 0, 0);
-                                Service.gI().gameAB(14, 29, 2);
-                                LockGame.gameAG();
-                                ++var4;
-                            }
-                            if (var4 < 10 && !(gameAB instanceof As10) && (Char.LuyenDa || Char.MuaCoLenh || Char.DungCoLenh) && var3.ctaskId > 9 && var4 > 0 && Code.gameAH()) {
+                            if (var4 < 10 && !(gameAB instanceof As10) && Char.LuyenDa && var3.ctaskId > 9 && var4 > 0 && Code.gameAH()) {
                                 boolean var9 = TileMap.gameAF(TileMap.mapID);
                                 if (var9) {
                                     var18 = Char.gameAF(490);
                                     if (var18 == null) var18 = Char.gameAF(37);
-                                    if ((Char.MuaCoLenh || Char.LuyenDa) && var18 == null && (var18 = Char.gameAF(35)) == null) {
+                                    if (Char.LuyenDa && var18 == null && (var18 = Char.gameAF(35)) == null) {
                                         GameScr.gameAB(4, 0, 0);
                                         Service.gI().gameAB(14, 29, 2);
                                         LockGame.gameAG();
@@ -769,7 +763,7 @@ implements Runnable {
                                         var18 = Char.gameAF(490);
                                         if (var18 == null) var18 = Char.gameAF(35);
                                     }
-                                    if (var18 != null && !TileMap.isLangCo(TileMap.mapID) && (Char.DungCoLenh || Char.LuyenDa || Char.MuaCoLenh)) {
+                                    if (var18 != null && !TileMap.isLangCo(TileMap.mapID) && Char.LuyenDa) {
                                          Service.gI().useItem(var18.indexUI);
                                          TileMap.gameAF();
                                      }        

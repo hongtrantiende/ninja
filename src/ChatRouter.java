@@ -40,11 +40,11 @@ public class ChatRouter {
             return;
         }
         if (auto != null && (auto.mapID == 135 || auto.mapID == 136)) {
-            // Set flags de game auto loop tu mua + dung Co Lenh (Code.java line 749-765)
-            // KHONG goi ensureInLangCo() o day vi chat thread ko mua duoc shop
-            Char.MuaCoLenh = true;
-            Char.DungCoLenh = true;
-            AutoSanBoss.restoreLangCoGraph();
+            new Thread(new Runnable() {
+                public void run() {
+                    AutoSanBoss.ensureInLangCo();
+                }
+            }).start();
         } else if (auto != null && auto.mapID > 0) {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
