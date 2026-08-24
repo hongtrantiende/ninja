@@ -1765,7 +1765,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
             } catch (Exception e) {
                 GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP!");
-                sleep(3000);
+                sleep(1000);
                 continue;
             }
 
@@ -1774,13 +1774,13 @@ public class AutoSanBoss implements Runnable {
                 sleep(100);
                 if (TileMap.mapID == 195) {
                     GameScr.gameAC("TSB: \u0110\u00e3 v\u00e0o M195!");
-                    sleep(500);
+                    sleep(100);
                     return true;
                 }
             }
 
             GameScr.gameAC("TSB: Th\u1eed l\u1ea1i v\u00e0o M195 (l\u1ea7n " + (retry + 2) + ")...");
-            sleep(2000);
+            sleep(500);
         }
 
         if (TileMap.mapID != 195) {
@@ -1907,9 +1907,9 @@ public class AutoSanBoss implements Runnable {
 
                             // Chuyen ve khu boss
                             try { Auto.gameAA(bossZone); } catch (Exception e2) {}
-                            sleep(500);
+                            sleep(200);
                             for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(200);
+                                sleep(100);
                             }
 
                             // Bat PkBoss lai
@@ -1920,7 +1920,7 @@ public class AutoSanBoss implements Runnable {
                                 Code.gameAA(pk2);
                             } catch (Exception e2) {}
 
-                            sleep(500);
+                            sleep(200);
                             continue;
                         }
 
