@@ -408,39 +408,44 @@ public final class AutoBossEvent implements Runnable {
     private static void preSpawnEnterMapVIP() {
         if (TileMap.mapID == 195) return;
 
-        // Dung auto dang chay
-        LockGame.gameBK();
-        if (Code.gameAB != null && !(Code.gameAB instanceof SanBossHolder)) {
-            Code.gameAB = null;
-        }
+        int curMap = TileMap.mapID;
 
-        // Tu sat ve thon
-        GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M195 ch\u1edd s\u1eb5n...");
-        if (TileMap.isLangCo(TileMap.mapID)) {
-            AutoSanBoss.cleanKhaoDiLenh();
-        }
-        try { Code.gameAN(); } catch (Exception e) {}
-        sleep(1500L);
+        // Neu da o thon (M22) thi goi NPC luon
+        if (curMap != 22) {
+            // Dung auto dang chay
+            LockGame.gameBK();
+            if (Code.gameAB != null && !(Code.gameAB instanceof SanBossHolder)) {
+                Code.gameAB = null;
+            }
 
-        // Hoi sinh tai thon
-        for (int r = 0; r < 15 && isEnabled; r++) {
-            try {
-                Char me = Char.getMyChar();
-                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
-                GameCanvas.endDlg();
-                sleep(20L);
-                LockGame.gameAA = true;
-                if (Code.HoiSinhLuong && me != null && me.luong > 0) {
-                    Service.gI().gameAL();
-                } else {
-                    Service.gI().gameAK();
-                    TileMap.gameAF();
-                }
-                LockGame.gameAA = false;
-                sleep(500L);
-            } catch (Exception e) { break; }
+            // Tu sat ve thon
+            GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M195 ch\u1edd s\u1eb5n...");
+            if (TileMap.isLangCo(curMap)) {
+                AutoSanBoss.cleanKhaoDiLenh();
+            }
+            try { Code.gameAN(); } catch (Exception e) {}
+            sleep(500L);
+
+            // Hoi sinh tai thon
+            for (int r = 0; r < 15 && isEnabled; r++) {
+                try {
+                    Char me = Char.getMyChar();
+                    if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                    GameCanvas.endDlg();
+                    sleep(20L);
+                    LockGame.gameAA = true;
+                    if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                        Service.gI().gameAL();
+                    } else {
+                        Service.gI().gameAK();
+                        TileMap.gameAF();
+                    }
+                    LockGame.gameAA = false;
+                    sleep(300L);
+                } catch (Exception e) { break; }
+            }
+            sleep(500L);
         }
-        sleep(1500L);
 
         if (TileMap.mapID == 195) return;
 
