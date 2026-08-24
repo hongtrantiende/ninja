@@ -91,6 +91,7 @@ public final class AutoBossEvent implements Runnable {
         savedMap = -1;
         savedZone = -1;
         AutoSanBoss.ignoreBossHourCheck = false;
+        preSpawnTriggered = false;
         saveConfigToRMS();
     }
 
@@ -341,6 +342,45 @@ public final class AutoBossEvent implements Runnable {
         return false;
     }
 
+    /** Flag: da trigger pre-spawn cho gio boss tiep theo (tranh lap) */
+    private static boolean preSpawnTriggered = false;
+    /** Thoi gian chuan bi truoc khi boss spawn (giay) */
+    private static final int PRE_SPAWN_SECONDS = 30;
+
+    /**
+     * Tra ve so giay con lai toi gio boss gan nhat phu hop voi eventPriority.
+     * Tra ve Integer.MAX_VALUE neu khong co boss nao sap spawn.
+     */
+    private static int getSecondsTillNextForPriority() {
+        int min = Integer.MAX_VALUE;
+        switch (eventPriority) {
+            case 1: // VDMQ + Lang Co
+                min = Math.min(
+                    AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ),
+                    AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGCO));
+                break;
+            case 2: // MapNgoai
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPNGOAI);
+                break;
+            case 3: // TheGioi
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_THEGIOI);
+                break;
+            case 4: // Lang Co only
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGCO);
+                break;
+            case 5: // VDMQ only
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ);
+                break;
+            default: // Tat ca
+                for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
+                    int s = AutoSanBoss.getSecondsTillNextBoss(i);
+                    if (s < min) min = s;
+                }
+                break;
+        }
+        return min;
+    }
+
     public void run() {
         while (isEnabled) {
             try {
@@ -349,6 +389,7 @@ public final class AutoBossEvent implements Runnable {
                     if (!waitForReconnect()) break;
                     // Sau reconnect, reset lastWindowKey de co the trigger lai
                     lastWindowKey = -1;
+                    preSpawnTriggered = false;
                     continue;
                 }
 
@@ -357,7 +398,26 @@ public final class AutoBossEvent implements Runnable {
                 // Thanh vien chi nhan lenh tu truong nhom qua pkm -4/-5
                 if (!inEvent && key >= 0 && key != lastWindowKey && isLeader()) {
                     lastWindowKey = key;
+                    preSpawnTriggered = false;
                     beginLeaderEvent();
+                }
+
+                // === PRE-SPAWN: 30s truoc gio boss → chay ra map cho san ===
+                if (!inEvent && !preSpawnTriggered && isLeader()) {
+                    int secLeft = getSecondsTillNextForPriority();
+                    if (secLeft > 0 && secLeft <= PRE_SPAWN_SECONDS) {
+                        preSpawnTriggered = true;
+                        AutoSanBoss.ignoreBossHourCheck = true;
+                        // Tinh gio boss sap toi (khong dung Calendar.add vi J2ME khong co)
+                        Calendar fc = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+                        int curSec = fc.get(Calendar.HOUR_OF_DAY) * 3600 + fc.get(Calendar.MINUTE) * 60 + fc.get(Calendar.SECOND);
+                        int spawnHour = ((curSec + secLeft) / 3600) % 24;
+                        // Tinh day offset neu qua nua dem
+                        int dayOff = (curSec + secLeft >= 86400) ? 1 : 0;
+                        lastWindowKey = fc.get(Calendar.YEAR) * 100000 + (fc.get(Calendar.DAY_OF_YEAR) + dayOff) * 100 + spawnHour;
+                        GameScr.gameAC("TSBoss: C\u00f2n " + secLeft + "s, chu\u1ea9n b\u1ecb s\u0103n boss!");
+                        beginLeaderEvent();
+                    }
                 }
             } catch (Exception e) {}
             sleep(1000L);
@@ -509,6 +569,7 @@ public final class AutoBossEvent implements Runnable {
             wasEnabledBeforeTrigger = true;
         }
         AutoSanBoss.ignoreBossHourCheck = false;
+        preSpawnTriggered = false;
     }
 
     private static void returnAndResume() {
