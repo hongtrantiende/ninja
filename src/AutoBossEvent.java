@@ -447,7 +447,14 @@ public final class AutoBossEvent implements Runnable {
                 AutoSanBoss.cleanKhaoDiLenh();
             }
             try { Code.gameAN(); } catch (Exception e) {}
-            sleep(200L);
+            // Doi nhan vat chet that su (toi da 3s)
+            for (int d = 0; d < 30 && isEnabled; d++) {
+                sleep(100L);
+                try {
+                    Char me2 = Char.getMyChar();
+                    if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
+                } catch (Exception e) {}
+            }
 
             // Hoi sinh tai thon
             for (int r = 0; r < 15 && isEnabled; r++) {
@@ -512,7 +519,14 @@ public final class AutoBossEvent implements Runnable {
                 AutoSanBoss.cleanKhaoDiLenh();
             }
             try { Code.gameAN(); } catch (Exception e) {}
-            sleep(200L);
+            // Doi nhan vat chet that su (toi da 3s)
+            for (int d = 0; d < 30 && isEnabled; d++) {
+                sleep(100L);
+                try {
+                    Char me2 = Char.getMyChar();
+                    if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
+                } catch (Exception e) {}
+            }
             for (int r = 0; r < 15 && isEnabled; r++) {
                 try {
                     Char me = Char.getMyChar();
