@@ -2136,7 +2136,81 @@ public class AutoSanBoss implements Runnable {
                         Code.gameAA(pk);
                     } catch (Exception e) {}
 
-                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                    // === VONG LAP DANH BOSS — xu ly chet + quay lai ===
+                    int bossZone = TileMap.zoneID;
+                    int deathCount = 0;
+                    while (checkStillRunning()) {
+                        // Boss da chet (van o dung map, khong thay boss)
+                        if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
+                            break;
+                        }
+
+                        // Bi thoat map boss (chet / hoi sinh o map khac)
+                        if (TileMap.mapID != mapID) {
+                            deathCount++;
+                            if (deathCount > 5) {
+                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
+                                break;
+                            }
+                            GameScr.gameAC("TSB: Ch\u1ebft! Quay l\u1ea1i M" + mapID + " (l\u1ea7n " + deathCount + ")...");
+
+                            // Dung PkBoss cu
+                            if (Code.gameAB instanceof PkBoss) {
+                                Code.gameAC();
+                            }
+
+                            // Hoi sinh neu chet
+                            for (int hr = 0; hr < 10 && checkStillRunning(); hr++) {
+                                try {
+                                    Char me = Char.getMyChar();
+                                    if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                                    GameCanvas.endDlg();
+                                    sleep(20);
+                                    LockGame.gameAA = true;
+                                    if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                                        Service.gI().gameAL();
+                                    } else {
+                                        Service.gI().gameAK();
+                                        TileMap.gameAF();
+                                    }
+                                    LockGame.gameAA = false;
+                                    sleep(200);
+                                } catch (Exception e2) { break; }
+                            }
+                            sleep(300);
+
+                            // Quay lai Lang Co neu can
+                            if (!TileMap.isLangCo(TileMap.mapID)) {
+                                ensureInLangCo();
+                            }
+
+                            // Chuyen map + khu
+                            if (TileMap.mapID != mapID) {
+                                try {
+                                    PkBoss travel = new PkBoss(mapID);
+                                    Code.gameAB = travel;
+                                    for (int t = 0; t < 100 && checkStillRunning() && TileMap.mapID != mapID; t++) sleep(100);
+                                    if (Code.gameAB == travel) Code.gameAB = null;
+                                } catch (Exception e2) {}
+                            }
+                            try { Auto.gameAA(bossZone); } catch (Exception e2) {}
+                            sleep(500);
+                            for (int w2 = 0; w2 < 15 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                                sleep(200);
+                            }
+
+                            // Bat PkBoss lai
+                            restoreDummyAuto();
+                            try {
+                                PkBoss pk2 = new PkBoss(mapID);
+                                pk2.zoneID = bossZone;
+                                Code.gameAA(pk2);
+                            } catch (Exception e2) {}
+
+                            sleep(500);
+                            continue;
+                        }
+
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
@@ -2149,7 +2223,7 @@ public class AutoSanBoss implements Runnable {
                     }
                     restoreDummyAuto();
 
-                    GameScr.gameAC("TSB: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                    GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     grabAllItems();
                     sendPartyCommand("pkm -6");
                     return true;
