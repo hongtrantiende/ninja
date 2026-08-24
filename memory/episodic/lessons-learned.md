@@ -1104,14 +1104,20 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
 - Thêm `ExploitConfig`, `TsConfig`, `AutoSuicide`, `AutoBossNotice` vào `mod_classes` set
 - Tổng 56 class files patched
 
-## Lỗi Văng Game Khi Vào Nhân Vật (UnsupportedClassVersionError / ClassNotFoundException)
-- **Nguyên nhân 1:** Khi xóa hoàn toàn class `AutoBossNotice.java`, game bị crash do bytecode `ChatManager.class` gốc (đã được patch hook từ trước) vẫn gọi `AutoBossNotice.onReceiveMessage()`.
-- **Nguyên nhân 2:** Khi tạo stub `AutoBossNotice.java` nhưng quên thêm tên class vào danh sách `mod_classes` trong [`scripts/patch_class_j2me.py`](file:///root/ninja/scripts/patch_class_j2me.py), file `AutoBossNotice.class` vẫn giữ bytecode Java 8 (version 52.0). Khi J2ME loader tải class này khi vào game, trình dịch DEX bị lỗi unsupported version dẫn đến văng game ngay lập tức.
-- **Nguyên nhân 3:** Hàm `Calendar.add(int, int)` không tồn tại trong J2ME CLDC 1.1 / MIDP 2.0. Phải tự tính toán số giây / giờ thủ công thay vì gọi `Calendar.add()`.
-- **Giải pháp:** 
-  1. Giữ stub `AutoBossNotice.java` rỗng (no-op) để các class bytecode gốc gọi không bị `NoClassDefFoundError`.
-  2. BẮT BUỘC thêm tên class vào `mod_classes` trong `patch_class_j2me.py`.
-  3. Tuân thủ 100% quy trình build chuẩn trong [AGENTS.md](file:///root/.gemini/antigravity-cli/builtin/skills/antigravity_guide/resources/AGENTS.md).
+## Sửa Các Lỗi Săn Boss & Pre-spawn
+1. **Pre-spawn 30s phải đứng chờ đúng giờ:**
+   - **Hiện tượng:** Khi còn 30s, bot chạy ra map và lập tức quét khu tìm boss luôn khi boss chưa spawn, quét hết khu không có boss rồi kết thúc lượt lãng phí.
+   - **Khắc phục:** Di chuyển ra map boss đầu tiên, vào vòng lặp `while` đếm ngược hiển thị `TSBoss: Chờ tại M... (X s)...` và đứng yên đợi cho đến khi `secLeft <= 0` (đúng 00:00:00). Khi đúng giờ mới bắt đầu quét khu và tấn công.
+
+2. **Làng Cổ quét sót map thứ 2:**
+   - **Hiện tượng:** Khi quét map 135 không có boss, bot đứng yên trong map 135 rồi lặp 15 lần hết vòng lặp và tự sát thoát ra mà không tìm map 136.
+   - **Khắc phục:** Thêm `returnToLangCoHub()` (`TileMap.gameAJ(0)` về M138). Khi quét xong 135 (hoặc 136) không thấy boss, hoặc vào nhầm map 134/137, bot lập tức quay về M138 để đi qua cổng tiếp cho đến khi quét đủ cả 2 map 135 & 136.
+
+3. **Mở Rương / Cất đồ vào NPC sau khi tự sát:**
+   - **Hiện tượng:** Sau khi tự sát về làng, nhân vật tự động mở NPC rương cất đồ.
+   - **Nguyên nhân:** Hàm `cleanKhaoDiLenh()` cũ có chứa vòng lặp gọi `Service.gI().gameAR(item.indexUI)` (gói tin MSG_BOX_IN cất đồ vào rương NPC).
+   - **Khắc phục:** Xóa bỏ toàn bộ các lệnh gọi `gameAR` và `gameAE` trong `cleanKhaoDiLenh()`, chỉ giữ lại việc tắt cờ Cổ Lệnh.
+
 
 
 
