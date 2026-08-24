@@ -1619,14 +1619,7 @@ public class AutoSanBoss implements Runnable {
         restoreDummyAuto();
 
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            if (TileMap.mapID != mapID) return false;
-
-            if (TileMap.zoneID != zone) {
-                try { Auto.gameAA(zone); } catch (Exception e) {}
-                for (int w = 0; w < 25 && checkStillRunning() && TileMap.zoneID != zone && TileMap.mapID == mapID; w++) {
-                    sleep(100);
-                }
-            }
+            try { Auto.gameAA(zone); } catch (Exception e) {}
             sleep(300);
 
             if (TileMap.mapID != mapID) {
@@ -1760,14 +1753,7 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean scanLangCoZones(int mapID) {
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            if (TileMap.mapID != mapID) return false;
-
-            if (TileMap.zoneID != zone) {
-                try { Auto.gameAA(zone); } catch (Exception e) {}
-                for (int w = 0; w < 25 && checkStillRunning() && TileMap.zoneID != zone && TileMap.mapID == mapID; w++) {
-                    sleep(100);
-                }
-            }
+            try { Auto.gameAA(zone); } catch (Exception e) {}
             sleep(300);
 
             if (TileMap.mapID != mapID) {
