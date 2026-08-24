@@ -1114,10 +1114,9 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
    - **Khắc phục:** Thêm `returnToLangCoHub()` (`TileMap.gameAJ(0)` về M138). Khi quét xong 135 (hoặc 136) không thấy boss, hoặc vào nhầm map 134/137, bot lập tức quay về M138 để đi qua cổng tiếp cho đến khi quét đủ cả 2 map 135 & 136.
 
 3. **Mở Rương / Cất đồ vào NPC sau khi tự sát về làng:**
-   - **Nguyên nhân gốc rễ:** Trong luồng chạy ngầm của [`src/Code.java`](file:///root/ninja/src/Code.java) (dòng 759-826) có tính năng gốc cũ: khi thấy cờ `Char.MuaCoLenh == true` hoặc `Char.DungCoLenh == true` mà nhân vật đang ở làng/trường học (ví dụ sau khi chết/tự sát từ Làng Cổ về), game engine sẽ tự động chạy tới NPC Rương Đồ (`Service.gI().gameAI(4)` / `GameScr.gameAB(5,0,0)`) để mở rương và cất đồ.
-   - **Khắc phục:** 
-     1. Gỡ bỏ hoàn toàn việc gán `Char.MuaCoLenh = true` và `Char.DungCoLenh = true` trong [`src/AutoSanBoss.java`](file:///root/ninja/src/AutoSanBoss.java) và [`src/ChatRouter.java`](file:///root/ninja/src/ChatRouter.java) (vì mod `AutoSanBoss` đã tự quản lý mua/dùng Cổ Lệnh qua `ensureInLangCo()` độc lập).
-     2. Trong [`src/Code.java`](file:///root/ninja/src/Code.java), ngắt bỏ cờ `MuaCoLenh` / `DungCoLenh` khỏi luồng mở rương đồ (chỉ cho phép chạy khi bật `Char.LuyenDa`).
+   - **Nguyên nhân gốc rễ:** Trong luồng game loop của [`src/Code.java`](file:///root/ninja/src/Code.java) (dòng 753-820) chứa toàn bộ đoạn code vi dịch cũ (Auto Luyện Đá / Tự Mua Cổ Lệnh / Mở Rương Đồ NPC 4). Khi nhân vật xuất hiện ở làng/trường học, đoạn code này tự động gọi `Service.gI().gameAI(4)` (tương tác NPC rương) và `GameScr.gameAB(5,0,0)` (mở menu rương).
+   - **Khắc phục triệt để:** **XÓA SẠCH HOÀN TOÀN** toàn bộ khối code tự động tương tác NPC rương/luyện đá này khỏi [`src/Code.java`](file:///root/ninja/src/Code.java). Trong toàn bộ dự án hiện tại không còn bất kỳ lệnh nào gọi `Service.gI().gameAI(4)` tự động nữa.
+
 
 
 
