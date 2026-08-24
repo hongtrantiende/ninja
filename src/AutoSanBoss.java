@@ -711,6 +711,17 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(true, TYPE_ALL);
     }
 
+    public static void startEventHuntMapVIP2() {
+        if (isRunning) {
+            stop();
+            sleep(500L);
+        }
+        eventHuntMode = true;
+        eventRoundCompleted = false;
+        eventHuntTypes = new int[]{TYPE_MAPVIP2};
+        toggleInternal(true, TYPE_ALL);
+    }
+
     /** TS Boss Test: quet dung 1 map test duy nhat */
     public static void startEventHuntTest1Map(int mapId) {
         if (isRunning) {

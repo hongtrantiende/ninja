@@ -711,7 +711,15 @@ public final class AutoBossEvent implements Runnable {
                     AutoSanBoss.startEventHuntVDMQ();
                     break;
                 case 6:
-                    AutoSanBoss.startEventHuntMapVIP();
+                    // Map VIP: check cai dat xem bat M196 hay M195
+                    if (AutoSanBoss.isMapEnabled(196)) {
+                        AutoSanBoss.startEventHuntMapVIP2();
+                    } else {
+                        AutoSanBoss.startEventHuntMapVIP();
+                    }
+                    break;
+                case 7:
+                    AutoSanBoss.startEventHuntMapVIP2();
                     break;
                 default:
                     AutoSanBoss.startEventHuntAll();
