@@ -197,7 +197,15 @@ public final class AutoBossEvent implements Runnable {
         }
 
         if (curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)) {
-            AutoSanBoss.cleanKhaoDiLenh();
+            // Dung auto truoc khi exit
+            LockGame.gameBK();
+            if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                Code.gameAB = null;
+            }
+            GameScr.gameAC("TSBoss: Tho\u00e1t L\u00e0ng C\u1ed5 qua NPC...");
+            AutoSanBoss.finishLangCoAndExit();
+            sleep(500L);
+            return;
         }
         GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 ra s\u0103n boss...");
         LockGame.gameBK();
