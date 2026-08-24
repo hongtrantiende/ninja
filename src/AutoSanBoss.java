@@ -391,8 +391,8 @@ public class AutoSanBoss implements Runnable {
 
     /** Ensures character is inside Lang Co. If currently outside, buys Co Lenh / Khao Di Lenh (ID 490/35/37) and uses it to enter Lang Co. */
     public static boolean ensureInLangCo() {
-        Char.MuaCoLenh = false;
-        Char.DungCoLenh = false;
+        Char.MuaCoLenh = true;
+        Char.DungCoLenh = true;
 
         // Dam bao graph map Lang Co duoc thiet lap
         restoreLangCoGraph();
@@ -1619,9 +1619,8 @@ public class AutoSanBoss implements Runnable {
         restoreDummyAuto();
 
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            GameScr.gameAC("TREO: Qu\u00e9t M" + mapID + " K" + zone + "...");
-            changeZoneLangCo(zone);
-            sleep(500);
+            try { Auto.gameAA(zone); } catch (Exception e) {}
+            sleep(300);
 
             if (TileMap.mapID != mapID) {
                 GameScr.gameAC("TREO: B\u1ecb tho\u00e1t M" + mapID + " -> M" + TileMap.mapID);
@@ -1633,25 +1632,28 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (hasBossOnCurrentMap()) {
-                GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
-                sendPartyCommand("pkm -2");
-                sleep(50);
-                sendPartyCommand("pkm " + mapID);
-                sleep(300);
-                sendPartyCommand("pkk " + TileMap.zoneID);
-                sleep(1500);
-                sendPartyCommand("pke");
+                sleep(150);
+                if (hasBossOnCurrentMap()) {
+                    GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
+                    sendPartyCommand("pkm -2");
+                    sleep(50);
+                    sendPartyCommand("pkm " + mapID);
+                    sleep(300);
+                    sendPartyCommand("pkk " + TileMap.zoneID);
+                    sleep(1500);
+                    sendPartyCommand("pke");
 
-                while (checkStillRunning() && hasBossOnCurrentMap()) {
-                    if (isDisconnected()) {
-                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        restoreDummyAuto();
+                        sleep(500);
                     }
-                    restoreDummyAuto();
-                    sleep(500);
+                    GameScr.gameAC("TREO: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                    grabAllItems();
+                    return true;
                 }
-                GameScr.gameAC("TREO: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
-                grabAllItems();
-                return true;
             }
             restoreDummyAuto();
         }
@@ -1719,13 +1721,13 @@ public class AutoSanBoss implements Runnable {
 
             // 3. Ki\u1ec3m tra map v\u1eeba v\u00e0o
             if (curMap == 135 && !langCoScanned135) {
-                GameScr.gameAC("TSB: V\u00e0o M135, qu\u00e9t K0->K2...");
+                GameScr.gameAC("TSB: V\u00e0o M135, qu\u00e9t boss...");
                 boolean found = scanLangCoZones(135);
                 langCoScanned135 = true;
                 if (found) return true;
                 returnToLangCoHub();
             } else if (curMap == 136 && !langCoScanned136) {
-                GameScr.gameAC("TSB: V\u00e0o M136, qu\u00e9t K0->K2...");
+                GameScr.gameAC("TSB: V\u00e0o M136, qu\u00e9t boss...");
                 boolean found = scanLangCoZones(136);
                 langCoScanned136 = true;
                 if (found) return true;
@@ -1751,9 +1753,8 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean scanLangCoZones(int mapID) {
         for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
-            GameScr.gameAC("TSB: Qu\u00e9t M" + mapID + " K" + zone + "...");
-            changeZoneLangCo(zone);
-            sleep(500);
+            try { Auto.gameAA(zone); } catch (Exception e) {}
+            sleep(300);
 
             if (TileMap.mapID != mapID) {
                 GameScr.gameAC("TSB: B\u1ecb tho\u00e1t M" + mapID + " -> M" + TileMap.mapID);
@@ -1765,42 +1766,44 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (hasBossOnCurrentMap()) {
-                GameScr.gameAC("TSB: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
-                sendPartyCommand("pkm -2");
-                sleep(50);
-                sendPartyCommand("pkm " + mapID);
-                sleep(300);
-                sendPartyCommand("pkk " + TileMap.zoneID);
-                sleep(1500);
-                sendPartyCommand("pke");
+                sleep(150);
+                if (hasBossOnCurrentMap()) {
+                    GameScr.gameAC("TSB: Boss LC M" + mapID + " K" + TileMap.zoneID + "!");
+                    sendPartyCommand("pkm -2");
+                    sleep(50);
+                    sendPartyCommand("pkm " + mapID);
+                    sleep(300);
+                    sendPartyCommand("pkk " + TileMap.zoneID);
+                    sleep(1500);
+                    sendPartyCommand("pke");
 
-                try {
-                    PkBoss pk = new PkBoss(mapID);
-                    pk.zoneID = TileMap.zoneID;
-                    Code.gameAA(pk);
-                } catch (Exception e) {}
+                    try {
+                        PkBoss pk = new PkBoss(mapID);
+                        pk.zoneID = TileMap.zoneID;
+                        Code.gameAA(pk);
+                    } catch (Exception e) {}
 
-                while (checkStillRunning() && hasBossOnCurrentMap()) {
-                    if (isDisconnected()) {
-                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    while (checkStillRunning() && hasBossOnCurrentMap()) {
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        lockBossFocus();
+                        sleep(500);
                     }
-                    lockBossFocus();
-                    sleep(500);
-                }
 
-                if (Code.gameAB instanceof PkBoss) {
-                    Code.gameAC();
-                }
-                restoreDummyAuto();
+                    if (Code.gameAB instanceof PkBoss) {
+                        Code.gameAC();
+                    }
+                    restoreDummyAuto();
 
-                GameScr.gameAC("TSB: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
-                grabAllItems();
-                sendPartyCommand("pkm -6");
-                return true;
+                    GameScr.gameAC("TSB: Boss M" + mapID + " K" + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft!");
+                    grabAllItems();
+                    sendPartyCommand("pkm -6");
+                    return true;
+                }
             }
             restoreDummyAuto();
         }
-        GameScr.gameAC("TSB: M" + mapID + " kh\u00f4ng c\u00f3 boss");
         return false;
     }
 
@@ -1813,15 +1816,14 @@ public class AutoSanBoss implements Runnable {
         if (!checkStillRunning()) return false;
         if (mapID == 135 || mapID == 136) {
             return pkLangCoMap(mapID);
-        }
-
-        // === MAP NGOAI / THUONG ===
-        if (TileMap.isLangCo(TileMap.mapID)) {
-            finishLangCoAndExit();
+        } else {
+            if (TileMap.isLangCo(TileMap.mapID)) {
+                finishLangCoAndExit();
+            }
         }
         GameScr.gameAC("TSB: PK M" + mapID);
 
-        // 1. Dung PkBoss di chuyen den map
+        // Leader start PkBoss solo - quet khu, tim boss
         try {
             Code.gameAA(new PkBoss(mapID));
         } catch (Exception e) {
@@ -1833,134 +1835,128 @@ public class AutoSanBoss implements Runnable {
             }
         }
 
-        // Doi den khi den map (check 50ms, toi da 30s)
-        for (int w = 0; w < 600 && checkStillRunning(); w++) {
-            sleep(50);
-            if (TileMap.mapID == mapID) break;
-            if (isDisconnected()) {
-                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                Code.gameAA(new PkBoss(mapID));
-            }
-        }
-
-        // Tat PkBoss di chuyen de AutoSanBoss chu dong quet khu
-        if (Code.gameAB instanceof PkBoss) {
-            Code.gameAC();
-        }
-        restoreDummyAuto();
-
-        if (TileMap.mapID != mapID) {
-            GameScr.gameAC("TSB: Kh\u00f4ng \u0111\u1ebfn \u0111\u01b0\u1ee3c M" + mapID);
-            return false;
-        }
-
         long startTime = System.currentTimeMillis();
+        boolean sentPartyCmd = false;
         boolean bossKilled = false;
-        final long MAX_FIGHT_TIME_MS = 10 * 60 * 1000; // 10 phut toi da
+        boolean keepFighting = true;
+        int deathCount = 0;
+        final int MAX_DEATH_RETRIES = 10;
+        final long MAX_FIGHT_TIME_MS = 10 * 60 * 1000; // 10 phut toi da cho 1 map
 
-        // 2. Quet tuan tu tung khu K0 -> K29
-        for (int zone = 0; zone < MAX_ZONES && checkStillRunning(); zone++) {
+        while (checkStillRunning() && keepFighting) {
+            // Timeout: qua 10 phut cho 1 map -> bo qua
             if (System.currentTimeMillis() - startTime > MAX_FIGHT_TIME_MS) {
-                GameScr.gameAC("TSB: Timeout M" + mapID + " (10 ph\u00fat)");
+                GameScr.gameAC("TSB: Timeout M" + mapID + " (10 phut)");
                 break;
             }
 
-            try { Auto.gameAA(zone); } catch (Exception e) {}
-            sleep(100);
-            for (int w = 0; w < 15 && checkStillRunning() && TileMap.zoneID != zone; w++) {
-                sleep(200);
+            // Neu PkBoss bi pop (chet/hoi sinh/loi) ma boss chua chet -> restart
+            if (!(Code.gameAB instanceof PkBoss)) {
+                // Boss da tim thay nhung chua chet -> can quay lai
+                if (sentPartyCmd && deathCount < MAX_DEATH_RETRIES && checkStillRunning()) {
+                    // Cho nhan vat on dinh
+                    sleep(500);
+                    // Hoi sinh neu dang chet
+                    if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                        GameScr.gameAC("TSB: Chet lan " + deathCount + "! Hoi sinh...");
+                        respawnFast();
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                        }
+                        sleep(1000);
+                    }
+                    // Restart PkBoss de quay lai map boss
+                    if (checkStillRunning() && Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                        GameScr.gameAC("TSB: Quay lai M" + mapID + " (lan " + (deathCount + 1) + ")");
+                        Code.gameAA(new PkBoss(mapID));
+                        // Reset sentPartyCmd neu o map khac de gui lai lenh nhom khi den noi
+                        if (TileMap.mapID != mapID) {
+                            sentPartyCmd = false;
+                        }
+                        sleep(500);
+                        continue;
+                    } else {
+                        break; // Khong hoi sinh duoc -> thoat
+                    }
+                } else {
+                    break; // Boss chua tim thay hoac qua so lan retry
+                }
             }
 
-            if (isDisconnected()) {
-                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-            }
+            try {
+                // Detect disconnect trong khi PkBoss dang chay
+                if (isDisconnected()) {
+                    GameScr.gameAC("TSB: M\u1ea5t k\u1ebft n\u1ed1i khi PK M" + mapID + "!");
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    sentPartyCmd = false;
+                    Code.gameAA(new PkBoss(mapID));
+                    continue;
+                }
 
-            // Kiem tra boss tren map tai khu nay
-            if (hasBossOnCurrentMap()) {
-                sleep(150);
-                if (hasBossOnCurrentMap()) {
-                    GameScr.gameAC("TSB: Boss t\u1ea1i M" + mapID + " K" + TileMap.zoneID + "!");
-
-                    // Goi nhom
+                // Chi khi tim thay boss -> gui lenh nhom 1 lan duy nhat (mode binh thuong)
+                if (!sentPartyCmd && hasBossOnCurrentMap()) {
+                    sentPartyCmd = true;
+                    GameScr.gameAC("TSB: Boss! Goi nhom M" + mapID + " K" + TileMap.zoneID);
+                    // Ep member ve mode DANH, tranh giu treoMode tu phien truoc.
                     sendPartyCommand("pkm -1");
                     sleep(50);
                     sendPartyCommand("pkm " + mapID);
-                    sleep(300);
+                    sleep(500);
                     sendPartyCommand("pkk " + TileMap.zoneID);
-                    sleep(1000);
+                }
 
-                    // Bat dau PK danh boss tai khu nay
-                    PkBoss pk = new PkBoss(mapID);
-                    pk.zoneID = TileMap.zoneID;
-                    Code.gameAA(pk);
+                // GHIM BOSS: lien tuc set mobFocus = boss de khong chuyen target
+                if (sentPartyCmd) {
+                    lockBossFocus();
+                }
 
-                    int deathCount = 0;
-                    final int MAX_DEATH = 10;
-
-                    // Danh cho den khi boss chet
-                    while (checkStillRunning() && hasBossOnCurrentMap()) {
-                        if (System.currentTimeMillis() - startTime > MAX_FIGHT_TIME_MS) break;
-
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            PkBoss rpk = new PkBoss(mapID);
-                            rpk.zoneID = TileMap.zoneID;
-                            Code.gameAA(rpk);
-                            continue;
-                        }
-
-                        // Ghim boss
-                        lockBossFocus();
-
-                        // Hoi sinh neu chet
-                        if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
-                            deathCount++;
-                            if (deathCount > MAX_DEATH) {
-                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 " + MAX_DEATH + " l\u1ea7n, b\u1ecf qua boss M" + mapID);
-                                break;
-                            }
-                            GameScr.gameAC("TSB: Ch\u1ebft l\u1ea7n " + deathCount + "! H\u1ed3i sinh...");
-                            respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-                            sleep(1000);
-                            if (TileMap.mapID == mapID) {
-                                try { Auto.gameAA(zone); } catch (Exception e) {}
-                                sleep(500);
-                            }
-                            PkBoss rpk = new PkBoss(mapID);
-                            rpk.zoneID = zone;
-                            Code.gameAA(rpk);
-                            continue;
-                        }
-
-                        sleep(200);
+                // Boss DA CHET: force stop PkBoss ngay, khong cho quet khu thua
+                if (sentPartyCmd && !hasBossOnCurrentMap()) {
+                    bossKilled = true;
+                    if (Code.gameAB instanceof PkBoss) {
+                        Code.gameAC();
                     }
+                    break;
+                }
 
-                    // Boss da chet hoac xong
-                    if (!hasBossOnCurrentMap()) {
-                        bossKilled = true;
-                        GameScr.gameAC("TSB: Boss M" + mapID + " K" + zone + " \u0111\u00e3 ch\u1ebft!");
-                        if (Code.gameAB instanceof PkBoss) {
-                            Code.gameAC();
-                        }
-                        restoreDummyAuto();
-                        grabAllItems();
-                        return true;
+                // Respawn nhanh neu chet
+                if (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0) {
+                    deathCount++;
+                    GameScr.gameAC("TSB: Chet lan " + deathCount + "! Hoi sinh...");
+                    respawnFast();
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
+                    // Cho nhan vat on dinh sau hoi sinh
+                    sleep(500);
+                    // PkBoss bi pop khi chet -> vong lap se restart o tren
+                    continue;
+                }
+            } catch (Exception e) {
+                // Exception co the do disconnect
+                if (isDisconnected()) {
+                    if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    sentPartyCmd = false;
+                    Code.gameAA(new PkBoss(mapID));
+                    continue;
                 }
             }
-            restoreDummyAuto();
+            sleep(200);
         }
 
-        if (Code.gameAB instanceof PkBoss) {
-            Code.gameAC();
-        }
+        // PkBoss xong, khoi phuc dummy
         restoreDummyAuto();
 
-        GameScr.gameAC("TSB: Kh\u00f4ng th\u1ea5y boss M" + mapID);
-        return bossKilled;
+        if (bossKilled) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            GameScr.gameAC("TSB: Xong M" + mapID + " (" + (elapsed / 1000) + "s)");
+            grabAllItems();
+            return true;
+        }
+        if (deathCount >= MAX_DEATH_RETRIES) {
+            GameScr.gameAC("TSB: M" + mapID + " chet " + deathCount + " lan, bo qua");
+        }
+        return false;
     }
 
     private void sleepSeconds(int seconds) {
@@ -2124,8 +2120,8 @@ public class AutoSanBoss implements Runnable {
         if (bossType == TYPE_LANGCO) {
             langCoScanned135 = false;
             langCoScanned136 = false;
-            Char.MuaCoLenh = false;
-            Char.DungCoLenh = false;
+            Char.MuaCoLenh = true;
+            Char.DungCoLenh = true;
         } else {
             if (TileMap.isLangCo(TileMap.mapID)) {
                 finishLangCoAndExit();
