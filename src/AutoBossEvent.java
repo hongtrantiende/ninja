@@ -4,7 +4,7 @@ import java.util.TimeZone;
 /** Uu tien boss khi dang TS; moi may tu luu va khoi phuc map/khu/auto cua minh. */
 public final class AutoBossEvent implements Runnable {
     public static boolean isEnabled;
-    /** 0=tat ca, 1=VDMQ+LC, 2=MapNgoai, 3=TheGioi, 4=LangCo, 5=VDMQ, 6=MapVIP */
+    /** 0=tat ca, 1=VDMQ+LC, 2=MapNgoai, 3=TheGioi, 4=LangCo, 5=VDMQ, 6=MapVIP, 7=MapVIP2 */
     public static int eventPriority;
     /** So luot quet them sau luot 1 (0 = khong quet them, 1 = mac dinh, 2-9 = nhieu luot) */
     public static int extraRounds = 1;
@@ -71,6 +71,7 @@ public final class AutoBossEvent implements Runnable {
             case 4: return "L\u00e0ng C\u1ed5";
             case 5: return "V\u0110MQ";
             case 6: return "Map VIP";
+            case 7: return "Map VIP2";
             default: return "T\u1ea5t c\u1ea3";
         }
     }
@@ -177,12 +178,12 @@ public final class AutoBossEvent implements Runnable {
 
     public static void exitGatedMapIfNeeded() {
         int curMap = TileMap.mapID;
-        boolean isGated = curMap == 195 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
+        boolean isGated = curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
                 || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
         if (!isGated) return;
 
-        // Neu priority la MapVIP, chi clean LC roi de enterMapVIP xu ly
-        if (eventPriority == 6) {
+        // Neu priority la MapVIP/MapVIP2, chi clean LC roi de enterMapVIP/enterMapVIP2 xu ly
+        if (eventPriority == 6 || eventPriority == 7) {
             if (TileMap.isLangCo(curMap)) {
                 AutoSanBoss.cleanKhaoDiLenh();
                 sleep(300L);
@@ -319,8 +320,11 @@ public final class AutoBossEvent implements Runnable {
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
             case 5: // VDMQ only
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ);
-            case 6: // Map VIP
-                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP);
+            case 6: // Map VIP (check ca 2 VIP map)
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP)
+                    || AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP2);
+            case 7: // Map VIP2 only
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPVIP2);
             default: // Mac dinh = tat ca
                 for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
                     if (AutoSanBoss.isBossActive(i)) return true;
@@ -388,8 +392,13 @@ public final class AutoBossEvent implements Runnable {
             case 5: // VDMQ only
                 min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ);
                 break;
-            case 6: // Map VIP
-                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP);
+            case 6: // Map VIP (ca 2 VIP map)
+                min = Math.min(
+                    AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP),
+                    AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP2));
+                break;
+            case 7: // Map VIP2
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPVIP2);
                 break;
             default: // Tat ca
                 for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
@@ -485,6 +494,68 @@ public final class AutoBossEvent implements Runnable {
         }
     }
 
+    /**
+     * Pre-spawn: vao Map VIP 2 (M196) qua NPC truoc khi boss spawn.
+     */
+    private static void preSpawnEnterMapVIP2() {
+        if (TileMap.mapID == 196) return;
+
+        int curMap = TileMap.mapID;
+
+        if (curMap != 22) {
+            LockGame.gameBK();
+            if (Code.gameAB != null && !(Code.gameAB instanceof SanBossHolder)) {
+                Code.gameAB = null;
+            }
+            GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M196 ch\u1edd s\u1eb5n...");
+            if (TileMap.isLangCo(curMap)) {
+                AutoSanBoss.cleanKhaoDiLenh();
+            }
+            try { Code.gameAN(); } catch (Exception e) {}
+            sleep(200L);
+            for (int r = 0; r < 15 && isEnabled; r++) {
+                try {
+                    Char me = Char.getMyChar();
+                    if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                    GameCanvas.endDlg();
+                    sleep(20L);
+                    LockGame.gameAA = true;
+                    if (Code.HoiSinhLuong && me != null && me.luong > 0) {
+                        Service.gI().gameAL();
+                    } else {
+                        Service.gI().gameAK();
+                        TileMap.gameAF();
+                    }
+                    LockGame.gameAA = false;
+                    sleep(150L);
+                } catch (Exception e) { break; }
+            }
+            sleep(200L);
+        }
+
+        if (TileMap.mapID == 196) return;
+
+        // Goi NPC VIP (type 47, option 5) vao M196
+        GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M196...");
+        for (int retry = 0; retry < 3 && isEnabled; retry++) {
+            if (TileMap.mapID == 196) return;
+            try {
+                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption + 1, 0);
+            } catch (Exception e) {
+                sleep(1000L);
+                continue;
+            }
+            for (int w = 0; w < 150 && isEnabled; w++) {
+                sleep(100L);
+                if (TileMap.mapID == 196) {
+                    GameScr.gameAC("TSBoss: \u0110\u00e3 v\u00e0o M196, ch\u1edd boss spawn...");
+                    return;
+                }
+            }
+            sleep(500L);
+        }
+    }
+
     private static int getFirstMapForPriority() {
         switch (eventPriority) {
             case 1: // VDMQ + Lang Co
@@ -508,6 +579,8 @@ public final class AutoBossEvent implements Runnable {
                 if (AutoSanBoss.isMapEnabled(143)) return 143;
                 return 141;
             case 6: // Map VIP — vao qua NPC, khong can GoMap truoc
+                return -1;
+            case 7: // Map VIP2 — vao qua NPC, khong can GoMap truoc
                 return -1;
             default: // Tat ca
                 if (AutoSanBoss.isMapEnabled(141)) return 141;
@@ -594,8 +667,15 @@ public final class AutoBossEvent implements Runnable {
                 GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
                 travelToMap(firstMap);
             } else if (eventPriority == 6) {
-                // Map VIP: vao M195 qua NPC truoc khi boss spawn
-                preSpawnEnterMapVIP();
+                // Map VIP: check cai dat xem bat M196 hay M195
+                if (AutoSanBoss.isMapEnabled(196)) {
+                    preSpawnEnterMapVIP2();
+                } else {
+                    preSpawnEnterMapVIP();
+                }
+            } else if (eventPriority == 7) {
+                // Map VIP2 only: vao M196 qua NPC truoc khi boss spawn
+                preSpawnEnterMapVIP2();
             }
             // Cho den dung gio boss spawn
             while (isEnabled && inEvent) {

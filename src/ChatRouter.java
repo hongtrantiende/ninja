@@ -203,6 +203,10 @@ public class ChatRouter {
             AutoBossEvent.togglePriority(6);
             return true;
         }
+        if (text.equals("tsbossmv2")) {
+            AutoBossEvent.togglePriority(7);
+            return true;
+        }
 
         // === FORCE BOSS COMMANDS ===
         if (text.equals("tspkball") || text.equals("all")) {
@@ -229,6 +233,10 @@ public class ChatRouter {
             AutoSanBoss.toggleMapVIP();
             return true;
         }
+        if (text.equals("tspkbmv2") || text.equals("mv2")) {
+            AutoSanBoss.toggleMapVIP2();
+            return true;
+        }
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
             return true;
@@ -251,6 +259,10 @@ public class ChatRouter {
         }
         if (text.equals("treomv")) {
             AutoSanBoss.toggleTreoMapVIP();
+            return true;
+        }
+        if (text.equals("treomv2")) {
+            AutoSanBoss.toggleTreoMapVIP2();
             return true;
         }
         

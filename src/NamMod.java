@@ -19,12 +19,14 @@ public final class NamMod implements IActionListener {
     private static final int TS_BOSS_LC = 120134;
     private static final int TS_BOSS_VDMQ = 120135;
     private static final int TS_BOSS_MV = 120136;
+    private static final int TS_BOSS_MV2 = 120137;
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
     private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
     private static final int BOSS_MAP_VIP = 120126;
+    private static final int BOSS_MAP_VIP2 = 120127;
 
     // Cai dat San Boss: mo Form checkbox
     private static final int CFG_BOSS_MENU = 120140;
@@ -117,6 +119,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("S\u0103n L\u00e0ng C\u1ed5: " + bossStatus(2), BOSS_LANG_CO));
         items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(3), BOSS_THEGIOI));
         items.addElement(command("S\u0103n Map VIP: " + bossStatus(AutoSanBoss.TYPE_MAPVIP), BOSS_MAP_VIP));
+        items.addElement(command("S\u0103n Map VIP2: " + bossStatus(AutoSanBoss.TYPE_MAPVIP2), BOSS_MAP_VIP2));
         items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(AutoSanBoss.TYPE_ALL), BOSS_ALL));
         GameCanvas.menu.gameAA(items);
     }
@@ -132,6 +135,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
         items.addElement(command("Ch\u1ec9 Th\u1ebf Gi\u1edbi" + (on && p == 3 ? " \u2714" : ""), TS_BOSS_TG));
         items.addElement(command("Ch\u1ec9 Map VIP" + (on && p == 6 ? " \u2714" : ""), TS_BOSS_MV));
+        items.addElement(command("Ch\u1ec9 Map VIP2" + (on && p == 7 ? " \u2714" : ""), TS_BOSS_MV2));
         items.addElement(command("Test TS Boss (1 Map)", TS_BOSS_TEST));
         GameCanvas.menu.gameAA(items);
     }
@@ -174,6 +178,9 @@ public final class NamMod implements IActionListener {
             case TS_BOSS_MV:
                 AutoBossEvent.togglePriority(6);
                 return;
+            case TS_BOSS_MV2:
+                AutoBossEvent.togglePriority(7);
+                return;
             case TS_BOSS_TEST:
                 AutoBossEvent.testNow();
                 return;
@@ -198,6 +205,9 @@ public final class NamMod implements IActionListener {
                 return;
             case BOSS_MAP_VIP:
                 AutoSanBoss.toggleMapVIP();
+                return;
+            case BOSS_MAP_VIP2:
+                AutoSanBoss.toggleMapVIP2();
                 return;
             case HUT_VP:
                 AutoPickup.toggle();

@@ -25,12 +25,13 @@ public final class BossConfig implements CommandListener {
     private final Command cmdHuy;
     private final Command cmdReset;
 
-    // 5 ChoiceGroup cho 5 loai boss
+    // 6 ChoiceGroup cho 6 loai boss
     private ChoiceGroup cgVDMQ;
     private ChoiceGroup cgMapNgoai;
     private ChoiceGroup cgLangCo;
     private ChoiceGroup cgTheGioi;
     private ChoiceGroup cgMapVIP;
+    private ChoiceGroup cgMapVIP2;
 
     // 4 TextField cho gio spawn
     private TextField tfVDMQ;
@@ -38,6 +39,7 @@ public final class BossConfig implements CommandListener {
     private TextField tfLangCo;
     private TextField tfTheGioi;
     private TextField tfMapVIP;
+    private TextField tfMapVIP2;
 
     // Extra rounds cho TS Boss uu tien
     private TextField tfExtraRounds;
@@ -50,6 +52,7 @@ public final class BossConfig implements CommandListener {
     private final int[] mapsLC;
     private final int[] mapsTG;
     private final int[] mapsMV;
+    private final int[] mapsMV2;
 
     private BossConfig() {
         cmdLuu = new Command("L\u01b0u", Command.OK, 1);
@@ -61,6 +64,7 @@ public final class BossConfig implements CommandListener {
         mapsLC = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_LANGCO);
         mapsTG = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_THEGIOI);
         mapsMV = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_MAPVIP);
+        mapsMV2 = AutoSanBoss.getAllMapsForType(AutoSanBoss.TYPE_MAPVIP2);
 
         buildForm();
     }
@@ -117,6 +121,15 @@ public final class BossConfig implements CommandListener {
         }
         form.append(cgMapVIP);
 
+        // === Map VIP2 (M196 - VIP 6-7) ===
+        tfMapVIP2 = new TextField("Gi\u1edd Map VIP2", "", 100, TextField.ANY);
+        form.append(tfMapVIP2);
+        cgMapVIP2 = new ChoiceGroup("Map VIP2 - Map", Choice.MULTIPLE);
+        for (int i = 0; i < mapsMV2.length; i++) {
+            cgMapVIP2.append("Map " + mapsMV2[i], null);
+        }
+        form.append(cgMapVIP2);
+
         // === TS Boss uu tien: so luot quet them ===
         tfExtraRounds = new TextField("L\u01b0\u1ee3t qu\u00e9t th\u00eam (0=kh\u00f4ng, 1=m\u1eb7c \u0111\u1ecbnh)", "", 5, TextField.NUMERIC);
         form.append(tfExtraRounds);
@@ -129,6 +142,7 @@ public final class BossConfig implements CommandListener {
         loadGroup(cgLangCo, mapsLC);
         loadGroup(cgTheGioi, mapsTG);
         loadGroup(cgMapVIP, mapsMV);
+        loadGroup(cgMapVIP2, mapsMV2);
 
         // Load gio spawn
         tfVDMQ.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_VDMQ));
@@ -136,6 +150,7 @@ public final class BossConfig implements CommandListener {
         tfLangCo.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_LANGCO));
         tfTheGioi.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_THEGIOI));
         tfMapVIP.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_MAPVIP));
+        tfMapVIP2.setString(AutoSanBoss.getBossHoursStr(AutoSanBoss.TYPE_MAPVIP2));
 
         // Extra rounds
         tfExtraRounds.setString(String.valueOf(AutoBossEvent.extraRounds));
@@ -171,6 +186,7 @@ public final class BossConfig implements CommandListener {
             saveGroup(cgLangCo, mapsLC);
             saveGroup(cgTheGioi, mapsTG);
             saveGroup(cgMapVIP, mapsMV);
+            saveGroup(cgMapVIP2, mapsMV2);
             AutoSanBoss.saveToRMS();
 
             // Luu gio spawn
@@ -185,6 +201,8 @@ public final class BossConfig implements CommandListener {
                 errMsg.append("TheGioi, ");
             if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_MAPVIP, tfMapVIP.getString()))
                 errMsg.append("MapVIP, ");
+            if (!AutoSanBoss.setBossHoursFromStr(AutoSanBoss.TYPE_MAPVIP2, tfMapVIP2.getString()))
+                errMsg.append("MapVIP2, ");
             AutoSanBoss.saveBossHoursToRMS();
 
             // Luu extra rounds
@@ -214,6 +232,7 @@ public final class BossConfig implements CommandListener {
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_LANGCO);
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_THEGIOI);
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPVIP);
+            AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPVIP2);
             AutoSanBoss.saveBossHoursToRMS();
             // Cap nhat lai text field
             loadCurrentState();
