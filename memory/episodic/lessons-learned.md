@@ -1101,7 +1101,17 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
 | Item pickup race | Yếu | Dupe x3+ hoạt động ✅ |
 
 ### patch_class_j2me.py
-- Thêm `ExploitConfig`, `TsConfig`, `AutoSuicide` vào `mod_classes` set
-- Tổng 54 class files patched (tăng từ 49)
+- Thêm `ExploitConfig`, `TsConfig`, `AutoSuicide`, `AutoBossNotice` vào `mod_classes` set
+- Tổng 56 class files patched
+
+## Lỗi Văng Game Khi Vào Nhân Vật (UnsupportedClassVersionError / ClassNotFoundException)
+- **Nguyên nhân 1:** Khi xóa hoàn toàn class `AutoBossNotice.java`, game bị crash do bytecode `ChatManager.class` gốc (đã được patch hook từ trước) vẫn gọi `AutoBossNotice.onReceiveMessage()`.
+- **Nguyên nhân 2:** Khi tạo stub `AutoBossNotice.java` nhưng quên thêm tên class vào danh sách `mod_classes` trong [`scripts/patch_class_j2me.py`](file:///root/ninja/scripts/patch_class_j2me.py), file `AutoBossNotice.class` vẫn giữ bytecode Java 8 (version 52.0). Khi J2ME loader tải class này khi vào game, trình dịch DEX bị lỗi unsupported version dẫn đến văng game ngay lập tức.
+- **Nguyên nhân 3:** Hàm `Calendar.add(int, int)` không tồn tại trong J2ME CLDC 1.1 / MIDP 2.0. Phải tự tính toán số giây / giờ thủ công thay vì gọi `Calendar.add()`.
+- **Giải pháp:** 
+  1. Giữ stub `AutoBossNotice.java` rỗng (no-op) để các class bytecode gốc gọi không bị `NoClassDefFoundError`.
+  2. BẮT BUỘC thêm tên class vào `mod_classes` trong `patch_class_j2me.py`.
+  3. Tuân thủ 100% quy trình build chuẩn trong [AGENTS.md](file:///root/.gemini/antigravity-cli/builtin/skills/antigravity_guide/resources/AGENTS.md).
+
 
 
