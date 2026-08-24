@@ -1113,10 +1113,12 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
    - **Hiện tượng:** Khi quét map 135 không có boss, bot đứng yên trong map 135 rồi lặp 15 lần hết vòng lặp và tự sát thoát ra mà không tìm map 136.
    - **Khắc phục:** Thêm `returnToLangCoHub()` (`TileMap.gameAJ(0)` về M138). Khi quét xong 135 (hoặc 136) không thấy boss, hoặc vào nhầm map 134/137, bot lập tức quay về M138 để đi qua cổng tiếp cho đến khi quét đủ cả 2 map 135 & 136.
 
-3. **Mở Rương / Cất đồ vào NPC sau khi tự sát:**
-   - **Hiện tượng:** Sau khi tự sát về làng, nhân vật tự động mở NPC rương cất đồ.
-   - **Nguyên nhân:** Hàm `cleanKhaoDiLenh()` cũ có chứa vòng lặp gọi `Service.gI().gameAR(item.indexUI)` (gói tin MSG_BOX_IN cất đồ vào rương NPC).
-   - **Khắc phục:** Xóa bỏ toàn bộ các lệnh gọi `gameAR` và `gameAE` trong `cleanKhaoDiLenh()`, chỉ giữ lại việc tắt cờ Cổ Lệnh.
+3. **Mở Rương / Cất đồ vào NPC sau khi tự sát về làng:**
+   - **Nguyên nhân gốc rễ:** Trong luồng chạy ngầm của [`src/Code.java`](file:///root/ninja/src/Code.java) (dòng 759-826) có tính năng gốc cũ: khi thấy cờ `Char.MuaCoLenh == true` hoặc `Char.DungCoLenh == true` mà nhân vật đang ở làng/trường học (ví dụ sau khi chết/tự sát từ Làng Cổ về), game engine sẽ tự động chạy tới NPC Rương Đồ (`Service.gI().gameAI(4)` / `GameScr.gameAB(5,0,0)`) để mở rương và cất đồ.
+   - **Khắc phục:** 
+     1. Gỡ bỏ hoàn toàn việc gán `Char.MuaCoLenh = true` và `Char.DungCoLenh = true` trong [`src/AutoSanBoss.java`](file:///root/ninja/src/AutoSanBoss.java) và [`src/ChatRouter.java`](file:///root/ninja/src/ChatRouter.java) (vì mod `AutoSanBoss` đã tự quản lý mua/dùng Cổ Lệnh qua `ensureInLangCo()` độc lập).
+     2. Trong [`src/Code.java`](file:///root/ninja/src/Code.java), ngắt bỏ cờ `MuaCoLenh` / `DungCoLenh` khỏi luồng mở rương đồ (chỉ cho phép chạy khi bật `Char.LuyenDa`).
+
 
 
 
