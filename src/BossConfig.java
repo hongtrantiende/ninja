@@ -40,8 +40,7 @@ public final class BossConfig implements CommandListener {
     // Extra rounds cho TS Boss uu tien
     private TextField tfExtraRounds;
 
-    // Auto Boss qua Chat (TB Boss)
-    private ChoiceGroup cgBossNotice;
+
 
     // Luu map IDs tuong ung voi tung ChoiceGroup
     private final int[] mapsVDMQ;
@@ -108,11 +107,6 @@ public final class BossConfig implements CommandListener {
         // === TS Boss uu tien: so luot quet them ===
         tfExtraRounds = new TextField("L\u01b0\u1ee3t qu\u00e9t th\u00eam (0=kh\u00f4ng, 1=m\u1eb7c \u0111\u1ecbnh)", "", 5, TextField.NUMERIC);
         form.append(tfExtraRounds);
-
-        // === Auto Boss qua Chat ===
-        cgBossNotice = new ChoiceGroup("H\u1ed7 tr\u1ee3", Choice.MULTIPLE);
-        cgBossNotice.append("Auto Boss qua Chat", null);
-        form.append(cgBossNotice);
     }
 
     /** Load trang thai tu AutoSanBoss vao checkbox + textfield */
@@ -130,9 +124,6 @@ public final class BossConfig implements CommandListener {
 
         // Extra rounds
         tfExtraRounds.setString(String.valueOf(AutoBossEvent.extraRounds));
-
-        // Auto Boss qua Chat
-        cgBossNotice.setSelectedIndex(0, AutoBossNotice.isEnabled);
     }
 
     private void loadGroup(ChoiceGroup cg, int[] maps) {
@@ -192,10 +183,6 @@ public final class BossConfig implements CommandListener {
                 errMsg.append("ExtraRounds");
             }
             AutoBossEvent.saveConfigToRMS();
-
-            // Luu Auto Boss qua Chat
-            AutoBossNotice.isEnabled = cgBossNotice.isSelected(0);
-            AutoBossNotice.saveConfigToRMS();
 
             int disabled = AutoSanBoss.disabledMaps.size();
             StringBuffer msg = new StringBuffer("Boss Config: \u0110\u00e3 l\u01b0u");

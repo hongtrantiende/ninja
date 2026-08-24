@@ -187,15 +187,7 @@ public class ChatRouter {
             BossRadar.toggle();
             return true;
         }
-        if (text.equals("chatboss") || text.equals("noticeboss")) {
-            AutoBossNotice.toggle();
-            return true;
-        }
-        if (text.equals("debugboss")) {
-            AutoBossNotice.debugMode = !AutoBossNotice.debugMode;
-            GameScr.gameAC("Debug Boss: " + (AutoBossNotice.debugMode ? "ON" : "OFF"));
-            return true;
-        }
+
         if (text.equals("tsbosstest")) {
             AutoBossEvent.testNow();
             return true;
