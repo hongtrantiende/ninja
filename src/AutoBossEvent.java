@@ -182,8 +182,10 @@ public final class AutoBossEvent implements Runnable {
                 || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
         if (!isGated) return;
 
-        // Neu priority la MapVIP/MapVIP2, chi clean LC roi de enterMapVIP/enterMapVIP2 xu ly
-        if (eventPriority == 6 || eventPriority == 7) {
+        // Neu priority la MapVIP/MapVIP2, hoac priority "Tat ca" dang o VIP map
+        // → giu nguyen, KHONG tu sat. AutoSanBoss se san boss VIP truoc roi tu thoat khi can.
+        if (eventPriority == 6 || eventPriority == 7
+                || (eventPriority == 0 && (curMap == 195 || curMap == 196))) {
             if (TileMap.isLangCo(curMap)) {
                 AutoSanBoss.cleanKhaoDiLenh();
                 sleep(300L);
@@ -728,8 +730,10 @@ public final class AutoBossEvent implements Runnable {
         }).start();
 
         // Neu chua den gio (dang o che do pre-spawn): chay den map cho san va dung doi
+        // SKIP pre-spawn wait khi ignoreBossHourCheck = true (trigger tu Chat Notice / TB Boss)
+        // vi boss DA spawn hoac SAP spawn, khong can cho them
         int preSec = getSecondsTillNextForPriority();
-        if (preSec > 0 && preSec <= PRE_SPAWN_SECONDS) {
+        if (!AutoSanBoss.ignoreBossHourCheck && preSec > 0 && preSec <= PRE_SPAWN_SECONDS) {
             int firstMap = getFirstMapForPriority();
             if (firstMap > 0) {
                 GameScr.gameAC("TSBoss: Ra M" + firstMap + " ch\u1edd s\u1eb5n...");
@@ -754,7 +758,7 @@ public final class AutoBossEvent implements Runnable {
             // Cho den dung gio boss spawn
             while (isEnabled && inEvent) {
                 int s = getSecondsTillNextForPriority();
-                if (s <= 0 || s > 3600) break;
+                if (s <= 0 || s > PRE_SPAWN_SECONDS) break;
                 GameScr.gameAC("TSBoss: Ch\u1edd t\u1ea1i M" + TileMap.mapID + " (" + s + "s)...");
                 for (int w = 0; w < 20 && isEnabled && inEvent; w++) sleep(100L);
             }

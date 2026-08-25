@@ -1614,6 +1614,11 @@ public class AutoSanBoss implements Runnable {
         if (TileMap.isLangCo(TileMap.mapID)) {
             finishLangCoAndExit();
         }
+        // Thoat Map VIP neu dang o (M195/M196 la gated map, PkBoss khong the thoat)
+        if (TileMap.mapID == 195 || TileMap.mapID == 196) {
+            GameScr.gameAC("TREO: Tho\u00e1t Map VIP \u0111\u1ec3 s\u0103n map kh\u00e1c...");
+            suicideAndEnsureAlive();
+        }
         GameScr.gameAC("TREO: Qu\u00e9t M" + mapID + "...");
 
         // 1. Dung PkBoss CHI DE di chuyen den map
@@ -2685,6 +2690,11 @@ public class AutoSanBoss implements Runnable {
         } else {
             if (TileMap.isLangCo(TileMap.mapID)) {
                 finishLangCoAndExit();
+            }
+            // Thoat Map VIP neu dang o (M195/M196 la gated map, PkBoss khong the thoat)
+            if (TileMap.mapID == 195 || TileMap.mapID == 196) {
+                GameScr.gameAC("TSB: Tho\u00e1t Map VIP \u0111\u1ec3 s\u0103n map kh\u00e1c...");
+                suicideAndEnsureAlive();
             }
         }
         GameScr.gameAC("TSB: PK M" + mapID);
