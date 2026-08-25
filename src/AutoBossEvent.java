@@ -755,6 +755,7 @@ public final class AutoBossEvent implements Runnable {
         // Neu chua den gio (dang o che do pre-spawn): chay den map cho san va dung doi
         // SKIP pre-spawn wait khi ignoreBossHourCheck = true (trigger tu Chat Notice / TB Boss)
         // vi boss DA spawn hoac SAP spawn, khong can cho them
+        int preSpawnType = -1; // Boss type sap spawn (-1 = khong phai pre-spawn)
         int preSec = getSecondsTillNextForPriority();
         if (!AutoSanBoss.ignoreBossHourCheck && preSec > 0 && preSec <= PRE_SPAWN_SECONDS) {
             int firstMap = getFirstMapForPriority();
@@ -785,7 +786,16 @@ public final class AutoBossEvent implements Runnable {
                 GameScr.gameAC("TSBoss: Ch\u1edd t\u1ea1i M" + TileMap.mapID + " (" + s + "s)...");
                 for (int w = 0; w < 10 && isEnabled && inEvent; w++) sleep(100L);
             }
-            GameScr.gameAC("TSBoss: 4s! B\u1eaft \u0111\u1ea7u s\u0103n boss!");
+            // Xac dinh boss TYPE sap spawn gan nhat (getSecondsTillNextBoss khong dung ignoreBossHourCheck)
+            int closestSec = Integer.MAX_VALUE;
+            int[] hp = AutoSanBoss.getHuntPriority();
+            for (int pi = 0; pi < hp.length; pi++) {
+                if (AutoSanBoss.isBossTypeEnabled(hp[pi])) {
+                    int bs = AutoSanBoss.getSecondsTillNextBoss(hp[pi]);
+                    if (bs < closestSec) { closestSec = bs; preSpawnType = hp[pi]; }
+                }
+            }
+            GameScr.gameAC("TSBoss: 4s! S\u0103n boss " + (preSpawnType >= 0 ? AutoSanBoss.getBossName(preSpawnType) : "ALL") + "!");
             // GIU ignoreBossHourCheck = true de luot 1 bo qua check gio
             // (boss chua chinh thuc spawn nhung chi con 4s)
             AutoSanBoss.ignoreBossHourCheck = true;
@@ -833,6 +843,11 @@ public final class AutoBossEvent implements Runnable {
             }
         }
 
+        // Pre-spawn: CHI san boss dang sap spawn, khong di san tat ca boss khac
+        if (preSpawnType >= 0) {
+            AutoSanBoss.eventHuntTypes = new int[]{preSpawnType};
+        }
+
         // === Luot 1: Quet + goi ae fang boss ===
         while (isEnabled && inEvent) {
             if (AutoSanBoss.consumeEventRoundCompleted()) break;
@@ -861,8 +876,11 @@ public final class AutoBossEvent implements Runnable {
             return;
         }
 
-        // Xong luot 1: reset ignoreBossHourCheck (pre-spawn da xong) va gui nhom ve farm
+        // Xong luot 1: reset ignoreBossHourCheck va eventHuntTypes (pre-spawn da xong)
         AutoSanBoss.ignoreBossHourCheck = false;
+        if (preSpawnType >= 0) {
+            AutoSanBoss.eventHuntTypes = null; // Reset de luot sau quet tat ca boss active binh thuong
+        }
         membersSentBack = true;
         GameScr.gameAC("TSBoss: Xong l\u01b0\u1ee3t 1, g\u1eedi nh\u00f3m v\u1ec1 farm!");
         sendParty("pkm -5");

@@ -38,6 +38,12 @@ public class AutoSanBoss implements Runnable {
 
     private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "Map VIP", "Map VIP2", "T\u1ea5t C\u1ea3", "Test 1 Map"};
 
+    /** Lay ten boss theo type (dung cho thong bao) */
+    public static String getBossName(int bossType) {
+        if (bossType >= 0 && bossType < BOSS_NAMES.length) return BOSS_NAMES[bossType];
+        return "?";
+    }
+
     // === CAI DAT: per-map filtering ===
     /** Danh sach map ID bi tat (khong san). Mac dinh rong = tat ca duoc san. */
     public static java.util.Vector disabledMaps = new java.util.Vector();
