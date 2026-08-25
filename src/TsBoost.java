@@ -35,6 +35,13 @@ public class TsBoost implements Runnable {
     public static int COOLDOWN_MS = DEF_COOLDOWN_MS;
     private static final int ATTACK_KILL_WINDOW_MS = 800;  // Window kill tracking
 
+    // === PHAN THAN LENH LIMITER ===
+    public static boolean isLimitPhanThan = false;
+    public static int LIMIT_PHANTHAN_MAX = 5;
+    private static final int PHANTHAN_ITEM_ID = 545;
+    private static final int LIMIT_CHECK_INTERVAL = 10000; // 10s
+    private static long lastLimitCheckTime = 0;
+
     // === MOB COOLDOWN TRACKING (circular buffer) ===
     private static final int CD_SIZE = 16;
     private static final int[] cdX = new int[CD_SIZE];
@@ -51,7 +58,8 @@ public class TsBoost implements Runnable {
         try {
             String data = ATTACK_DELAY_MS + ";" + IDLE_DELAY_MS + ";"
                 + MAX_ATTACK_RANGE + ";" + SKILL_RESELECT_MS + ";" + MAX_MOB_PER_ATTACK
-                + ";" + (isCooldownEnabled ? 1 : 0) + ";" + COOLDOWN_MS;
+                + ";" + (isCooldownEnabled ? 1 : 0) + ";" + COOLDOWN_MS
+                + ";" + (isLimitPhanThan ? 1 : 0) + ";" + LIMIT_PHANTHAN_MAX;
             RMS.gameAA("ts_boost_cfg", data);
         } catch (Exception e) {}
     }
@@ -61,9 +69,9 @@ public class TsBoost implements Runnable {
         try {
             String data = RMS.gameAC("ts_boost_cfg");
             if (data != null && data.length() > 0) {
-                int[] vals = new int[7];
+                int[] vals = new int[9];
                 int idx = 0, start = 0;
-                for (int i = 0; i <= data.length() && idx < 7; i++) {
+                for (int i = 0; i <= data.length() && idx < 9; i++) {
                     if (i == data.length() || data.charAt(i) == ';') {
                         vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
                         start = i + 1;
@@ -82,6 +90,14 @@ public class TsBoost implements Runnable {
                 if (idx >= 7) {
                     COOLDOWN_MS = vals[6];
                 }
+                if (idx >= 8) {
+                    isLimitPhanThan = vals[7] == 1;
+                }
+                if (idx >= 9) {
+                    LIMIT_PHANTHAN_MAX = vals[8];
+                    if (LIMIT_PHANTHAN_MAX < 0) LIMIT_PHANTHAN_MAX = 0;
+                    if (LIMIT_PHANTHAN_MAX > 99) LIMIT_PHANTHAN_MAX = 99;
+                }
             }
         } catch (Exception e) {}
     }
@@ -95,6 +111,8 @@ public class TsBoost implements Runnable {
         MAX_MOB_PER_ATTACK = DEF_MAX_MOB_PER_ATTACK;
         isCooldownEnabled = false;
         COOLDOWN_MS = DEF_COOLDOWN_MS;
+        isLimitPhanThan = false;
+        LIMIT_PHANTHAN_MAX = 5;
     }
 
     /** Danh dau mob tai (x,y) vua bi danh */
@@ -286,6 +304,15 @@ public class TsBoost implements Runnable {
                     sleep(IDLE_DELAY_MS);
                 }
 
+                // === PHAN THAN LENH LIMITER ===
+                if (isLimitPhanThan) {
+                    long now2 = System.currentTimeMillis();
+                    if (now2 - lastLimitCheckTime >= LIMIT_CHECK_INTERVAL) {
+                        lastLimitCheckTime = now2;
+                        dropExcessPhanThan();
+                    }
+                }
+
             } catch (Exception e) {
                 sleep(1000);
             }
@@ -299,6 +326,52 @@ public class TsBoost implements Runnable {
      */
     public static void checkHang() {
         // Khong lam gi — TS goc tu xu ly
+    }
+
+    // =============================================
+    // PHAN THAN LENH LIMITER
+    // =============================================
+
+    /**
+     * Quet hanh trang, dem so Phan Than Lenh (ID 545).
+     * Neu vuot qua LIMIT_PHANTHAN_MAX, vut bot item thua.
+     */
+    public static void dropExcessPhanThan() {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar == null || myChar.arrItemBag == null) return;
+
+            // Buoc 1: dem so luong va luu danh sach index
+            int count = 0;
+            int[] indices = new int[myChar.arrItemBag.length];
+            for (int i = 0; i < myChar.arrItemBag.length; i++) {
+                Item item = myChar.arrItemBag[i];
+                if (item != null && item.template != null && item.template.id == PHANTHAN_ITEM_ID) {
+                    indices[count] = i;
+                    count++;
+                }
+            }
+
+            if (count <= LIMIT_PHANTHAN_MAX) return;
+
+            // Buoc 2: vut tu cuoi danh sach (giu cac slot dau)
+            int excess = count - LIMIT_PHANTHAN_MAX;
+            int dropped = 0;
+            for (int j = count - 1; j >= 0 && dropped < excess; j--) {
+                Item item = myChar.arrItemBag[indices[j]];
+                if (item != null) {
+                    try {
+                        Service.gI().gameAH(item.indexUI, 1); // Ban thay vi vut
+                        dropped++;
+                        try { Thread.sleep(200); } catch (Exception e) {}
+                    } catch (Exception e) {}
+                }
+            }
+
+            if (dropped > 0) {
+                safeNotify("B\u00e1n " + dropped + " Ph\u00e2n Th\u00e2n L\u1ec7nh (gi\u1eef " + LIMIT_PHANTHAN_MAX + ")");
+            }
+        } catch (Exception e) {}
     }
 
     // =============================================

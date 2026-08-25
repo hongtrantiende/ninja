@@ -37,6 +37,10 @@ public final class TsConfig implements CommandListener {
     private ChoiceGroup cgJump;
     private TextField tfJumpInterval;
 
+    // Phan Than Lenh limiter fields
+    private ChoiceGroup cgLimitPhanThan;
+    private TextField tfLimitPhanThanMax;
+
     private TsConfig() {
         cmdLuu = new Command("L\u01b0u", Command.OK, 1);
         cmdHuy = new Command("H\u1ee7y", Command.BACK, 2);
@@ -99,6 +103,14 @@ public final class TsConfig implements CommandListener {
 
         tfJumpInterval = new TextField("Nh\u1ea3y m\u1ed7i (gi\u00e2y)", "", 10, TextField.NUMERIC);
         form.append(tfJumpInterval);
+
+        // === Phan Than Lenh Limiter ===
+        cgLimitPhanThan = new ChoiceGroup("Gi\u1edbi h\u1ea1n Ph\u00e2n Th\u00e2n L\u1ec7nh (ID 545)", Choice.MULTIPLE);
+        cgLimitPhanThan.append("V\u1ee9t b\u1edbt khi v\u01b0\u1ee3t SL", null);
+        form.append(cgLimitPhanThan);
+
+        tfLimitPhanThanMax = new TextField("S\u1ed1 l\u01b0\u1ee3ng t\u1ed1i \u0111a", "", 5, TextField.NUMERIC);
+        form.append(tfLimitPhanThanMax);
     }
 
     private void loadCurrentState() {
@@ -122,6 +134,10 @@ public final class TsConfig implements CommandListener {
         // AutoJump
         cgJump.setSelectedIndex(0, AutoSuicide.isJumpEnabled);
         tfJumpInterval.setString(String.valueOf(AutoSuicide.JUMP_INTERVAL_MS / 1000));
+
+        // Phan Than Lenh
+        cgLimitPhanThan.setSelectedIndex(0, TsBoost.isLimitPhanThan);
+        tfLimitPhanThanMax.setString(String.valueOf(TsBoost.LIMIT_PHANTHAN_MAX));
     }
 
     /** Mo form cai dat — goi tu NamMod menu */
@@ -217,6 +233,15 @@ public final class TsConfig implements CommandListener {
             }
 
             AutoSuicide.saveConfigToRMS();
+
+            // === Phan Than Lenh Limiter ===
+            TsBoost.isLimitPhanThan = cgLimitPhanThan.isSelected(0);
+            try {
+                int v = safeParseInt(tfLimitPhanThanMax.getString(), -1);
+                if (v >= 0 && v <= 99) TsBoost.LIMIT_PHANTHAN_MAX = v;
+                else errors.append("PTL Max(").append(v).append("), ");
+            } catch (Exception e) { errors.append("PTL Max, "); }
+            TsBoost.saveConfigToRMS();
 
             if (errors.length() == 0) {
                 GameScr.gameAC("TS Config: \u0110\u00e3 l\u01b0u!");

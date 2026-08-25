@@ -622,7 +622,7 @@ public final class AutoBossEvent implements Runnable {
                 }
                 return 14;
             case 3: // TheGioi
-                return 65;
+                return 20;
             case 4: // Lang Co
                 return 138;
             case 5: // VDMQ
@@ -671,7 +671,7 @@ public final class AutoBossEvent implements Runnable {
         } else if (bossType == AutoSanBoss.TYPE_MAPNGOAI) {
             return getFirstMapForPriority(2);
         } else if (bossType == AutoSanBoss.TYPE_THEGIOI) {
-            return 65;
+            return 20;
         } else if (bossType == AutoSanBoss.TYPE_LANGCO) {
             return 138;
         } else if (bossType == AutoSanBoss.TYPE_MAPVIP || bossType == AutoSanBoss.TYPE_MAPVIP2) {
@@ -778,14 +778,14 @@ public final class AutoBossEvent implements Runnable {
                     preSpawnEnterMapVIP();
                 }
             }
-            // Cho den dung gio boss spawn
+            // Cho den 4s truoc gio boss spawn — bat dau san som de quet khu truoc
             while (isEnabled && inEvent) {
                 int s = getSecondsTillNextForPriority();
-                if (s <= 0 || s > PRE_SPAWN_SECONDS) break;
+                if (s <= 4 || s > PRE_SPAWN_SECONDS) break;
                 GameScr.gameAC("TSBoss: Ch\u1edd t\u1ea1i M" + TileMap.mapID + " (" + s + "s)...");
-                for (int w = 0; w < 20 && isEnabled && inEvent; w++) sleep(100L);
+                for (int w = 0; w < 10 && isEnabled && inEvent; w++) sleep(100L);
             }
-            GameScr.gameAC("TSBoss: \u0110\u00fang gi\u1edd! B\u1eaft \u0111\u1ea7u s\u0103n boss!");
+            GameScr.gameAC("TSBoss: 4s! B\u1eaft \u0111\u1ea7u s\u0103n boss!");
         }
 
         AutoSanBoss.ignoreBossHourCheck = false;
