@@ -1794,22 +1794,20 @@ public class AutoSanBoss implements Runnable {
                     } catch (Exception e) {}
                 }
 
-                // Hoi sinh tai thon
+                // Hoi sinh ve thon (Map VIP KHONG cho hoi sinh luong)
                 for (int r = 0; r < 15 && checkStillRunning(); r++) {
                     try {
                         Char me = Char.getMyChar();
                         if (me != null && me.statusMe != 14 && me.cHP > 0) break;
                         GameCanvas.endDlg();
                         sleep(20);
+                        Auto.gameAN.removeAllElements();
+                        Auto.gameAM = false;
                         LockGame.gameAA = true;
-                        if (Code.HoiSinhLuong && me != null && me.luong > 0) {
-                            Service.gI().gameAL();
-                        } else {
-                            Service.gI().gameAK();
-                            TileMap.gameAF();
-                        }
+                        Service.gI().gameAK();  // LUON ve lang (Map VIP ko cho HSL)
+                        TileMap.gameAF();
                         LockGame.gameAA = false;
-                        sleep(150);
+                        sleep(300);
                     } catch (Exception e) { break; }
                 }
                 sleep(200);
@@ -1941,20 +1939,74 @@ public class AutoSanBoss implements Runnable {
                     // === VONG LAP DANH BOSS — xu ly chet + quay lai ===
                     int deathCount = 0;
                     while (checkStillRunning()) {
+                        // === CHECK CHET TAI CHO (van o M195 nhung statusMe==14) ===
+                        try {
+                            Char meChk = Char.getMyChar();
+                            if (meChk != null && (meChk.statusMe == 14 || meChk.cHP <= 0)) {
+                                deathCount++;
+                                if (deathCount > 5) {
+                                    GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
+                                    break;
+                                }
+                                GameScr.gameAC("TSB: Ch\u1ebft t\u1ea1i M195! V\u1ec1 l\u00e0ng + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                                // Dung PkBoss cu
+                                if (Code.gameAB instanceof PkBoss) {
+                                    Code.gameAC();
+                                }
+                                // Map VIP KHONG cho hoi sinh luong -> LUON ve lang
+                                for (int hr = 0; hr < 10 && checkStillRunning(); hr++) {
+                                    try {
+                                        Char meR = Char.getMyChar();
+                                        if (meR != null && meR.statusMe != 14 && meR.cHP > 0) break;
+                                        GameCanvas.endDlg();
+                                        sleep(20);
+                                        Auto.gameAN.removeAllElements();
+                                        Auto.gameAM = false;
+                                        LockGame.gameAA = true;
+                                        Service.gI().gameAK();
+                                        TileMap.gameAF();
+                                        LockGame.gameAA = false;
+                                        sleep(300);
+                                    } catch (Exception eR) { break; }
+                                }
+                                sleep(500);
+                                // Ve lang roi vao lai M195 qua NPC
+                                if (!enterMapVIP()) {
+                                    GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M195!");
+                                    return false;
+                                }
+                                // Chuyen ve khu boss
+                                try { Auto.gameAA(bossZone); } catch (Exception e2) {}
+                                sleep(200);
+                                for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                                    sleep(100);
+                                }
+                                // Bat PkBoss lai
+                                restoreDummyAuto();
+                                try {
+                                    PkBoss pk2 = new PkBoss(195);
+                                    pk2.zoneID = bossZone;
+                                    Code.gameAA(pk2);
+                                } catch (Exception e2) {}
+                                sleep(200);
+                                continue;
+                            }
+                        } catch (Exception eChk) {}
+
                         // Check boss con song
                         if (TileMap.mapID == 195 && !hasBossOnCurrentMap()) {
                             // Boss da chet (van o M195 nhung khong thay boss)
                             break;
                         }
 
-                        // Check bi thoat M195 (chet ve thon)
+                        // Check bi thoat M195 (chet ve thon — fallback)
                         if (TileMap.mapID != 195) {
                             deathCount++;
                             if (deathCount > 5) {
                                 GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
                                 break;
                             }
-                            GameScr.gameAC("TSB: Ch\u1ebft! H\u1ed3i sinh + quay l\u1ea1i M195 (l\u1ea7n " + deathCount + ")...");
+                            GameScr.gameAC("TSB: Tho\u00e1t M195! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
 
                             // Dung PkBoss cu
                             if (Code.gameAB instanceof PkBoss) {
@@ -2113,21 +2165,20 @@ public class AutoSanBoss implements Runnable {
                         if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
                     } catch (Exception e) {}
                 }
+                // Hoi sinh ve thon (Map VIP2 KHONG cho hoi sinh luong)
                 for (int r = 0; r < 15 && checkStillRunning(); r++) {
                     try {
                         Char me = Char.getMyChar();
                         if (me != null && me.statusMe != 14 && me.cHP > 0) break;
                         GameCanvas.endDlg();
                         sleep(20);
+                        Auto.gameAN.removeAllElements();
+                        Auto.gameAM = false;
                         LockGame.gameAA = true;
-                        if (Code.HoiSinhLuong && me != null && me.luong > 0) {
-                            Service.gI().gameAL();
-                        } else {
-                            Service.gI().gameAK();
-                            TileMap.gameAF();
-                        }
+                        Service.gI().gameAK();  // LUON ve lang (Map VIP ko cho HSL)
+                        TileMap.gameAF();
                         LockGame.gameAA = false;
-                        sleep(150);
+                        sleep(300);
                     } catch (Exception e) { break; }
                 }
                 sleep(200);
@@ -2473,19 +2524,70 @@ public class AutoSanBoss implements Runnable {
                     int bossZone = TileMap.zoneID;
                     int deathCount = 0;
                     while (checkStillRunning()) {
+                        // === CHECK CHET TAI CHO (van o dung map nhung statusMe==14) ===
+                        try {
+                            Char meChk = Char.getMyChar();
+                            if (meChk != null && (meChk.statusMe == 14 || meChk.cHP <= 0)) {
+                                deathCount++;
+                                if (deathCount > 5) {
+                                    GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
+                                    break;
+                                }
+                                GameScr.gameAC("TSB: Ch\u1ebft t\u1ea1i M" + mapID + "! V\u1ec1 l\u00e0ng + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                                if (Code.gameAB instanceof PkBoss) {
+                                    Code.gameAC();
+                                }
+                                // Map VIP2 KHONG cho hoi sinh luong -> LUON ve lang
+                                for (int hr = 0; hr < 10 && checkStillRunning(); hr++) {
+                                    try {
+                                        Char meR = Char.getMyChar();
+                                        if (meR != null && meR.statusMe != 14 && meR.cHP > 0) break;
+                                        GameCanvas.endDlg();
+                                        sleep(20);
+                                        Auto.gameAN.removeAllElements();
+                                        Auto.gameAM = false;
+                                        LockGame.gameAA = true;
+                                        Service.gI().gameAK();
+                                        TileMap.gameAF();
+                                        LockGame.gameAA = false;
+                                        sleep(300);
+                                    } catch (Exception eR) { break; }
+                                }
+                                sleep(500);
+                                // Ve lang roi vao lai map VIP2 qua NPC
+                                if (!enterMapVIP2()) {
+                                    GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M" + mapID + "!");
+                                    return false;
+                                }
+                                try { Auto.gameAA(bossZone); } catch (Exception e2) {}
+                                sleep(500);
+                                for (int w2 = 0; w2 < 15 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                                    sleep(200);
+                                }
+                                restoreDummyAuto();
+                                try {
+                                    PkBoss pk2 = new PkBoss(mapID);
+                                    pk2.zoneID = bossZone;
+                                    Code.gameAA(pk2);
+                                } catch (Exception e2) {}
+                                sleep(500);
+                                continue;
+                            }
+                        } catch (Exception eChk) {}
+
                         // Boss da chet (van o dung map, khong thay boss)
                         if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
                             break;
                         }
 
-                        // Bi thoat map boss (chet / hoi sinh o map khac)
+                        // Bi thoat map boss (chet / hoi sinh o map khac — fallback)
                         if (TileMap.mapID != mapID) {
                             deathCount++;
                             if (deathCount > 5) {
                                 GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 5 l\u1ea7n, d\u1eebng!");
                                 break;
                             }
-                            GameScr.gameAC("TSB: Ch\u1ebft! Quay l\u1ea1i M" + mapID + " (l\u1ea7n " + deathCount + ")...");
+                            GameScr.gameAC("TSB: Tho\u00e1t M" + mapID + "! Quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
 
                             // Dung PkBoss cu
                             if (Code.gameAB instanceof PkBoss) {
