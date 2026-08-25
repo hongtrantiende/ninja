@@ -41,6 +41,8 @@ public final class AutoTuLuyen {
      */
     public static void checkAndReturn() {
         if (!isEnabled || returning) return;
+        // Tam ngung khi TSBoss dang san boss (tranh conflict keo ve map Tu Luyen)
+        if (AutoBossEvent.inEvent || AutoSanBoss.isRunning) return;
         if (TileMap.mapID == targetMapID) return;
         if (Code.gameAB == null) return;
 
