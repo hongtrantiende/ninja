@@ -1118,18 +1118,64 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
    - **Khắc phục triệt để:** **XÓA SẠCH HOÀN TOÀN** toàn bộ khối code tự động tương tác NPC rương/luyện đá này khỏi [`src/Code.java`](file:///root/ninja/src/Code.java). Trong toàn bộ dự án hiện tại không còn bất kỳ lệnh nào gọi `Service.gI().gameAI(4)` tự động nữa.
 
 6. **Sửa Triệt Để Lỗi Tự Sát 2 Lần & Vào NPC Rương Đồ Sau Khi Về Làng:**
-   - **Nguyên nhân gốc rễ 1 (NPC Rương Đồ):** Trong tất cả các hàm hồi sinh (`respawnIfDead`, `respawnFast`, `respawnQuick`, `ensureAlive`), trước đây đều chứa dòng `GameScr.gameAB(5, 0, 0)`. Trong game engine J2ME gốc, `gameAB(npcId, option, 0)` là hàm **di chuyển đến NPC và mở menu đối thoại** (NPC 5 là Okane / Rương Đồ). Vì vậy mỗi khi chết/hồi sinh, nhân vật tự động chạy đến NPC Rương Đồ.
+- **Nguyên nhân gốc rễ 1 (NPC Rương Đồ):** Trong tất cả các hàm hồi sinh (`respawnIfDead`, `respawnFast`, `respawnQuick`, `ensureAlive`), trước đây đều chứa dòng `GameScr.gameAB(5, 0, 0)`. Trong game engine J2ME gốc, `gameAB(npcId, option, 0)` là hàm **di chuyển đến NPC và mở menu đối thoại** (NPC 5 là Okane / Rương Đồ). Vì vậy mỗi khi chết/hồi sinh, nhân vật tự động chạy đến NPC Rương Đồ.
    - **Nguyên nhân gốc rễ 2 (Tự sát lặp 2 lần):** Trong `finishLangCoAndExit()`, sau khi tự sát lần 1, nhân vật đang chuyển map về làng nhưng `TileMap.mapID` chưa kịp đồng bộ (vẫn mang ID map Làng Cổ cũ trong vài trăm ms đầu). Đoạn code cũ có điều kiện `if (TileMap.isLangCo(TileMap.mapID))` lần 2 lập tức kích hoạt và gửi tiếp 1 packet tự sát nữa khi nhân vật vừa xuất hiện ở làng.
    - **Khắc phục triệt để:**
      1. **Xóa sạch toàn bộ lệnh `GameScr.gameAB(5, 0, 0)`** khỏi tất cả các file (`AutoSanBoss`, `AutoBossEvent`, `ChatRouter`, `AutoLevel`, `GhostBoss`). Khi hồi sinh chỉ gửi packet chuẩn `Service.gI().gameAK()` (về làng) hoặc `gameAL()` (tại chỗ) kèm `LockGame.gameAA = true`.
      2. Viết lại `finishLangCoAndExit()` chỉ tự sát 1 lần duy nhất, sau đó có vòng lặp chờ cho đến khi nhân vật thực sự rời khỏi Làng Cổ (`!TileMap.isLangCo(TileMap.mapID)`) mới kết thúc.
 
+## 2026-08-25: TSBoss Ưu Tiên (AutoBossEvent) — 4 Bug Fix
 
+### Bug 1: Vòng lặp chờ pre-spawn mắc kẹt 1 tiếng (s > 3600 boundary)
+- **Hiện tượng:** Bot ra map boss chờ đếm ngược 30s, boss spawn xong nhưng KHÔNG đánh — tiếp tục hiện "Chờ tại M141 (1000s)..." hàng giờ.
+- **Root cause:** Vòng lặp `while` chờ pre-spawn dùng `if (s <= 0 || s > 3600) break`.
+  - Khi boss VDMQ 19h spawn, `getSecondsTillNextForPriority()` bỏ qua 19h (diff=0) → next là MapVIP 20h (diff=3600).
+  - `3600 > 3600` = **FALSE** → vòng lặp KHÔNG break → chờ cả tiếng!
+- **Fix:** Đổi `s > 3600` → `s > PRE_SPAWN_SECONDS` (30). Chờ 30s cuối xong, s nhảy lên hàng nghìn → `s > 30` → break ngay → đánh luôn.
+- **File:** `AutoBossEvent.java` dòng 759
+- **Quy tắc:** Vòng lặp chờ pre-spawn chỉ dùng cho 30s cuối. Threshold phải bằng `PRE_SPAWN_SECONDS`, không dùng magic number 3600.
 
+### Bug 2: triggerImmediate (Chat Notice) vẫn vào vòng lặp chờ
+- **Hiện tượng:** Khi nhận thông báo boss từ server (Chat Notice), `triggerImmediate()` set `ignoreBossHourCheck=true` nhưng vẫn vào vòng lặp pre-spawn wait.
+- **Fix:** Thêm `!AutoSanBoss.ignoreBossHourCheck` vào điều kiện vào block pre-spawn.
+- **File:** `AutoBossEvent.java` dòng 734
 
+### Bug 3: Đang ở Map VIP + priority "Tất cả" → tự sát thừa khi boss VIP đang ra
+- **Hiện tượng:** Priority "Tất cả", đang ở M195, boss VIP đang spawn → bot tự sát về thôn rồi lại vào M195 qua NPC → lãng phí thời gian.
+- **Fix ban đầu (quá rộng):** Thêm `(eventPriority == 0 && (curMap == 195 || curMap == 196))` → luôn giữ ở VIP. **SAI** vì khi boss VIP chưa ra mà boss VDMQ ra thì bot mắc kẹt ở M195 không thoát!
+- **Fix đúng:** Kiểm tra boss VIP **thực sự active** bằng cách check giờ spawn trực tiếp (không dùng `ignoreBossHourCheck`):
+  ```java
+  int[] hrs = AutoSanBoss.BOSS_HOURS[vipType];
+  for (int i = 0; i < hrs.length; i++) {
+      int d = nowSec - hrs[i] * 3600;
+      if (d >= 0 && d < 2400) { vipActive = true; break; }
+  }
+  ```
+  - VIP boss active → ở lại M195 săn luôn
+  - VIP boss CHƯA active → fall through → tự sát thoát → đi săn boss khác
+- **File:** `AutoBossEvent.java` dòng 198-222
+- **Quy tắc:** Khi check "có nên ở lại gated map không", PHẢI check giờ spawn **thực tế**, KHÔNG dùng `isBossActive()` vì nó bị ảnh hưởng bởi `ignoreBossHourCheck`.
 
+### Bug 4: Không tự sát thoát Map VIP khi cần đi săn map khác
+- **Hiện tượng:** Săn xong boss ở M195, cần đi M14/M141 nhưng PkBoss không thoát được M195 (gated map) → bot kẹt.
+- **Fix:** Thêm check `TileMap.mapID == 195 || TileMap.mapID == 196` trong `pkBossOnMap()` và `treoScanMap()` — khi target là map thường mà đang ở VIP → `suicideAndEnsureAlive()` trước.
+- **File:** `AutoSanBoss.java` — `pkBossOnMap()` dòng 2690+ và `treoScanMap()` dòng 1617+
+- **Quy tắc:** Mọi gated map (M195, M196, Làng Cổ) cần logic thoát riêng trước khi PkBoss di chuyển đến map thường. Pattern: check + suicide giống Làng Cổ đã có sẵn.
 
+### Kiến trúc AutoBossEvent ↔ AutoSanBoss (tóm tắt)
+- **AutoBossEvent** (`run()` loop mỗi 1s):
+  - Monitor giờ boss → `anyBossActiveForPriority()` / `getSecondsTillNextForPriority()`
+  - Pre-spawn 30s trước: `beginLeaderEvent()` → lưu vị trí TS → dừng auto → `exitGatedMapIfNeeded()` → travel map boss → chờ đếm ngược → start AutoSanBoss
+  - Chờ `consumeEventRoundCompleted()` → xong → `finishEvent()` → quay về TS
+- **AutoSanBoss** (`run()` loop):
+  - `eventHuntMode=true`: quét boss types theo `eventHuntTypes` hoặc `HUNT_PRIORITY`
+  - `isBossActive(type)`: check giờ spawn ± 40 phút (2400s)
+  - Xong 1 round: set `eventRoundCompleted=true`
+- **Gated maps cần thoát riêng:** M195, M196 (VIP), M135/136/LangCo, M192 (Tự luyện)
+- **`ignoreBossHourCheck`:** Set true bởi `triggerImmediate()`, reset false bởi `beginLeaderEvent()` và `finishEvent()`
 
-
-
-
+### Cần test phiên sau (2026-08-25)
+1. **Pre-spawn 30s:** Treo ở M195/M192, chờ boss VDMQ/MapNgoài ra → bot có tự sát thoát và ra đúng map boss chờ không?
+2. **Boss spawn → đánh ngay:** Sau 30s đếm ngược, boss ra → bot có quét và đánh ngay không? (không chờ thêm 1000s)
+3. **VIP boss + priority All:** Ở M195 lúc boss VIP đang ra → bot có ở lại săn VIP trước không?
+4. **Chuyển map sau VIP:** Săn xong VIP → bot có tự sát thoát M195 để đi map khác không?
