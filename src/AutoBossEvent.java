@@ -786,9 +786,14 @@ public final class AutoBossEvent implements Runnable {
                 for (int w = 0; w < 10 && isEnabled && inEvent; w++) sleep(100L);
             }
             GameScr.gameAC("TSBoss: 4s! B\u1eaft \u0111\u1ea7u s\u0103n boss!");
+            // GIU ignoreBossHourCheck = true de luot 1 bo qua check gio
+            // (boss chua chinh thuc spawn nhung chi con 4s)
+            AutoSanBoss.ignoreBossHourCheck = true;
+        } else {
+            // Khong phai pre-spawn (boss da spawn hoac trigger tu Chat Notice)
+            // Reset flag binh thuong
+            AutoSanBoss.ignoreBossHourCheck = false;
         }
-
-        AutoSanBoss.ignoreBossHourCheck = false;
 
         boolean huntAll = forceAllNext;
         forceAllNext = false;
@@ -856,7 +861,8 @@ public final class AutoBossEvent implements Runnable {
             return;
         }
 
-        // Xong luot 1: gui nhom ve farm
+        // Xong luot 1: reset ignoreBossHourCheck (pre-spawn da xong) va gui nhom ve farm
+        AutoSanBoss.ignoreBossHourCheck = false;
         membersSentBack = true;
         GameScr.gameAC("TSBoss: Xong l\u01b0\u1ee3t 1, g\u1eedi nh\u00f3m v\u1ec1 farm!");
         sendParty("pkm -5");
