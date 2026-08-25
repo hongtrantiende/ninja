@@ -182,20 +182,43 @@ public final class AutoBossEvent implements Runnable {
                 || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
         if (!isGated) return;
 
-        // Neu priority la MapVIP/MapVIP2, hoac priority "Tat ca" dang o VIP map
-        // → giu nguyen, KHONG tu sat. AutoSanBoss se san boss VIP truoc roi tu thoat khi can.
-        if (eventPriority == 6 || eventPriority == 7
-                || (eventPriority == 0 && (curMap == 195 || curMap == 196))) {
+        // Neu priority la MapVIP/MapVIP2 → luon giu nguyen
+        if (eventPriority == 6 || eventPriority == 7) {
             if (TileMap.isLangCo(curMap)) {
                 AutoSanBoss.cleanKhaoDiLenh();
                 sleep(300L);
             }
-            // Dung auto nhung KHONG tu sat — preSpawnEnterMapVIP/enterMapVIP se lam
             LockGame.gameBK();
             if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
                 Code.gameAB = null;
             }
             return;
+        }
+
+        // Priority "Tat ca" dang o VIP map: CHI giu lai neu boss VIP THUC SU dang active
+        // (tranh truong hop boss VDMQ ra ma van ngoi o M195 khong di)
+        if (eventPriority == 0 && (curMap == 195 || curMap == 196)) {
+            int vipType = (curMap == 195) ? AutoSanBoss.TYPE_MAPVIP : AutoSanBoss.TYPE_MAPVIP2;
+            // Kiem tra gio spawn THUC TE (khong dung ignoreBossHourCheck)
+            boolean vipActive = false;
+            try {
+                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+                int nowSec = cal.get(Calendar.HOUR_OF_DAY) * 3600 + cal.get(Calendar.MINUTE) * 60 + cal.get(Calendar.SECOND);
+                int[] hrs = AutoSanBoss.BOSS_HOURS[vipType];
+                for (int i = 0; i < hrs.length; i++) {
+                    int d = nowSec - hrs[i] * 3600;
+                    if (d >= 0 && d < 2400) { vipActive = true; break; }
+                }
+            } catch (Exception e) {}
+            if (vipActive) {
+                // Boss VIP dang spawn → o lai map, san VIP truoc
+                LockGame.gameBK();
+                if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                    Code.gameAB = null;
+                }
+                return;
+            }
+            // Boss VIP CHUA spawn → fall through, tu sat de di san boss khac
         }
 
         if (curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)) {
