@@ -1179,3 +1179,23 @@ TsBoost thỉnh thoảng đánh "không khí" — mob đã chết trên server n
 2. **Boss spawn → đánh ngay:** Sau 30s đếm ngược, boss ra → bot có quét và đánh ngay không? (không chờ thêm 1000s)
 3. **VIP boss + priority All:** Ở M195 lúc boss VIP đang ra → bot có ở lại săn VIP trước không?
 4. **Chuyển map sau VIP:** Săn xong VIP → bot có tự sát thoát M195 để đi map khác không?
+
+## Bug: Đang chờ map VIP mà tự tele ra VDMQ (2026-08-26)
+- **Triệu chứng:** Bot đang chờ ở M195/M196 (map VIP), chờ đến 0s boss ra, chưa kịp tìm boss thì tự sát ra map VDMQ (M141) để săn.
+- **Nguyên nhân 1 — `exitGatedMapIfNeeded()` pre-spawn race (AutoBossEvent.java:212):**
+  - Khi `eventPriority == 0` (Tất cả), hàm check `vipActive` bằng `d = nowSec - hrs[i]*3600`. Điều kiện `d >= 0 && d < 2400` yêu cầu boss ĐÃ spawn.
+  - Nhưng pre-spawn trigger 30s trước giờ spawn → `d = -30` → `vipActive = false` → bot tự sát ra VDMQ.
+  - **Fix:** Đổi thành `d >= -PRE_SPAWN_SECONDS && d < 2400` — cho phép giữ lại VIP map khi boss sắp spawn trong 30s.
+- **Nguyên nhân 2 — `eventHuntTypes` bị reset race condition:**
+  - `beginLeaderEvent()` gọi `startEventHuntAll()` → bên trong `stop()` reset `eventHuntTypes = null` → thread mới đọc `HUNT_PRIORITY` (bao gồm VDMQ) thay vì chỉ pre-spawn type.
+  - Dòng 852 gán lại `eventHuntTypes` NHƯNG thread đã đọc null trước đó.
+  - **Fix:** (1) Set `eventHuntTypes` TRƯỚC khi gọi `startEventHuntAll()`, (2) Trong `startEventHuntAll()` lưu/khôi phục `eventHuntTypes` thay vì xóa trắng, (3) Set lại SAU startEventHunt để đảm bảo.
+- **Nguyên nhân 3 — `preSpawnType` dùng `getSecondsTillNextBoss` (chỉ tìm boss TƯƠNG LAI):**
+  - Tại 12:00:00, boss VIP vừa spawn → `diff = 0` → `getSecondsTillNextBoss` yêu cầu `diff > 0` → **skip boss vừa spawn!**
+  - Boss tiếp theo gần nhất là MapNgoai 13h (diff=3600) → `preSpawnType = TYPE_MAPNGOAI` → **SAI!**
+  - **Fix:** Dùng `isBossActive()` + `HUNT_PRIORITY` để tìm boss ưu tiên cao nhất đang active, fallback sang closest nếu chưa active.
+- **Nguyên nhân 4 — Đang ở M195 mà chuyển sang M196:**
+  - `getFirstMapForPriority()` default case chọn VIP2 (ưu tiên cao hơn VIP) → bot tele khỏi M195 (đang đứng) sang M196 → lãng phí thời gian.
+  - **Fix:** Nếu đã đứng ở M195/M196 và `firstMap == -1` (VIP), ở lại map hiện tại. Đồng thời `preSpawnType` ưu tiên boss map đang đứng.
+- **Files sửa:** `AutoBossEvent.java`, `AutoSanBoss.java`
+

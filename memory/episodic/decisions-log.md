@@ -367,6 +367,77 @@
 - **Quyết định:** Gỡ bỏ hoàn toàn tính năng Auto Boss qua Chat khỏi UI, menu cấu hình `BossConfig`, và `ChatRouter`. Tạo class stub [`src/AutoBossNotice.java`](file:///root/ninja/src/AutoBossNotice.java) rỗng và đăng ký vào `patch_class_j2me.py` để tránh lỗi `ClassNotFoundException` / `UnsupportedClassVersionError` từ `ChatManager.class` gốc.
 - **Files:** `src/AutoBossNotice.java`, `src/BossConfig.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`
 
+## 2026-08-26: Refactor Logic Săn Boss — TS Boss Ưu Tiên
 
+### Quy tắc đúng (spec từ user):
+1. **Chế độ "Tất cả"** = khi giờ boss **nào** ra thì săn **loại boss đó**, KHÔNG phải săn tất cả loại
+2. **Boss trùng giờ** → săn con **ưu tiên cao nhất** trước: VIP2 > VIP > LC > VDMQ > TG > MN
+3. **Đang đứng ở map boss** → **quét map đó trước**, không tele đi chỗ khác
+4. **Map VIP** chỉ bật 1 map (M195 hoặc M196, user tắt 1 cái ở cài đặt)
+5. **Đánh xong boss → next map boss khác ngay** → quét hết tất cả boss đang ra = 1 lượt
+6. **Không quét lại khu** sau khi đánh xong — tránh boss bị cướp
+7. **Map bị tắt** trong cài đặt → skip cả khi chờ lẫn khi săn
+8. **Chế độ Lẻ/VDMQ/VIP/etc.** → chỉ chờ giờ boss loại đó và chỉ săn đúng loại đó
 
+### Bugs đã fix (5 bugs):
 
+#### Bug 1: `exitGatedMapIfNeeded()` tự sát ra VDMQ khi pre-spawn
+- **File:** `AutoBossEvent.java` dòng 212
+- **Cũ:** `d >= 0 && d < 2400` → lúc 11:59:30, d = -30 → vipActive = false → tự sát
+- **Fix:** `d >= -PRE_SPAWN_SECONDS && d < 2400`
+
+#### Bug 2: `eventHuntTypes` race condition
+- **File:** `AutoSanBoss.java` `startEventHuntAll()`
+- **Cũ:** `stop()` reset `eventHuntTypes = null` → thread mới đọc HUNT_PRIORITY thay vì type cụ thể
+- **Fix:** Đã refactor bỏ pre-set eventHuntTypes, không cần nữa
+
+#### Bug 3: `preSpawnType` chọn SAI boss
+- **File:** `AutoBossEvent.java` dòng 793-830
+- **Cũ:** Dùng `getSecondsTillNextBoss()` (diff > 0) → boss vừa spawn (diff=0) bị skip → chọn boss khác
+- **Fix:** Xóa hoàn toàn preSpawnType. Lượt 1 quét TẤT CẢ boss active theo HUNT_PRIORITY
+
+#### Bug 4: Đang ở M195 mà tele sang M196
+- **File:** `AutoBossEvent.java` pre-spawn map choice
+- **Cũ:** `getFirstMapForPriority()` chọn VIP2 (ưu tiên cao hơn) → rời M195
+- **Fix:** Nếu đã ở M195/M196 → ở lại map đó
+
+#### Bug 5: Lượt 1 chỉ săn 1 loại boss
+- **File:** `AutoBossEvent.java` beginLeaderEvent
+- **Cũ:** `eventHuntTypes = {preSpawnType}` → lượt 1 chỉ 1 type → chậm → boss bị cướp
+- **Fix:** Xóa restriction. Lượt 1 quét TẤT CẢ boss active. `ignoreBossHourCheck` không set true (trừ triggerImmediate)
+
+#### Bug 6: standingType quét boss ngoài scope
+- **File:** `AutoSanBoss.java` event hunt loop
+- **Cũ:** Nếu priority=Lẻ mà đang ở M195, standingType=VIP → quét VIP dù không trong eventHuntTypes
+- **Fix:** standingType chỉ áp dụng khi `eventHuntTypes == null` (mode ALL)
+
+### Flow đúng sau fix (ví dụ 12h, priority=ALL, đang ở M195, tắt M196):
+```
+11:59:30  Pre-spawn: ở lại M195 chờ (không tele đi)
+12:00:00  Boss spawn! ignoreBossHourCheck = false
+          → startEventHuntAll() → eventHuntTypes = null → HUNT_PRIORITY
+          
+          Hunt loop (mode ALL, standingType = VIP):
+          ① VIP (M195) — đang đứng → quét ngay → đánh → xong
+          ② VIP2 (M196) — đã tắt → SKIP
+          ③ LC — not active (12h) → SKIP
+          ④ VDMQ — not active (12h) → SKIP
+          ⑤ TG (M20) — active → tele → đánh → xong
+          ⑥ MN — not active → SKIP
+          = 1 LƯỢT XONG (2 boss)
+
+          Gửi nhóm về → Lượt 2+ solo quét lại
+```
+
+### Giờ spawn tham chiếu:
+```
+VDMQ:     6h, 13h, 19h, 23h
+MapNgoài: 1,3,5,7,9,11,13,15,17,19,21,23h (giờ lẻ)
+Làng Cổ:  7h, 10h, 15h, 23h
+Thế Giới: 12h, 21h
+Map VIP:  6h, 12h, 20h, 23h
+Map VIP2: 6h, 12h, 20h, 23h
+Boss tồn tại: 40 phút (2400 giây)
+```
+
+- **Files sửa:** `AutoBossEvent.java`, `AutoSanBoss.java`

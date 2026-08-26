@@ -2899,11 +2899,35 @@ public class AutoSanBoss implements Runnable {
 
                     if (eventHuntMode) {
                         // Event mode (TS Boss Uu Tien): CHI quet loai boss DANG DEN GIO spawn
-                        // Thu tu uu tien: Lang Co > VDMQ > MapNgoai (HUNT_PRIORITY)
-                        for (int i = 0; i < types.length && checkStillRunning(); i++) {
-                            if (isBossTypeEnabled(types[i]) && isBossActive(types[i])) {
+                        // Thu tu uu tien: VIP2 > VIP > LC > VDMQ > TG > MN (HUNT_PRIORITY)
+
+                        // Neu dang dung o VIP map VA hunt ALL (khong restrict loai boss)
+                        // → uu tien boss map do truoc (tranh tele vo ich)
+                        if (eventHuntTypes == null) {
+                            int curMapId = TileMap.mapID;
+                            int standingType = -1;
+                            if (curMapId == 195) standingType = TYPE_MAPVIP;
+                            else if (curMapId == 196) standingType = TYPE_MAPVIP2;
+                            // Quet boss map dang dung truoc (neu active)
+                            if (standingType >= 0 && isBossTypeEnabled(standingType) && isBossActive(standingType)) {
                                 huntedAnyAll = true;
-                                huntBossType(types[i]);
+                                huntBossType(standingType);
+                            }
+                            // Quet cac boss con lai theo thu tu uu tien
+                            for (int i = 0; i < types.length && checkStillRunning(); i++) {
+                                if (types[i] == standingType) continue; // Da quet roi
+                                if (isBossTypeEnabled(types[i]) && isBossActive(types[i])) {
+                                    huntedAnyAll = true;
+                                    huntBossType(types[i]);
+                                }
+                            }
+                        } else {
+                            // eventHuntTypes da restrict (Le, VDMQ, VIP, etc.) → chi quet dung loai do
+                            for (int i = 0; i < types.length && checkStillRunning(); i++) {
+                                if (isBossTypeEnabled(types[i]) && isBossActive(types[i])) {
+                                    huntedAnyAll = true;
+                                    huntBossType(types[i]);
+                                }
                             }
                         }
                     } else {
