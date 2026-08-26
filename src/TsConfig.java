@@ -41,6 +41,10 @@ public final class TsConfig implements CommandListener {
     private ChoiceGroup cgLimitPhanThan;
     private TextField tfLimitPhanThanMax;
 
+    // Ghost Attack fields
+    private ChoiceGroup cgGhostAttack;
+    private TextField tfGhostRange;
+
     private TsConfig() {
         cmdLuu = new Command("L\u01b0u", Command.OK, 1);
         cmdHuy = new Command("H\u1ee7y", Command.BACK, 2);
@@ -111,6 +115,14 @@ public final class TsConfig implements CommandListener {
 
         tfLimitPhanThanMax = new TextField("S\u1ed1 l\u01b0\u1ee3ng t\u1ed1i \u0111a", "", 5, TextField.NUMERIC);
         form.append(tfLimitPhanThanMax);
+
+        // === Ghost Attack ===
+        cgGhostAttack = new ChoiceGroup("Ghost Attack (\u0111\u00e1nh xa)", Choice.MULTIPLE);
+        cgGhostAttack.append("B\u1eadt ghost move", null);
+        form.append(cgGhostAttack);
+
+        tfGhostRange = new TextField("T\u1ea7m ghost (px, 9999=full)", "", 5, TextField.NUMERIC);
+        form.append(tfGhostRange);
     }
 
     private void loadCurrentState() {
@@ -138,6 +150,10 @@ public final class TsConfig implements CommandListener {
         // Phan Than Lenh
         cgLimitPhanThan.setSelectedIndex(0, TsBoost.isLimitPhanThan);
         tfLimitPhanThanMax.setString(String.valueOf(TsBoost.LIMIT_PHANTHAN_MAX));
+
+        // Ghost Attack
+        cgGhostAttack.setSelectedIndex(0, TsBoost.isGhostAttack);
+        tfGhostRange.setString(String.valueOf(TsBoost.GHOST_RANGE));
     }
 
     /** Mo form cai dat — goi tu NamMod menu */
@@ -241,6 +257,15 @@ public final class TsConfig implements CommandListener {
                 if (v >= 0 && v <= 99) TsBoost.LIMIT_PHANTHAN_MAX = v;
                 else errors.append("PTL Max(").append(v).append("), ");
             } catch (Exception e) { errors.append("PTL Max, "); }
+
+            // === Ghost Attack ===
+            TsBoost.isGhostAttack = cgGhostAttack.isSelected(0);
+            try {
+                int v = safeParseInt(tfGhostRange.getString(), -1);
+                if (v >= 100 && v <= 9999) TsBoost.GHOST_RANGE = v;
+                else errors.append("GhostRange(").append(v).append("), ");
+            } catch (Exception e) { errors.append("GhostRange, "); }
+
             TsBoost.saveConfigToRMS();
 
             if (errors.length() == 0) {

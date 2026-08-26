@@ -42,6 +42,10 @@ public class TsBoost implements Runnable {
     private static final int LIMIT_CHECK_INTERVAL = 10000; // 10s
     private static long lastLimitCheckTime = 0;
 
+    // === GHOST ATTACK ===
+    public static boolean isGhostAttack = false;
+    public static int GHOST_RANGE = 9999; // Tam ghost (px), 9999 = full map
+
     // === MOB COOLDOWN TRACKING (circular buffer) ===
     private static final int CD_SIZE = 16;
     private static final int[] cdX = new int[CD_SIZE];
@@ -59,7 +63,8 @@ public class TsBoost implements Runnable {
             String data = ATTACK_DELAY_MS + ";" + IDLE_DELAY_MS + ";"
                 + MAX_ATTACK_RANGE + ";" + SKILL_RESELECT_MS + ";" + MAX_MOB_PER_ATTACK
                 + ";" + (isCooldownEnabled ? 1 : 0) + ";" + COOLDOWN_MS
-                + ";" + (isLimitPhanThan ? 1 : 0) + ";" + LIMIT_PHANTHAN_MAX;
+                + ";" + (isLimitPhanThan ? 1 : 0) + ";" + LIMIT_PHANTHAN_MAX
+                + ";" + (isGhostAttack ? 1 : 0) + ";" + GHOST_RANGE;
             RMS.gameAA("ts_boost_cfg", data);
         } catch (Exception e) {}
     }
@@ -69,9 +74,9 @@ public class TsBoost implements Runnable {
         try {
             String data = RMS.gameAC("ts_boost_cfg");
             if (data != null && data.length() > 0) {
-                int[] vals = new int[9];
+                int[] vals = new int[11];
                 int idx = 0, start = 0;
-                for (int i = 0; i <= data.length() && idx < 9; i++) {
+                for (int i = 0; i <= data.length() && idx < 11; i++) {
                     if (i == data.length() || data.charAt(i) == ';') {
                         vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
                         start = i + 1;
@@ -98,6 +103,14 @@ public class TsBoost implements Runnable {
                     if (LIMIT_PHANTHAN_MAX < 0) LIMIT_PHANTHAN_MAX = 0;
                     if (LIMIT_PHANTHAN_MAX > 99) LIMIT_PHANTHAN_MAX = 99;
                 }
+                if (idx >= 10) {
+                    isGhostAttack = vals[9] == 1;
+                }
+                if (idx >= 11) {
+                    GHOST_RANGE = vals[10];
+                    if (GHOST_RANGE < 100) GHOST_RANGE = 100;
+                    if (GHOST_RANGE > 9999) GHOST_RANGE = 9999;
+                }
             }
         } catch (Exception e) {}
     }
@@ -113,6 +126,8 @@ public class TsBoost implements Runnable {
         COOLDOWN_MS = DEF_COOLDOWN_MS;
         isLimitPhanThan = false;
         LIMIT_PHANTHAN_MAX = 5;
+        isGhostAttack = false;
+        GHOST_RANGE = 9999;
     }
 
     /** Danh dau mob tai (x,y) vua bi danh */
@@ -378,7 +393,7 @@ public class TsBoost implements Runnable {
     // ATTACK
     // =============================================
 
-    /** Thu thap mob song trong MAX_ATTACK_RANGE. Gioi han MAX_MOB_PER_ATTACK con. */
+    /** Thu thap mob song. Ghost Attack = all map, binh thuong = trong MAX_ATTACK_RANGE. */
     private static MyVector collectMobsInRange(Char myChar) {
         reusableMobs.removeAllElements();
         try {
@@ -392,7 +407,13 @@ public class TsBoost implements Runnable {
                     // Skip mob dang cooldown
                     if (isMobOnCooldown(mob.x, mob.y)) continue;
                     if (mob.hp > 0 && mob.status != 0 && mob.status != 1) {
-                        if (Math.abs(cx - mob.x) + Math.abs(cy - mob.y) <= MAX_ATTACK_RANGE) {
+                        int dist = Math.abs(cx - mob.x) + Math.abs(cy - mob.y);
+                        if (isGhostAttack) {
+                            // Ghost Attack: gioi han boi GHOST_RANGE
+                            if (dist <= GHOST_RANGE) {
+                                reusableMobs.addElement(mob);
+                            }
+                        } else if (dist <= MAX_ATTACK_RANGE) {
                             reusableMobs.addElement(mob);
                         }
                     }
@@ -402,7 +423,7 @@ public class TsBoost implements Runnable {
         return reusableMobs;
     }
 
-    /** Chon skill AOE tot nhat va danh 1 lan. */
+    /** Chon skill AOE tot nhat va danh 1 lan. Ghost Attack = ghost move truoc khi danh. */
     private static void fireAttack(Char myChar, MyVector mobs) {
         try {
             long now = System.currentTimeMillis();
@@ -412,6 +433,15 @@ public class TsBoost implements Runnable {
                     Service.gI().gameAG(cachedSkillId);
                 }
                 lastSkillSelectTime = now;
+            }
+
+            // === GHOST ATTACK: di chuyen client-side den mob truoc khi danh ===
+            int origCx = -1, origCy = -1;
+            if (isGhostAttack && mobs.size() > 0) {
+                origCx = myChar.cx;
+                origCy = myChar.cy;
+                Mob firstMob = (Mob) mobs.elementAt(0);
+                Char.gameAC(firstMob.x, firstMob.y);
             }
 
             reusableChars.removeAllElements();
@@ -429,6 +459,14 @@ public class TsBoost implements Runnable {
                 }
             }
             attacksSent++;
+
+            // === GHOST ATTACK: quay ve vi tri goc ===
+            if (isGhostAttack && origCx >= 0) {
+                Char.gameAC(origCx, origCy);
+                myChar.cx = origCx;
+                myChar.cy = origCy;
+            }
+
             // Danh dau cooldown cho cac mob vua danh
             if (isCooldownEnabled) {
                 for (int m = 0; m < mobs.size(); m++) {
