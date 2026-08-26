@@ -8,6 +8,8 @@ public final class AutoBossEvent implements Runnable {
     public static int eventPriority;
     /** So luot quet them sau luot 1 (0 = khong quet them, 1 = mac dinh, 2-9 = nhieu luot) */
     public static int extraRounds = 1;
+    /** So giay truoc khi boss spawn se bat dau san (0 = mac dinh, 0-30) */
+    public static int preSpawnBreakSec = 0;
     public static boolean inEvent;
     private static boolean membersSentBack;
     private static Auto savedAuto;
@@ -782,7 +784,7 @@ public final class AutoBossEvent implements Runnable {
             // Cho den 4s truoc gio boss spawn — bat dau san som de quet khu truoc
             while (isEnabled && inEvent) {
                 int s = getSecondsTillNextForPriority();
-                if (s <= 4 || s > PRE_SPAWN_SECONDS) break;
+                if (s <= preSpawnBreakSec || s > PRE_SPAWN_SECONDS) break;
                 GameScr.gameAC("TSBoss: Ch\u1edd t\u1ea1i M" + TileMap.mapID + " (" + s + "s)...");
                 for (int w = 0; w < 10 && isEnabled && inEvent; w++) sleep(100L);
             }
@@ -1077,21 +1079,21 @@ public final class AutoBossEvent implements Runnable {
 
     // === RMS ===
 
-    /** Luu isEnabled + eventPriority + extraRounds vao RMS */
+    /** Luu isEnabled + eventPriority + extraRounds + preSpawnBreakSec vao RMS */
     public static void saveConfigToRMS() {
         try {
-            RMS.gameAA("boss_event_cfg", (isEnabled ? 1 : 0) + ";" + eventPriority + ";" + extraRounds);
+            RMS.gameAA("boss_event_cfg", (isEnabled ? 1 : 0) + ";" + eventPriority + ";" + extraRounds + ";" + preSpawnBreakSec);
         } catch (Exception e) {}
     }
 
-    /** Load isEnabled + eventPriority + extraRounds tu RMS. Auto-start thread neu enabled. */
+    /** Load isEnabled + eventPriority + extraRounds + preSpawnBreakSec tu RMS. Auto-start thread neu enabled. */
     public static void loadConfigFromRMS() {
         try {
             String data = RMS.gameAC("boss_event_cfg");
             if (data != null && data.length() > 0) {
-                int[] vals = new int[3];
+                int[] vals = new int[4];
                 int idx = 0, start = 0;
-                for (int i = 0; i <= data.length() && idx < 3; i++) {
+                for (int i = 0; i <= data.length() && idx < 4; i++) {
                     if (i == data.length() || data.charAt(i) == ';') {
                         vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
                         start = i + 1;
@@ -1103,6 +1105,11 @@ public final class AutoBossEvent implements Runnable {
                 }
                 if (idx >= 3) {
                     extraRounds = vals[2];
+                }
+                if (idx >= 4) {
+                    preSpawnBreakSec = vals[3];
+                    if (preSpawnBreakSec < 0) preSpawnBreakSec = 0;
+                    if (preSpawnBreakSec > 30) preSpawnBreakSec = 30;
                 }
             }
         } catch (Exception e) {}

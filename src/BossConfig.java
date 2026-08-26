@@ -43,7 +43,8 @@ public final class BossConfig implements CommandListener {
 
     // Extra rounds cho TS Boss uu tien
     private TextField tfExtraRounds;
-
+    // So giay truoc spawn bat dau san
+    private TextField tfPreSpawnBreak;
 
 
     // Luu map IDs tuong ung voi tung ChoiceGroup
@@ -133,6 +134,10 @@ public final class BossConfig implements CommandListener {
         // === TS Boss uu tien: so luot quet them ===
         tfExtraRounds = new TextField("L\u01b0\u1ee3t qu\u00e9t th\u00eam (0=kh\u00f4ng, 1=m\u1eb7c \u0111\u1ecbnh)", "", 5, TextField.NUMERIC);
         form.append(tfExtraRounds);
+
+        // === So giay truoc spawn bat dau san ===
+        tfPreSpawnBreak = new TextField("S\u0103n tr\u01b0\u1edbc spawn (gi\u00e2y, 0-30)", "", 5, TextField.NUMERIC);
+        form.append(tfPreSpawnBreak);
     }
 
     /** Load trang thai tu AutoSanBoss vao checkbox + textfield */
@@ -154,6 +159,9 @@ public final class BossConfig implements CommandListener {
 
         // Extra rounds
         tfExtraRounds.setString(String.valueOf(AutoBossEvent.extraRounds));
+
+        // Pre-spawn break
+        tfPreSpawnBreak.setString(String.valueOf(AutoBossEvent.preSpawnBreakSec));
     }
 
     private void loadGroup(ChoiceGroup cg, int[] maps) {
@@ -217,6 +225,20 @@ public final class BossConfig implements CommandListener {
                 }
             } catch (Exception e) {
                 errMsg.append("ExtraRounds");
+            }
+
+            // Luu pre-spawn break
+            try {
+                String s2 = tfPreSpawnBreak.getString();
+                int v2 = safeParseInt(s2, -1);
+                if (v2 >= 0 && v2 <= 30) {
+                    AutoBossEvent.preSpawnBreakSec = v2;
+                } else {
+                    if (errMsg.length() > 0) errMsg.append(", ");
+                    errMsg.append("PreSpawn(").append(v2).append(")");
+                }
+            } catch (Exception e) {
+                errMsg.append("PreSpawn");
             }
             AutoBossEvent.saveConfigToRMS();
 
