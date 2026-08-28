@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-08-28: Khôi Phục TsBoost & Tự Bán Phân Thân Lệnh Sau TS Boss / Mất Kết Nối
+- **Vấn đề:** Khi bật "Giới hạn Phân Thân Lệnh" trong Cài đặt tàn sát (TsConfig), tính năng tự động bán PTL (`dropExcessPhanThan()`) chạy bình thường khi gõ lệnh `ts`. Tuy nhiên:
+  1. Khi kết thúc phiên săn boss ưu tiên (`AutoBossEvent`) và khôi phục lại TS (`returnAndResume()`), TsBoost không được khởi chạy lại -> không bán PTL nữa.
+  2. Khi bị mất kết nối và đăng nhập lại, TsBoost thread đã bị terminate do `Code.gameAB == null` tạm thời và không tự sống lại -> mất tác dụng bán PTL.
+- **Quyết định & Giải pháp:**
+  1. **Nâng cấp `TsBoost.run()`**: Khi `Code.gameAB == null` hoặc đang săn boss (`PkBoss`, `SanBossHolder`, `AutoSanBoss.isRunning`), thread chuyển sang trạng thái tạm nghỉ (`sleep(1000)` + `continue`) thay vì `break` thoát thread vĩnh viễn. Vẫn tiếp tục quét và bán PTL theo chu kỳ `LIMIT_CHECK_INTERVAL` (10s).
+  2. **Kích hoạt `TsBoost.checkHang()` trong `Code.run()`**: Kiểm tra nếu `modeEnabled && !isRunning && Code.gameAB != null` (và không phải PkBoss/SanBossHolder) -> tự động gọi `start()`.
+  3. **Bổ sung `TsBoost.onTsStarted()` trong `AutoBossEvent.java`**: Tại cả 2 điểm khôi phục `oldAuto` và fallback `Code.gameAA` trong `returnAndResume()`, gọi thêm `TsBoost.onTsStarted()`.
+  4. **Bổ sung restart trong `Code.java`**:
+     - Thêm `TsBoost.onTsStarted()` vào `Code.gameAA(Auto)` để bắt mọi điểm kích hoạt auto.
+     - Thêm `TsBoost.syncAfterTs()` vào `Code.gameAP()` khi reconnect.
+- **Files:** `src/TsBoost.java`, `src/Code.java`, `src/AutoBossEvent.java`, `Aeharuna.jar`
+
 ## 2026-07-30: AutoSanBoss — Can Thiệp Trực Tiếp Nút "Tách" Mặc Định Trong Game
 - **Quyết định:** Tạo `SplitPatcher` và hook trực tiếp vào phương thức `Service.gameAA(short, String)` (bằng `scripts/patch_service.py`).
 - **Lý do:** Người dùng muốn ấn chọn vật phẩm -> chọn nút **"Tách" mặc định** của game -> nhập số lượng (ví dụ: `30`) -> tự động chuyển sang cơ chế tách đồ lẻ (tách 30 món lẻ). Giờ đây, khi ấn nút Tách mặc định trong giao diện game và nhập số lượng > 1, game sẽ tự động thực hiện tách đồ lẻ mà không cần nhớ lệnh chat.

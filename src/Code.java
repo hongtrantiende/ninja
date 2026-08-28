@@ -300,6 +300,10 @@ implements Runnable {
             }
             startVipMapWatcher();
         }
+        // Auto restart TsBoost khi reconnect
+        if (TsBoost.modeEnabled) {
+            TsBoost.syncAfterTs();
+        }
     }
 
     public final void gameAA() {
@@ -326,6 +330,7 @@ implements Runnable {
         var0.reAB = gameAB;
         gameAB = var0;
         AutoPickup.start();
+        TsBoost.onTsStarted();
     }
 
     public static void gameAC() {

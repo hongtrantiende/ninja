@@ -225,7 +225,9 @@ public class TsBoost implements Runnable {
     public static void onTsStarted() {
         if (!modeEnabled || isRunning) return;
         if (Code.gameAB != null) {
-            start();
+            if (!(Code.gameAB instanceof PkBoss) && !(Code.gameAB instanceof SanBossHolder) && !AutoSanBoss.isRunning) {
+                start();
+            }
         } else {
             syncAfterTs();
         }
@@ -238,7 +240,7 @@ public class TsBoost implements Runnable {
             public void run() {
                 for (int i = 0; i < 60; i++) {
                     if (!modeEnabled) return;
-                    if (Code.gameAB != null) {
+                    if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss) && !(Code.gameAB instanceof SanBossHolder) && !AutoSanBoss.isRunning) {
                         if (!isRunning) {
                             start();
                             safeNotify("Ts Pro ON theo TS!");
@@ -276,10 +278,18 @@ public class TsBoost implements Runnable {
             try {
                 long loopStart = System.currentTimeMillis();
 
-                // TS goc da tat -> dung
-                if (Code.gameAB == null) {
-                    sleep(1500);
-                    if (Code.gameAB == null) break;
+                // TS goc tam thoi chua co hoac dang trong che do san boss -> tam nghi, KHONG thoat thread
+                if (Code.gameAB == null || Code.gameAB instanceof PkBoss || Code.gameAB instanceof SanBossHolder || AutoSanBoss.isRunning) {
+                    // Van kiem tra ban Phan Than Lenh neu bat limiter
+                    if (isLimitPhanThan) {
+                        long now2 = System.currentTimeMillis();
+                        if (now2 - lastLimitCheckTime >= LIMIT_CHECK_INTERVAL) {
+                            lastLimitCheckTime = now2;
+                            dropExcessPhanThan();
+                        }
+                    }
+                    sleep(1000);
+                    continue;
                 }
 
                 Char myChar = Char.getMyChar();
@@ -336,11 +346,14 @@ public class TsBoost implements Runnable {
     }
 
     /**
-     * Goi tu Code.run loop — khong can lam gi.
-     * Giu method de khong bi loi compile o Code.java.
+     * Goi tu Code.run loop — auto-start TsBoost neu TS dang active ma thread chua chay.
      */
     public static void checkHang() {
-        // Khong lam gi — TS goc tu xu ly
+        if (modeEnabled && !isRunning && Code.gameAB != null) {
+            if (!(Code.gameAB instanceof PkBoss) && !(Code.gameAB instanceof SanBossHolder) && !AutoSanBoss.isRunning) {
+                start();
+            }
+        }
     }
 
     // =============================================

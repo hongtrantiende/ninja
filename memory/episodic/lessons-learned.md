@@ -1,5 +1,16 @@
 # Lessons Learned
 
+## 2026-08-28: TsBoost Thread Lifecycle & Limiter Recovery
+- **Nguyên nhân bug:** `TsBoost.run()` có đoạn `if (Code.gameAB == null) { sleep(1500); if (Code.gameAB == null) break; }`. Khi có sự kiện ngắt quãng như TS Boss chuyển map/săn boss, hoặc mất kết nối, `Code.gameAB` bị `null` hoặc đổi sang `PkBoss` tạm thời khiến luồng `TsBoost` bị `break` và chết hẳn (`isRunning = false`). Khi TS được khôi phục hoặc kết nối lại, TsBoost không được gọi lại -> các tính năng như tự bán Phân Thân Lệnh, AoE boost bị mất.
+- **Quy tắc vàng:**
+  1. Không bao giờ `break` hủy thread TsBoost khi `Code.gameAB` tạm thời null/đang săn boss. Dùng `sleep(1000)` + `continue` để giữ thread sống, đồng thời duy trì chu kỳ quét bán PTL nếu limiter bật.
+  2. Luôn hook `TsBoost.onTsStarted()` / `TsBoost.checkHang()` tại:
+     - `Code.run()` (`checkHang()` kiểm tra và auto-start mỗi tick)
+     - `Code.gameAA(Auto)` (mọi lời gọi push auto)
+     - `Code.gameAP()` (`syncAfterTs()` khi reconnect)
+     - `AutoBossEvent.returnAndResume()` (cả 2 nhánh khôi phục TS)
+
+
 ## Registration Lệnh Chat Mới — Phải Đăng Ký Trực Tiếp Trong Code.java
 - **Nguyên nhân:** Các lệnh chat mới trước đây chỉ khai báo trong `ChatRouter.java`, nhưng call site chưa được trigger đúng khiến chat lệnh (như `tspkball`, `all`, `sv`, `tg`, `vm`, `mn`, `nhat`) không phản hồi.
 - **Giải pháp:** Đăng ký trực tiếp tất cả câu lệnh chat mới vào phương thức `gameAF(String)` trong [`src/Code.java`](file:///root/ninja/src/Code.java) và biên dịch lại `Code.java` cùng toàn bộ tệp nguồn `src/*.java`. Khi đó game engine nhận diện chính xác 100% khi người dùng gõ lệnh.

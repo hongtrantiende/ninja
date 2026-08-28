@@ -801,6 +801,9 @@ public final class AutoBossEvent implements Runnable {
                 GameScr.gameAC("TSBoss: \u0110\u1ee3i " + preSpawnBreakSec + "s boss spawn...");
                 for (int ws = 0; ws < preSpawnBreakSec * 10 && isEnabled && inEvent; ws++) sleep(100L);
             }
+            // Doi them 2s sau gio spawn de boss thuc su xuat hien tren map
+            GameScr.gameAC("TSBoss: \u0110\u1ee3i boss xu\u1ea5t hi\u1ec7n...");
+            for (int ws2 = 0; ws2 < 20 && isEnabled && inEvent; ws2++) sleep(100L);
             GameScr.gameAC("TSBoss: Boss spawn! B\u1eaft \u0111\u1ea7u s\u0103n theo \u01b0u ti\u00ean!");
         }
         // ignoreBossHourCheck KHONG bi thay doi o day:
@@ -992,11 +995,13 @@ public final class AutoBossEvent implements Runnable {
                             Code.gameAW = savedZoneIndex;
                             Code.gameAB = oldAuto;
                             AutoPickup.start();
+                            TsBoost.onTsStarted();
                         } else {
                             try {
                                 Code.gameAW = savedZoneIndex;
                                 Code.gameAA(-1, (int)TileMap.mapID);
                                 AutoPickup.start();
+                                TsBoost.onTsStarted();
                             } catch (Exception e) {}
                         }
                         GameScr.gameAC("TSBoss: \u0110\u00e3 h\u1ed3i sinh, ch\u1edd auto v\u00e0o map...");
@@ -1036,6 +1041,7 @@ public final class AutoBossEvent implements Runnable {
                     Code.gameAW = savedZoneIndex; // Khoi phuc vi tri khu tuan tu
                     Code.gameAB = oldAuto;
                     AutoPickup.start();
+                    TsBoost.onTsStarted();
                     GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - tiep tuc TS");
                 } else {
                     // Fallback: khong co auto cu -> restart TanSat tai map hien tai
@@ -1043,6 +1049,7 @@ public final class AutoBossEvent implements Runnable {
                         Code.gameAW = savedZoneIndex;
                         Code.gameAA(-1, (int)TileMap.mapID);
                         AutoPickup.start();
+                        TsBoost.onTsStarted();
                     } catch (Exception e) {}
                     GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - bat lai TS moi");
                 }
