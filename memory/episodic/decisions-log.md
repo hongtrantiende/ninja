@@ -541,6 +541,20 @@ Boss tồn tại: 40 phút (2400 giây)
   2. Trong `returnToLangCoHub()`: Tự động dịch chuyển tức thời (`Char.gameAE(wp.minX, wp.minY)`) đến ngay sát Waypoint 0 trước khi gửi gói qua cổng, loại bỏ hoàn toàn 3 giây đi bộ.
 - **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
 
+## 2026-08-28: Quy tắc cập nhật GitHub
+- **Quy tắc:** Người dùng yêu cầu DỪNG cập nhật/push lên GitHub cho đến khi có lệnh yêu cầu rõ ràng từ người dùng.
+
+## 2026-08-28: Sửa lỗi chết/tự sát khi đang đánh boss làm bot tưởng boss chết và bỏ qua map + Khắc phục kẹt quét khu
+- **Vấn đề 1: Đang đánh boss mà chết/tự sát thì bot bỏ qua map**
+  - **Nguyên nhân:** Trong vòng lặp đánh boss (`while (checkStillRunning())`), code cũ kiểm tra `if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) break;` TRƯỚC TIÊN. Khi nhân vật chết, game client tự động dọn sạch danh sách quái (`vMob` rỗng), dẫn đến `!hasBossOnCurrentMap()` luôn trả về `true`. Bot lập tức `break` vòng lặp, tuyên bố boss đã chết và bỏ qua map đó mà không hồi sinh quay lại đánh tiếp.
+  - **Giải pháp:** Đảo thứ tự ưu tiên: luôn kiểm tra `if (isDead() || TileMap.mapID != mapID)` lên đầu tiên để hồi sinh -> quay lại map -> vào đúng khu của boss -> đợi server nạp mob (1s) -> tiếp tục đánh. Chỉ xác nhận boss chết khi nhân vật còn sống (`!isDead()`) và đang ở đúng map + đúng khu kèm double-check 300ms. Đã áp dụng trên toàn bộ 8 vòng lặp đánh boss (Mode Thường & Treo, Map Thường, VIP 1, VIP 2, Làng Cổ).
+- **Vấn đề 2: Kẹt khi quét khu**
+  - **Nguyên nhân:** Khi quét khu, nếu có Cổ Lệnh mà code vẫn kiểm tra NPC 13 rồi gọi `Char.gameAC(npc13.cx, npc13.cy)` sẽ khiến nhân vật cố đi bộ tìm cột và bị kẹt địa hình. Ngoài ra, nếu có popup dialog/menu từ server mở lên sẽ chặn việc gửi gói tin đổi khu.
+  - **Giải pháp:** Trong `doChangeZone`: tự động đóng mọi dialog/popup (`GameCanvas.endDlg()`), nếu có Cổ Lệnh thì đổi khu trực tiếp từ xa ở bất kỳ đâu trên map mà không bao giờ tìm đường đến NPC 13.
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+
+
 
 
 

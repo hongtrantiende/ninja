@@ -539,12 +539,18 @@ public class AutoSanBoss implements Runnable {
      */
     public static void doChangeZone(int zoneID) {
         try {
+            // Dong dialog / popup lam nghen lenh
+            try { GameCanvas.endDlg(); } catch (Exception e) {}
+
             int itemIndex = getCoLenhBagIndex();
 
-            Npc npc13 = GameScr.gameAI(13);
-            if (npc13 != null && npc13.statusMe != 15) {
-                if (Math.abs(npc13.cx - Char.getMyChar().cx) > 22 || Math.abs(npc13.cy - Char.getMyChar().cy) > 22) {
-                    Char.gameAC(npc13.cx, npc13.cy);
+            // Chi khi KHONG CO Co Lenh thi moi can dung gan NPC 13
+            if (itemIndex < 0) {
+                Npc npc13 = GameScr.gameAI(13);
+                if (npc13 != null && npc13.statusMe != 15) {
+                    if (Math.abs(npc13.cx - Char.getMyChar().cx) > 22 || Math.abs(npc13.cy - Char.getMyChar().cy) > 22) {
+                        Char.gameAC(npc13.cx, npc13.cy);
+                    }
                 }
             }
             Service.gI().gameAA(zoneID, itemIndex);
@@ -2008,39 +2014,49 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(mapID, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning() && (TileMap.mapID != mapID || hasBossOnCurrentMap())) {
-                        if (isDead() || TileMap.mapID != mapID) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", d\u1eebng!");
-                                break;
-                            }
-                            GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-                            if (!navigateToMap(mapID)) return false;
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-                            continue;
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map
+                    if (isDead() || TileMap.mapID != mapID) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", d\u1eebng!");
+                            break;
                         }
-
+                        GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
-                        restoreDummyAuto();
-                        sleep(500);
+                        if (!navigateToMap(mapID)) return false;
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+                        continue;
                     }
-                    if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
-                        GameScr.gameAC("TREO: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
-                        grabAllItems();
-                        return true;
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            GameScr.gameAC("TREO: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            grabAllItems();
+                            return true;
+                        }
+                    }
+
+                    restoreDummyAuto();
+                    sleep(200);
                 }
+            }
             restoreDummyAuto();
         }
 
@@ -2093,40 +2109,49 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(mapID, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning() && (TileMap.mapID != mapID || hasBossOnCurrentMap())) {
-                        if (isDead() || TileMap.mapID != mapID) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", d\u1eebng!");
-                                break;
-                            }
-                            GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss LC M" + mapID + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-                            if (!enterLangCoSpecificMap(mapID)) return false;
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-                            continue;
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map
+                    if (isDead() || TileMap.mapID != mapID) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", d\u1eebng!");
+                            break;
                         }
-
+                        GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss LC M" + mapID + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
-                        restoreDummyAuto();
-                        sleep(500);
+                        if (!enterLangCoSpecificMap(mapID)) return false;
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+                        continue;
                     }
 
-                    if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
-                        GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
-                        grabAllItems();
-                        return true;
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            grabAllItems();
+                            return true;
+                        }
+                    }
+
+                    restoreDummyAuto();
+                    sleep(200);
                 }
+            }
             restoreDummyAuto();
         }
         return false;
@@ -2325,58 +2350,72 @@ public class AutoSanBoss implements Runnable {
                 // 3. Thong bao party bat dong bo
                 notifyPartyBossFound(195, bossZone);
 
-                // === VONG LAP DANH BOSS — xu ly chet + quay lai ===
                 int deathCount = 0;
-                    while (checkStillRunning()) {
-                        if (TileMap.mapID == 195 && !hasBossOnCurrentMap()) {
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
+                    if (isDead() || TileMap.mapID != 195) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, b\u1ecf qua!");
                             break;
                         }
-
-                        if (isDead() || TileMap.mapID != 195) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, b\u1ecf qua!");
-                                break;
-                            }
-                            GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M195! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAC();
-                            }
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-
-                            if (!enterMapVIP()) {
-                                GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M195!");
-                                return false;
-                            }
-
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-
-                            restoreDummyAuto();
-                            try {
-                                PkBoss pk2 = new PkBoss(195);
-                                pk2.zoneID = bossZone;
-                                Code.gameAA(pk2);
-                            } catch (Exception e2) {}
-                            sleep(200);
-                            continue;
+                        GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M195! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (Code.gameAB instanceof PkBoss) {
+                            Code.gameAC();
                         }
-
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
+
+                        if (!enterMapVIP()) {
+                            GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M195!");
+                            return false;
+                        }
+
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+
+                        // Cho server nap mob (toi da 1s)
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+
+                        restoreDummyAuto();
+                        try {
+                            PkBoss pk2 = new PkBoss(195);
+                            pk2.zoneID = bossZone;
+                            Code.gameAA(pk2);
+                        } catch (Exception e2) {}
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
                         }
                         sleep(100);
+                        continue;
                     }
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            break;
+                        }
+                    }
+
+                    lockBossFocus();
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    sleep(100);
+                }
 
                     if (Code.gameAB instanceof PkBoss) {
                         Code.gameAC();
@@ -2446,39 +2485,49 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(195, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning() && (TileMap.mapID != 195 || hasBossOnCurrentMap())) {
-                        if (isDead() || TileMap.mapID != 195) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, d\u1eebng!");
-                                break;
-                            }
-                            GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M195! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-                            if (!enterMapVIP()) return false;
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-                            continue;
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map
+                    if (isDead() || TileMap.mapID != 195) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, d\u1eebng!");
+                            break;
                         }
-
+                        GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M195! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
-                        restoreDummyAuto();
-                        sleep(500);
+                        if (!enterMapVIP()) return false;
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+                        continue;
                     }
-                    if (TileMap.mapID == 195 && !hasBossOnCurrentMap()) {
-                        GameScr.gameAC("TREO: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
-                        grabAllItems();
-                        return true;
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            GameScr.gameAC("TREO: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            grabAllItems();
+                            return true;
+                        }
+                    }
+
+                    restoreDummyAuto();
+                    sleep(200);
                 }
+            }
             restoreDummyAuto();
         }
 
@@ -2632,56 +2681,71 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(196, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning()) {
-                        if (TileMap.mapID == 196 && !hasBossOnCurrentMap()) {
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
+                    if (isDead() || TileMap.mapID != 196) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, b\u1ecf qua!");
                             break;
                         }
-
-                        if (isDead() || TileMap.mapID != 196) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, b\u1ecf qua!");
-                                break;
-                            }
-                            GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M196! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAC();
-                            }
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-
-                            if (!enterMapVIP2()) {
-                                GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M196!");
-                                return false;
-                            }
-
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-
-                            restoreDummyAuto();
-                            try {
-                                PkBoss pk2 = new PkBoss(196);
-                                pk2.zoneID = bossZone;
-                                Code.gameAA(pk2);
-                            } catch (Exception e2) {}
-                            sleep(200);
-                            continue;
+                        GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M196! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (Code.gameAB instanceof PkBoss) {
+                            Code.gameAC();
                         }
-
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
+
+                        if (!enterMapVIP2()) {
+                            GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M196!");
+                            return false;
+                        }
+
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+
+                        // Cho server nap mob (toi da 1s)
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+
+                        restoreDummyAuto();
+                        try {
+                            PkBoss pk2 = new PkBoss(196);
+                            pk2.zoneID = bossZone;
+                            Code.gameAA(pk2);
+                        } catch (Exception e2) {}
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
                         }
                         sleep(100);
+                        continue;
                     }
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            break;
+                        }
+                    }
+
+                    lockBossFocus();
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    sleep(100);
+                }
 
                     if (Code.gameAB instanceof PkBoss) {
                         Code.gameAC();
@@ -2748,40 +2812,49 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(196, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning() && (TileMap.mapID != 196 || hasBossOnCurrentMap())) {
-                        if (isDead() || TileMap.mapID != 196) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, d\u1eebng!");
-                                break;
-                            }
-                            GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M196! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-                            if (!enterMapVIP2()) return false;
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-                            continue;
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map
+                    if (isDead() || TileMap.mapID != 196) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, d\u1eebng!");
+                            break;
                         }
-
+                        GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M196! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
-                        restoreDummyAuto();
-                        sleep(500);
+                        if (!enterMapVIP2()) return false;
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+                        continue;
                     }
 
-                    if (TileMap.mapID == 196 && !hasBossOnCurrentMap()) {
-                        GameScr.gameAC("TREO: Boss M196 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
-                        grabAllItems();
-                        return true;
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                     }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            GameScr.gameAC("TREO: Boss M196 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            grabAllItems();
+                            return true;
+                        }
+                    }
+
+                    restoreDummyAuto();
+                    sleep(200);
                 }
+            }
             restoreDummyAuto();
         }
 
@@ -2922,58 +2995,72 @@ public class AutoSanBoss implements Runnable {
                 // 3. Thong bao party bat dong bo
                 notifyPartyBossFound(mapID, bossZone);
 
-                // === VONG LAP DANH BOSS — xu ly chet + quay lai ===
                 int deathCount = 0;
-                    while (checkStillRunning()) {
-                        if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
+                    if (isDead() || TileMap.mapID != mapID) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", b\u1ecf qua!");
                             break;
                         }
-
-                        if (isDead() || TileMap.mapID != mapID) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", b\u1ecf qua!");
-                                break;
-                            }
-                            GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss LC M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAC();
-                            }
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-
-                            if (!enterLangCoSpecificMap(mapID)) {
-                                GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c LC M" + mapID + "!");
-                                return false;
-                            }
-
-                            doChangeZone(bossZone);
-                            sleep(500);
-                            for (int w2 = 0; w2 < 15 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(200);
-                            }
-
-                            restoreDummyAuto();
-                            try {
-                                PkBoss pk2 = new PkBoss(mapID);
-                                pk2.zoneID = bossZone;
-                                Code.gameAA(pk2);
-                            } catch (Exception e2) {}
-                            sleep(500);
-                            continue;
+                        GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss LC M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (Code.gameAB instanceof PkBoss) {
+                            Code.gameAC();
                         }
-
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
+
+                        if (!enterLangCoSpecificMap(mapID)) {
+                            GameScr.gameAC("TSB: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c LC M" + mapID + "!");
+                            return false;
+                        }
+
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 15 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+
+                        // Cho server nap mob (toi da 1s)
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+
+                        restoreDummyAuto();
+                        try {
+                            PkBoss pk2 = new PkBoss(mapID);
+                            pk2.zoneID = bossZone;
+                            Code.gameAA(pk2);
+                        } catch (Exception e2) {}
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
                         }
                         sleep(100);
+                        continue;
                     }
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            break;
+                        }
+                    }
+
+                    lockBossFocus();
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    sleep(100);
+                }
 
                     if (Code.gameAB instanceof PkBoss) {
                         Code.gameAC();
@@ -3065,53 +3152,68 @@ public class AutoSanBoss implements Runnable {
                 notifyPartyBossFound(mapID, bossZone);
 
                 int deathCount = 0;
-                    while (checkStillRunning()) {
-                        if (TileMap.mapID == mapID && !hasBossOnCurrentMap()) {
+                while (checkStillRunning()) {
+                    // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
+                    if (isDead() || TileMap.mapID != mapID) {
+                        deathCount++;
+                        if (deathCount > 10) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", b\u1ecf qua!");
                             break;
                         }
-
-                        if (isDead() || TileMap.mapID != mapID) {
-                            deathCount++;
-                            if (deathCount > 10) {
-                                GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", b\u1ecf qua!");
-                                break;
-                            }
-                            GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAC();
-                            }
-                            if (isDead()) respawnFast();
-                            if (isDisconnected()) {
-                                if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
-                            }
-
-                            if (!navigateToMap(mapID)) return false;
-
-                            doChangeZone(bossZone);
-                            sleep(200);
-                            for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
-                                sleep(100);
-                            }
-
-                            restoreDummyAuto();
-                            try {
-                                PkBoss pk2 = new PkBoss(mapID);
-                                pk2.zoneID = bossZone;
-                                Code.gameAA(pk2);
-                            } catch (Exception e2) {}
-                            sleep(200);
-                            continue;
+                        GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
+                        if (Code.gameAB instanceof PkBoss) {
+                            Code.gameAC();
                         }
-
+                        if (isDead()) respawnFast();
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
                         }
+
+                        if (!navigateToMap(mapID)) return false;
+
+                        doChangeZone(bossZone);
+                        sleep(100);
+                        for (int w2 = 0; w2 < 20 && checkStillRunning() && TileMap.zoneID != bossZone; w2++) {
+                            sleep(100);
+                        }
+
+                        // Cho server nap mob (toi da 1s)
+                        for (int wm = 0; wm < 10 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                            sleep(100);
+                        }
+
+                        restoreDummyAuto();
+                        try {
+                            PkBoss pk2 = new PkBoss(mapID);
+                            pk2.zoneID = bossZone;
+                            Code.gameAA(pk2);
+                        } catch (Exception e2) {}
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
                         }
                         sleep(100);
+                        continue;
                     }
+
+                    if (isDisconnected()) {
+                        if (!waitForReconnect(RECONNECT_TIMEOUT)) return false;
+                    }
+
+                    // 2. Chi xac nhan boss chet khi con song va dang o dung map + dung khu
+                    if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                        sleep(300);
+                        if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
+                            break;
+                        }
+                    }
+
+                    lockBossFocus();
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    sleep(100);
+                }
 
                     if (Code.gameAB instanceof PkBoss) {
                         Code.gameAC();
