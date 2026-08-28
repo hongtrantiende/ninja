@@ -42,11 +42,11 @@ public final class AutoSuicide implements Runnable {
 
     /** Check auto dang chay theo triggerMode */
     private static boolean isAutoActive() {
-        boolean akActive = Code.gameAB != null;
+        boolean akActive = Code.gameAB != null || AutoSanBoss.isRunning || AutoBossEvent.inEvent || AutoBossEvent.isEnabled;
         boolean tsActive = Code.gameAB instanceof TanSat;
         switch (triggerMode) {
             case 0: return akActive && !tsActive; // AK only (not TS)
-            case 1: return tsActive;               // TS only
+            case 1: return tsActive || AutoSanBoss.isRunning || AutoBossEvent.inEvent; // TS only / Boss hunt
             case 2: return akActive;               // Ca hai (any auto)
             default: return akActive;
         }
@@ -94,6 +94,12 @@ public final class AutoSuicide implements Runnable {
                     continue;
                 }
 
+                // KHONG tu sat tai cac map Boss The Gioi (boss rat trau, can 2-3 phut de danh)
+                if (AutoSanBoss.isWorldBossMap(TileMap.mapID)) {
+                    lastMoveTime = System.currentTimeMillis();
+                    continue;
+                }
+
                 Char myChar = Char.getMyChar();
                 if (myChar == null || myChar.cName == null) {
                     lastMoveTime = System.currentTimeMillis();
@@ -120,6 +126,7 @@ public final class AutoSuicide implements Runnable {
                 long idleTime = System.currentTimeMillis() - lastMoveTime;
                 if (idleTime >= IDLE_TIMEOUT_MS) {
                     GameScr.gameAC("Auto Die: \u0110\u1ee9ng im " + (idleTime / 1000) + "s -> T\u1ef1 s\u00e1t!");
+                    try { GameCanvas.endDlg(); } catch (Exception ex) {}
                     Code.gameAN();
                     lastMoveTime = System.currentTimeMillis();
                     lastX = -1;

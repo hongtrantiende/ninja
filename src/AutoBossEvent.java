@@ -15,6 +15,8 @@ public final class AutoBossEvent implements Runnable {
     private static Auto savedAuto;
     private static int savedMap = -1;
     private static int savedZone = -1;
+    private static int savedX = -1;
+    private static int savedY = -1;
     private static int savedZoneIndex = 0;
     private static int lastWindowKey = -1;
     private static boolean forceAllNext;
@@ -262,10 +264,11 @@ public final class AutoBossEvent implements Runnable {
     }
 
     public static void saveMemberState() {
-        // Luon cap nhat savedMap/Zone/Auto moi nhat (ke ca khi inEvent da true)
-        saveLocalState();
+        if (!inEvent || savedMap < 0) {
+            saveLocalState();
+        }
         inEvent = true;
-        GameScr.gameAC("TSBoss: Da luu M" + savedMap + " K" + savedZone);
+        GameScr.gameAC("TSBoss: Da luu M" + savedMap + " K" + savedZone + (savedX > 0 ? " (" + savedX + "," + savedY + ")" : ""));
     }
 
     public static void returnMemberState() {
@@ -288,6 +291,9 @@ public final class AutoBossEvent implements Runnable {
         }
         // Hoi sinh neu dang chet (truong hop bi giet truoc khi nhan pkm -5)
         ensureAlive();
+        if (savedMap < 0) {
+            loadSavedStateFromRMS();
+        }
         // Neu co savedMap -> ve map cu
         if (savedMap >= 0 || savedAuto != null) {
             returnAndResume();
@@ -299,8 +305,20 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void saveLocalState() {
-        savedMap = TileMap.mapID;
+        int curMap = TileMap.mapID;
+        // Khong luu map gated / map boss
+        if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap) || curMap == 195 || curMap == 196) {
+            return;
+        }
+        savedMap = curMap;
         savedZone = TileMap.zoneID;
+        try {
+            Char me = Char.getMyChar();
+            if (me != null) {
+                savedX = me.cx;
+                savedY = me.cy;
+            }
+        } catch (Exception e) {}
         savedZoneIndex = Code.gameAW; // Luu vi tri trong danh sach khu tuan tu
         // Traverse auto stack de tim auto that (TanSat/Stanima...)
         // Skip PkBoss va SanBossHolder vi do la wrapper cua mod
@@ -308,7 +326,10 @@ public final class AutoBossEvent implements Runnable {
         while (a != null && (a instanceof PkBoss || a instanceof SanBossHolder)) {
             a = a.reAB;
         }
-        savedAuto = a;
+        if (a != null) {
+            savedAuto = a;
+        }
+        saveSavedStateToRMS();
     }
 
     private static void pauseLeaderAndWaitStable() {
@@ -328,9 +349,20 @@ public final class AutoBossEvent implements Runnable {
                 stable = 0;
             }
         }
-        savedMap = TileMap.mapID;
-        savedZone = TileMap.zoneID;
-        GameScr.gameAC("TSBoss: Da dung TS tai M" + savedMap + " K" + savedZone);
+        int curMap = TileMap.mapID;
+        if (curMap != 135 && curMap != 136 && curMap != 138 && !TileMap.isLangCo(curMap) && curMap != 195 && curMap != 196) {
+            savedMap = curMap;
+            savedZone = TileMap.zoneID;
+            try {
+                Char me = Char.getMyChar();
+                if (me != null) {
+                    savedX = me.cx;
+                    savedY = me.cy;
+                }
+            } catch (Exception e) {}
+            saveSavedStateToRMS();
+        }
+        GameScr.gameAC("TSBoss: Da dung TS tai M" + savedMap + " K" + savedZone + (savedX > 0 ? " (" + savedX + "," + savedY + ")" : ""));
     }
 
     private static boolean isLeader() {
@@ -943,14 +975,21 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void returnAndResume() {
-        // Caller (returnMemberState/finishEvent) da xu ly thoat Lang Co truoc khi goi
+        if (savedMap < 0) {
+            loadSavedStateFromRMS();
+        }
         final int map = savedMap;
         final int zone = savedZone;
+        final int targetX = savedX;
+        final int targetY = savedY;
         final Auto oldAuto = savedAuto;
         inEvent = false;
         savedMap = -1;
         savedZone = -1;
+        savedX = -1;
+        savedY = -1;
         savedAuto = null;
+        clearSavedStateRMS();
         if (map < 0) return;
 
         // === CHECK: Neu VipMap hoac TuLuyen dang bat, tu sat ve thon de auto re-enter ===
@@ -1035,6 +1074,16 @@ public final class AutoBossEvent implements Runnable {
                         Auto.gameAA(zone);
                         for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
                     }
+                    // Di chuyen ve toa do (x, y) da luu
+                    if (TileMap.mapID == map && targetX > 0 && targetY > 0) {
+                        try {
+                            Char.gameAE(targetX, targetY);
+                            Char.getMyChar().cx = targetX;
+                            Char.getMyChar().cy = targetY;
+                            Service.gI().gameAC(targetX, targetY);
+                            sleep(200L);
+                        } catch (Exception ex) {}
+                    }
                 } catch (Exception e) {}
                 // Khoi phuc auto: dung saved neu co, khong thi restart TS
                 if (oldAuto != null) {
@@ -1042,7 +1091,7 @@ public final class AutoBossEvent implements Runnable {
                     Code.gameAB = oldAuto;
                     AutoPickup.start();
                     TsBoost.onTsStarted();
-                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - tiep tuc TS");
+                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - tiep tuc TS");
                 } else {
                     // Fallback: khong co auto cu -> restart TanSat tai map hien tai
                     try {
@@ -1079,6 +1128,46 @@ public final class AutoBossEvent implements Runnable {
 
     // === RMS ===
 
+    /** Luu vi tri farm (Map, Khu, X, Y) vao RMS de phong mat ket noi / crash */
+    public static void saveSavedStateToRMS() {
+        try {
+            if (savedMap >= 0) {
+                RMS.gameAA("boss_saved_pos", savedMap + ";" + savedZone + ";" + savedX + ";" + savedY + ";" + savedZoneIndex);
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Load vi tri farm tu RMS khi khoi dong lai hoac reconnect */
+    public static void loadSavedStateFromRMS() {
+        try {
+            String data = RMS.gameAC("boss_saved_pos");
+            if (data != null && data.length() > 0) {
+                int[] v = new int[5];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 5; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        v[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 4 && savedMap < 0) {
+                    savedMap = v[0];
+                    savedZone = v[1];
+                    savedX = v[2];
+                    savedY = v[3];
+                    if (idx >= 5) savedZoneIndex = v[4];
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Xoa vi tri farm trong RMS khi da quay ve hoac tat auto */
+    public static void clearSavedStateRMS() {
+        try {
+            RMS.gameAA("boss_saved_pos", "");
+        } catch (Exception e) {}
+    }
+
     /** Luu isEnabled + eventPriority + extraRounds + preSpawnBreakSec vao RMS */
     public static void saveConfigToRMS() {
         try {
@@ -1113,6 +1202,7 @@ public final class AutoBossEvent implements Runnable {
                 }
             }
         } catch (Exception e) {}
+        loadSavedStateFromRMS();
         // Auto-start monitor thread neu config da luu enabled
         if (isEnabled) {
             new Thread(new AutoBossEvent()).start();

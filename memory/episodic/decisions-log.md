@@ -553,6 +553,40 @@ Boss tồn tại: 40 phút (2400 giây)
   - **Giải pháp:** Trong `doChangeZone`: tự động đóng mọi dialog/popup (`GameCanvas.endDlg()`), nếu có Cổ Lệnh thì đổi khu trực tiếp từ xa ở bất kỳ đâu trên map mà không bao giờ tìm đường đến NPC 13.
 - **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
 
+## 2026-08-28: Khắc phục quên vị trí tàn sát + Bật hỗ trợ Tự sát 30s khi Săn Boss / Đơ chuyển khu
+- **Vấn đề 1: Quên vị trí tàn sát cũ khi chết / mất kết nối / săn boss xong**
+  - **Nguyên nhân:**
+    1. Code cũ chỉ lưu `savedMap` và `savedZone`, KHÔNG lưu tọa độ đứng `(savedX, savedY)`. Khi quay về map cũ thì nhân vật đứng ở đầu cổng/điểm spawn chứ không về đúng bãi quái.
+    2. Nếu member nhận lệnh `pkm -4` khi đang ở làng hoặc đã vào boss map, code cũ gọi `saveLocalState()` đè map làng/boss lên map farm.
+    3. Trạng thái chỉ lưu tạm trong RAM, nếu mất kết nối/out game/reconnect thì biến bị reset về `-1`.
+  - **Giải pháp:**
+    1. Bổ sung lưu cả tọa độ `savedX`, `savedY`. Khi quay về map farm (`returnAndResume`), bot tự động dịch chuyển/đi về đúng tọa độ `(savedX, savedY)`.
+    2. Chặn ghi đè vị trí farm nếu đã trong trạng thái `inEvent` hoặc đang ở các map boss/gated map (135, 136, 138, Lang Co, 195, 196).
+    3. Lưu vị trí farm (`savedMap, savedZone, savedX, savedY, savedZoneIndex`) xuống bộ nhớ RMS (`boss_saved_pos`) để ngay cả khi chết, mất kết nối, reconnect hay văng game thì bot vẫn đọc lại từ RMS và quay về đúng vị trí cũ.
+- **Vấn đề 2: Tự sát khi đứng im quá 30s không hoạt động lúc săn boss**
+  - **Nguyên nhân:** `AutoSuicide.isAutoActive()` trước đây chỉ check `Code.gameAB != null` và `Code.gameAB instanceof TanSat`. Khi chuyển sang Săn Boss (`AutoSanBoss.isRunning` hoặc `AutoBossEvent.inEvent`), hàm kiểm tra trả về `false`, làm tính năng tự sát khi đứng im quá 30s bị vô hiệu hóa.
+  - **Giải pháp:** Mở rộng `isAutoActive()` trong `AutoSuicide` để kích hoạt cả khi đang chạy `AutoSanBoss` hoặc `AutoBossEvent`. Khi nhân vật bị đơ/đứng im tại 1 tọa độ quá 30s trong lúc săn boss, bot sẽ tự động đóng dialog và gọi `Code.gameAN()` (tự sát về làng) để giải thoát trạng thái kẹt.
+- **Files:** `src/AutoBossEvent.java`, `src/AutoSuicide.java`, `Aeharuna.jar`
+
+## 2026-08-28: Khắc phục kẹt trạng thái PKB đứng 1 khu cả ngày không quét/tìm boss
+- **Nguyên nhân:**
+  1. Lệnh chat `pkb` trong `Code.java` trước đây trỏ tới class cổ `PkBoss(TileMap.mapID)`. Class này khi tìm thấy boss và gán `zoneID >= 0` thì chỉ lặp lại việc đánh boss trong khu đó. Khi boss chết/không còn boss, class `PkBoss` KHÔNG có cơ chế kiểm tra boss đã chết và KHÔNG tự thoát khu, dẫn đến nhân vật đứng chôn chân ở khu đó cả ngày ("kẹt đứng 1 khu cả ngày chả làm gì cả").
+  2. Khi `zoneID == -2` (chế độ quét khu của PkBoss cổ), nếu lag hoặc chết thì nó dừng quét vĩnh viễn vì thiếu watchdog.
+- **Giải pháp:**
+  1. **Tích hợp Watchdog phát hiện khu rỗng:** Trong vòng lặp game chính (`Code.java` tại `gameAB.gameAK()`), nếu đang ở trạng thái `PkBoss` có `zoneID >= 0` mà trên map không còn boss (`!AutoSanBoss.hasBossOnCurrentMap()`) quá 5 giây, bot sẽ tự động giải phóng `PkBoss` (`Code.gameAC()`) để không bị đứng chôn chân.
+  2. **Chuyển hướng lệnh `pkb` sang `AutoSanBoss`:** Khi người dùng gõ `pkb` trong khung chat, hệ thống sẽ kích hoạt trực tiếp bản Auto Săn Boss thông minh (`AutoSanBoss.toggle()`) với đầy đủ tính năng: quét khu siêu tốc, Ghost attack, tự hồi sinh khi chết, chuyển map, thông báo party.
+- **Files:** `src/Code.java`, `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+## 2026-08-28: Loại trừ cơ chế Tự sát đứng im ở map Boss Thế Giới
+- **Yêu cầu:** Cơ chế tự sát khi đứng im quá 30s (`AutoSuicide`) áp dụng cho toàn bộ các map, nhưng NGOẠI TRỪ các map Boss Thế Giới (M20...) vì Boss Thế Giới máu rất nhiều (hàng chục triệu HP), cần đứng đánh liên tục 2-3 phút mới xong.
+- **Giải pháp:**
+  1. Bổ sung `AutoSanBoss.isWorldBossMap(int mapId)` để nhận diện các map Boss Thế Giới (M20...).
+  2. Trong luồng `AutoSuicide.run()`: Nếu `TileMap.mapID` là map Boss Thế Giới, bỏ qua kiểm tra tự sát và reset `lastMoveTime`, đảm bảo nhân vật có thể đứng yên đánh boss liên tục suốt 3 phút mà không bị tự sát về làng.
+- **Files:** `src/AutoSanBoss.java`, `src/AutoSuicide.java`, `Aeharuna.jar`
+
+
+
+
 
 
 

@@ -249,6 +249,18 @@ public class AutoSanBoss implements Runnable {
         return new int[0];
     }
 
+    /** Kiem tra map co phai la map Boss The Gioi khong */
+    public static boolean isWorldBossMap(int mapId) {
+        if (mapId == 20) return true;
+        int[] tg = getAllMapsForType(TYPE_THEGIOI);
+        if (tg != null) {
+            for (int i = 0; i < tg.length; i++) {
+                if (tg[i] == mapId) return true;
+            }
+        }
+        return false;
+    }
+
     /** Kiem tra map co duoc phep san khong */
     public static boolean isMapEnabled(int mapId) {
         return !disabledMaps.contains(new Integer(mapId));
@@ -1630,7 +1642,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Kiem tra tren map hien tai co boss khong
      */
-    private boolean hasBossOnCurrentMap() {
+    public static boolean hasBossOnCurrentMap() {
         try {
             if (GameScr.vMob == null) return false;
             for (int i = 0; i < GameScr.vMob.size(); i++) {

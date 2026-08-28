@@ -35,6 +35,7 @@ implements Runnable {
     public static MyVector gameAJ;
     private static long gameCK;
     private static long gameCL;
+    private static long pkBossNoBossStartTime = 0L;
     public static short[] nhat;
     public static short[] dell;
     public static short[] thow;
@@ -564,6 +565,29 @@ implements Runnable {
                             }
                             gameBD -= var8 - gameBC;
                             gameBC = var8;
+                        }
+                        // Watchdog: Tranh PkBoss bi ket dung 1 khu ca ngay khi boss da chet hoac khong co boss
+                        if (gameAB instanceof PkBoss) {
+                            PkBoss pkObj = (PkBoss)gameAB;
+                            if (pkObj.zoneID >= 0 && TileMap.mapID == pkObj.mapID && TileMap.zoneID == pkObj.zoneID) {
+                                if (!AutoSanBoss.hasBossOnCurrentMap() && var3.statusMe != 14 && var3.cHP > 0) {
+                                    if (pkBossNoBossStartTime == 0L) {
+                                        pkBossNoBossStartTime = System.currentTimeMillis();
+                                    } else if (System.currentTimeMillis() - pkBossNoBossStartTime > 5000L) {
+                                        pkBossNoBossStartTime = 0L;
+                                        GameScr.gameAC("TSB: Boss khu " + TileMap.zoneID + " \u0111\u00e3 ch\u1ebft! Tho\u00e1t PkBoss k\u1eb9t...");
+                                        if (!AutoSanBoss.isRunning) {
+                                            Code.gameAC();
+                                        }
+                                    }
+                                } else {
+                                    pkBossNoBossStartTime = 0L;
+                                }
+                            } else {
+                                pkBossNoBossStartTime = 0L;
+                            }
+                        } else {
+                            pkBossNoBossStartTime = 0L;
                         }
                         gameAB.gameAK();
                         if (var3.isHuman == Auto.gameAK && (var3.myskill == null || var3.myskill.template.id != Auto.skill1.template.id)) {
@@ -2108,11 +2132,7 @@ implements Runnable {
                                     return true;
                                 }
                                 if (var31.equals("pkb")) {
-                                    GameScr.gameAC("PK Th\u1ea7n Th\u00fa");
-                                    Code.gameAA(new PkBoss(TileMap.mapID));
-                                    if (gameAH != null && Char.getMyChar().cName.equals(gameAH) && GameScr.vParty.size() > 1) {
-                                        Service.gI().gameAK("pkm " + TileMap.mapID);
-                                    }
+                                    AutoSanBoss.toggle();
                                     return true;
                                 }
                                 if (var31.equals("pkk")) {
