@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-08-28 (Session 2): Synchronized Boss Finding with Configurable Zone Delay & Range in BossConfig
+- **Bản chính (`Aeharuna.jar`):**
+  - Thêm ô nhập **"Tốc độ chuyển khu (ms)"** vào Form **Cài đặt Săn Boss** (`BossConfig`), tùy chỉnh từ `10ms` đến `5000ms` (mặc định `10ms`), lưu RMS `boss_zone_delay`.
+  - Thêm ô nhập **"Phạm vi khu"** (VD: `0-29` hoặc `1-29`, `2-20`...), lưu RMS `boss_zone_range` (`scanZoneStart` và `scanZoneEnd`), mặc định `0-29`. Cho phép quét đúng dải khu chỉ định (ví dụ `1-29` thì bắt đầu từ khu 1 đến khu 29). *Lưu ý:* Map **Làng Cổ (M135, M136)** được giữ nguyên cơ chế quét đủ cả 3 khu `K0, K1, K2` và không bị ảnh hưởng bởi cài đặt dải khu này.
+  - Nút "Reset giờ": Khôi phục giờ spawn, delay `10ms`, và dải khu `0-29`.
+- **Bản chia sẻ (`Aeharuna_share.jar`):**
+  - Map VIP 1 (M195) & Map VIP 2 (M196): Tốc độ chuyển khu đặt ở **100ms**.
+  - Các map khác (VDMQ, Map Ngoài, Thế Giới, Làng Cổ): Dùng cơ chế `PkBoss` nguyên bản của game.
+  - Cài đặt Săn Boss: Form chỉ hiển thị 2 checkbox (Map VIP 1 và Map VIP 2).
+  - Tắt săn đón đầu (Pre-spawn = 0s) và ẩn menu CN Test (Exploit).
+- **Quy tắc Git:** Không commit / push lên GitHub (chỉ build và lưu cục bộ).
+
+
 ## 2026-08-28: Khôi Phục TsBoost & Tự Bán Phân Thân Lệnh Sau TS Boss / Mất Kết Nối
 - **Vấn đề:** Khi bật "Giới hạn Phân Thân Lệnh" trong Cài đặt tàn sát (TsConfig), tính năng tự động bán PTL (`dropExcessPhanThan()`) chạy bình thường khi gõ lệnh `ts`. Tuy nhiên:
   1. Khi kết thúc phiên săn boss ưu tiên (`AutoBossEvent`) và khôi phục lại TS (`returnAndResume()`), TsBoost không được khởi chạy lại -> không bán PTL nữa.
@@ -454,3 +467,84 @@ Boss tồn tại: 40 phút (2400 giây)
 ```
 
 - **Files sửa:** `AutoBossEvent.java`, `AutoSanBoss.java`
+
+## 2026-08-28: Cấu hình tốc độ quét khu, phạm vi khu và Tự động Hồi sinh / Vào lại map khi chết trong Săn Boss
+- **1. Cấu hình tốc độ quét khu & phạm vi khu:**
+  - `tfZoneDelay` (10-5000ms, mặc định `10ms`).
+  - `tfZoneRange` (ví dụ `0-29`, `1-29`, mặc định `0-29`).
+  - Lưu và tải qua RMS: `boss_zone_delay` và `boss_zone_range`.
+  - Ngoại lệ Làng Cổ (`M135`, `M136`): Luôn quét cả 3 khu `K0, K1, K2` do đặc thù map.
+- **2. Tự động Hồi sinh & Quay lại Map khi chết (Death Check & Recovery):**
+  - Bổ sung `isDead()`: kiểm tra `statusMe == 14` hoặc `cHP <= 0`.
+  - Viết `navigateToMap(int mapID)` và `enterLangCoSpecificMap(int targetMap)`:
+    - Nếu chết trên đường đi: tự động gọi `respawnFast()` và đi tiếp.
+    - Nếu chết khi đang quét khu: tự động hồi sinh, quay lại map và tiếp tục quét khu bị gián đoạn.
+    - Nếu chết khi đang đánh boss: tự động hồi sinh, vào lại map, chuyển về đúng `bossZone`, khôi phục PkBoss và tiếp tục đánh.
+    - Hỗ trợ toàn bộ map: Map VIP 1 (195), Map VIP 2 (196), Làng Cổ (135/136) và Map thường (VDMQ, Map Ngoài, Thế Giới...).
+  - Sửa lỗi copy-paste ở Làng Cổ (`scanLangCoZones` trước đó gọi nhầm `enterMapVIP2()`).
+- **3. Bản Share (`Aeharuna_share.jar`):**
+  - Tự động duy trì qua `build_share.py`: VIP Map delay 100ms, map thường dùng loop PkBoss nguyên bản, menu cài đặt rút gọn (chỉ VIP 1 & 2), không exploit menu, pre-spawn 0s.
+- **Files:** `src/AutoSanBoss.java`, `src/BossConfig.java`, `build_share.py`, `Aeharuna.jar`, `Aeharuna_share.jar`
+
+## 2026-08-28: Sửa triệt để lỗi xung đột quét khu giữa AutoSanBoss và PkBoss gốc
+- **Nguyên nhân:** Trước đó `navigateToMap` gọi `Code.gameAA(new PkBoss(mapID))`. Khi nhân vật tới map, `PkBoss.gameAK()` ngầm chạy trên game thread và kích hoạt vòng quét khu đảo chiều (29->0) của PkBoss gốc cùng lúc với vòng quét khu đồng bộ (0->29) của AutoSanBoss, dẫn đến tranh chấp đổi khu và gửi lệnh nhóm xung đột.
+- **Giải pháp:**
+  1. Loại bỏ hoàn toàn việc khởi tạo `PkBoss(mapID)` khi di chuyển map trong `navigateToMap`. Thay bằng `TileMap.GoMap(mapID)` trực tiếp để điều hướng waypoint mà không kích hoạt bot quét khu của PkBoss.
+  2. Giữ `Code.gameAB` là `dummyAuto` (`SanBossHolder`) trong suốt quá trình quét để chống auto khác can thiệp.
+  3. Chỉ khởi tạo `PkBoss` khi đã tìm thấy boss và luôn gán `pk.zoneID = bossZone` (chỉ kích hoạt chế độ đánh boss `gameAM()`, không chạy quét khu).
+## 2026-08-28: Thoát VDMQ tự động về làng (tự sát hồi sinh nhanh) khi chuyển sang Map Ngoài / Boss khác
+- **Nguyên nhân:** VDMQ (M139-148) là khu vực kín (gated realm), `TileMap.GoMap` không thể tự tìm đường ra map thường nếu không thoát VDMQ về làng trước.
+- **Giải pháp:**
+  1. Thêm `isVDMQ(mapID)` và `finishVDMQAndExit()`: Khi quét xong VDMQ (hoặc đang ở trong M139-148) và cần di chuyển sang map không thuộc VDMQ (Map Ngoài, Thế Giới, Làng Cổ, VIP), bot tự động gọi `suicideAndEnsureAlive()` để chết và hồi sinh về làng trong ~0.3s (cách tối ưu & nhanh nhất trong game).
+  2. Từ làng, `TileMap.GoMap(mapID)` ngay lập tức pathfind đến đúng map tiếp theo mà không bị kẹt.
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+## 2026-08-28: Sửa lỗi quét khu map ngoài bị chậm, áp dụng chính xác tốc độ cài đặt (10ms/50ms...)
+- **Nguyên nhân:**
+  1. `Auto.gameAA(zone)` trong `Auto.java` có điều kiện kiểm tra nếu không có NPC 13 (Cột chuyển khu) và map không nằm trong danh sách hardcode (99, 103, 134-137) thì sẽ `return` ngay mà không gửi gói đổi khu `Service.gameAA(zone, itemIndex)`. Các map ngoài (14, 15, 16...) không có NPC 13 nên bị return vô hiệu.
+  2. Vòng lặp quét khu trước đó có đoạn chờ `for (w < 5) sleep(50)` khi `TileMap.zoneID != zone`, dẫn đến bị timeout 250ms trên từng khu (250ms * 30 = 7.5s/map).
+- **Giải pháp:**
+  1. Viết phương thức `doChangeZone(int zoneID)` độc lập trong `AutoSanBoss`: tự động lấy Cổ Lệnh / Khảo Dị Lệnh trong túi (nếu có), nếu có NPC 13 thì đứng gần, và luôn gửi trực tiếp gói chuyển khu `Service.gI().gameAA(zoneID, itemIndex)` + `TileMap.gameAF()`.
+  2. Bỏ toàn bộ vòng chờ `for (w < 5) sleep(50)` gây chậm, chuyển sang đổi khu trực tiếp và sleep đúng `zoneChangeDelayMs` (ví dụ 10ms, 50ms) theo cài đặt của người dùng.
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+## 2026-08-28: Loại bỏ delay 1s-2s khi gặp boss, nhân vật lao vào tấn công tức thì (0ms)
+- **Nguyên nhân:** Khi phát hiện boss trên map, code cũ thực hiện chuỗi lệnh `sleep` đồng bộ: `sleep(50)` double-check + gửi lệnh nhóm + `sleep(300)` + `sleep(1500)` trước khi khởi tạo `PkBoss` và bật tấn công. Tổng thời gian trễ lên tới ~1900ms.
+- **Giải pháp:**
+  1. Ngay khi `hasBossOnCurrentMap()` phát hiện boss, bật `PkBoss` (`pk.zoneID = bossZone`), gán `Code.gameAA(pk)` và `lockBossFocus()` **ngay lập tức trong 0ms** để nhân vật lao vào đánh boss tức thì.
+  2. Tách toàn bộ việc gửi lệnh nhóm (`pkm`, `pkk`, `pke`) vào phương thức chạy nền bất đồng bộ `notifyPartyBossFound(mapID, bossZone)` trên một thread riêng, hoàn toàn không làm chậm tiến trình tấn công của Leader.
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+## 2026-08-28: Thêm tính năng Ghost Attack Boss (Đánh xa xuyên map + ghim boss + lao vào dần)
+- **Mục tiêu:** Khi quét trúng khu có boss, nhân vật lập tức ghim mục tiêu vào boss, xả skill đánh xa xuyên toàn màn hình (Ghost Attack) ngay tại frame 0ms và liên tục bước di chuyển áp sát boss (step move 60px/tick) cho đến khi vào tầm đánh cận chiến.
+- **Giải pháp:**
+  1. Thêm `doBossGhostAttack()` trong `AutoSanBoss`: tìm boss mob trong `vMob`, ghim `mobFocus`, chọn skill tấn công tốt nhất, gửi gói packet đánh trực tiếp tới boss không phụ thuộc khoảng cách (tầm mặc định 9999px = full map), kết hợp gửi chuỗi Fast Attack (nếu bật). Tự động dịch chuyển step-by-step 60px về phía boss để áp sát dần.
+  2. Tích hợp `doBossGhostAttack()` vào điểm kích hoạt đầu tiên khi phát hiện boss (`0ms`) và trong suốt chu kỳ vòng lặp chiến đấu boss (`while (checkStillRunning())`).
+  3. Thêm tùy chọn **Ghost Attack Boss (đánh xa)** và **Tầm Ghost Boss (px)** vào form **Cài đặt Săn Boss** (`BossConfig.java`), lưu/tải cấu hình qua RMS (`boss_ghost_atk`, `boss_ghost_range`). Mặc định BẬT (ON).
+- **Files:** `src/AutoSanBoss.java`, `src/BossConfig.java`, `Aeharuna.jar`
+
+## 2026-08-28: Khắc phục lỗi Làng Cổ vào map boss nhưng chậm/kẹt quét khu
+- **Nguyên nhân:**
+  1. `doChangeZone(zoneID)` trước đó truyền `item.indexUI` thay vì slot index trong mảng hành trang `arrItemBag` (`Char.gameAI(490)`). Gói tin đổi khu bị server từ chối khiến bot không chuyển được khu trong Làng Cổ, sau đó tưởng không có boss và quay về M138 rồi nhảy cổng lặp đi lặp lại.
+  2. Đoạn code sau khi qua cổng Làng Cổ có vòng chờ `sleep(800)` và `sleep(300)` gây chậm khi chuyển tiếp map.
+- **Giải pháp:**
+  1. Tạo hàm `getCoLenhBagIndex()` sử dụng `Char.gameAI(490/37/35)` để lấy đúng vị trí slot index `i` (0..29) trong `arrItemBag` truyền vào `Service.gI().gameAA(zoneID, bagIndex)`.
+  2. Tối ưu toàn bộ các vòng chờ qua cổng Làng Cổ (`sleep(50)` polling thay vì 100ms/800ms). Ngay khi nhân vật qua cổng vào M135/M136, bot lập tức quét khu với tốc độ cấu hình (10ms).
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+## 2026-08-28: Khắc phục hiện tượng đứng đơ 3s sau khi vào map Làng Cổ 135/136
+- **Nguyên nhân:**
+  1. Trong `scanLangCoZones`, vòng lặp quét 3 khu K0..K2 diễn ra quá nhanh (chỉ 30ms nếu delay 10ms) mà không đợi Server phản hồi gói tin chuyển khu, khiến nhân vật chưa kịp nhận mob từ server thì đã quét xong 3 khu và không tìm thấy boss.
+  2. Khi không tìm thấy boss, hàm `returnToLangCoHub()` được gọi ngay lập tức, sử dụng `TileMap.gameAJ(0)` khiến nhân vật đi bộ từ vị trí đứng đến cổng dịch chuyển mất ~3 giây. Người dùng nhìn thấy thông báo "Vào M135 quét boss..." rồi nhân vật đứng/đi bộ 3s tưởng bị đơ trước khi quét.
+- **Giải pháp:**
+  1. Trong `scanLangCoZones` và `scanLangCoZonesForTreo`: Kiểm tra `TileMap.zoneID != zone`, gửi `doChangeZone(zone)` và đợi `TileMap.zoneID == zone` (tối đa 200ms với chu kỳ kiểm tra 20ms) để đảm bảo mob khu đó tải xong trước khi kiểm tra boss.
+  2. Trong `returnToLangCoHub()`: Tự động dịch chuyển tức thời (`Char.gameAE(wp.minX, wp.minY)`) đến ngay sát Waypoint 0 trước khi gửi gói qua cổng, loại bỏ hoàn toàn 3 giây đi bộ.
+- **Files:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+
+
+
+
+
+
+

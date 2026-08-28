@@ -45,7 +45,14 @@ public final class BossConfig implements CommandListener {
     private TextField tfExtraRounds;
     // So giay truoc spawn bat dau san
     private TextField tfPreSpawnBreak;
+    // Toc do chuyen khu khi tim boss
+    private TextField tfZoneDelay;
+    // Pham vi khu quet boss (VD: 0-29 hoac 1-29)
+    private TextField tfZoneRange;
 
+    // Ghost Attack Boss
+    private ChoiceGroup cgGhostAttack;
+    private TextField tfGhostRange;
 
     // Luu map IDs tuong ung voi tung ChoiceGroup
     private final int[] mapsVDMQ;
@@ -138,6 +145,22 @@ public final class BossConfig implements CommandListener {
         // === So giay truoc spawn bat dau san ===
         tfPreSpawnBreak = new TextField("S\u0103n tr\u01b0\u1edbc spawn (gi\u00e2y, 0-30)", "", 5, TextField.NUMERIC);
         form.append(tfPreSpawnBreak);
+
+        // === Toc do chuyen khu (ms) ===
+        tfZoneDelay = new TextField("T\u1ed1c \u0111\u1ed9 chuy\u1ec3n khu (ms, 10-5000)", "", 6, TextField.NUMERIC);
+        form.append(tfZoneDelay);
+
+        // === Pham vi khu quet (VD: 0-29 hoac 1-29) ===
+        tfZoneRange = new TextField("Ph\u1ea1m vi khu (VD: 0-29 ho\u1eb7c 1-29)", "", 10, TextField.ANY);
+        form.append(tfZoneRange);
+
+        // === Ghost Attack Boss ===
+        cgGhostAttack = new ChoiceGroup("Ghost Attack Boss (\u0111\u00e1nh xa)", Choice.MULTIPLE);
+        cgGhostAttack.append("B\u1eadt Ghost Attack Boss", null);
+        form.append(cgGhostAttack);
+
+        tfGhostRange = new TextField("T\u1ea7m Ghost Boss (px, 9999=full)", "", 5, TextField.NUMERIC);
+        form.append(tfGhostRange);
     }
 
     /** Load trang thai tu AutoSanBoss vao checkbox + textfield */
@@ -162,6 +185,16 @@ public final class BossConfig implements CommandListener {
 
         // Pre-spawn break
         tfPreSpawnBreak.setString(String.valueOf(AutoBossEvent.preSpawnBreakSec));
+
+        // Zone delay (ms)
+        tfZoneDelay.setString(String.valueOf(AutoSanBoss.zoneChangeDelayMs));
+
+        // Zone range
+        tfZoneRange.setString(AutoSanBoss.getZoneRangeStr());
+
+        // Ghost Attack Boss
+        cgGhostAttack.setSelectedIndex(0, AutoSanBoss.isGhostAttack);
+        tfGhostRange.setString(String.valueOf(AutoSanBoss.ghostRange));
     }
 
     private void loadGroup(ChoiceGroup cg, int[] maps) {
@@ -242,9 +275,48 @@ public final class BossConfig implements CommandListener {
             }
             AutoBossEvent.saveConfigToRMS();
 
+            // Luu toc do chuyen khu (ms)
+            try {
+                String sDelay = tfZoneDelay.getString();
+                int vDelay = safeParseInt(sDelay, -1);
+                if (vDelay >= 10 && vDelay <= 5000) {
+                    AutoSanBoss.zoneChangeDelayMs = vDelay;
+                } else {
+                    if (errMsg.length() > 0) errMsg.append(", ");
+                    errMsg.append("Delay(").append(vDelay).append(")");
+                }
+            } catch (Exception e) {
+                errMsg.append("Delay");
+            }
+            AutoSanBoss.saveToRMS();
+
+            // Luu pham vi khu (VD: 0-29 hoac 1-29)
+            if (!AutoSanBoss.setZoneRangeFromStr(tfZoneRange.getString())) {
+                if (errMsg.length() > 0) errMsg.append(", ");
+                errMsg.append("ZoneRange");
+            }
+
+            // Luu Ghost Attack Boss
+            AutoSanBoss.isGhostAttack = cgGhostAttack.isSelected(0);
+            try {
+                int gr = safeParseInt(tfGhostRange.getString(), -1);
+                if (gr >= 100 && gr <= 9999) {
+                    AutoSanBoss.ghostRange = gr;
+                } else {
+                    if (errMsg.length() > 0) errMsg.append(", ");
+                    errMsg.append("GhostRange(").append(gr).append(")");
+                }
+            } catch (Exception e) {
+                errMsg.append("GhostRange");
+            }
+            AutoSanBoss.saveToRMS();
+
             int disabled = AutoSanBoss.disabledMaps.size();
             StringBuffer msg = new StringBuffer("Boss Config: \u0110\u00e3 l\u01b0u");
             if (disabled > 0) msg.append(" (").append(disabled).append(" map t\u1eaft)");
+            msg.append(" | Delay: ").append(AutoSanBoss.zoneChangeDelayMs).append("ms");
+            msg.append(" | Khu: ").append(AutoSanBoss.getZoneRangeStr());
+            msg.append(" | Ghost: ").append(AutoSanBoss.isGhostAttack ? "B\u1eadt" : "T\u1eaft");
             if (errMsg.length() > 0) msg.append(" | Gi\u1edd l\u1ed7i: ").append(errMsg);
             GameScr.gameAC(msg.toString());
         } else if (c == cmdReset) {
@@ -256,9 +328,15 @@ public final class BossConfig implements CommandListener {
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPVIP);
             AutoSanBoss.resetBossHours(AutoSanBoss.TYPE_MAPVIP2);
             AutoSanBoss.saveBossHoursToRMS();
+            AutoSanBoss.zoneChangeDelayMs = 10;
+            AutoSanBoss.scanZoneStart = 0;
+            AutoSanBoss.scanZoneEnd = 29;
+            AutoSanBoss.isGhostAttack = true;
+            AutoSanBoss.ghostRange = 9999;
+            AutoSanBoss.saveToRMS();
             // Cap nhat lai text field
             loadCurrentState();
-            GameScr.gameAC("Boss Config: \u0110\u00e3 reset gi\u1edd v\u1ec1 m\u1eb7c \u0111\u1ecbnh");
+            GameScr.gameAC("Boss Config: \u0110\u00e3 reset v\u1ec1 m\u1eb7c \u0111\u1ecbnh (10ms, 0-29, Ghost ON)");
             return; // Khong dong form
         }
         // Quay ve man hinh game (giong SetAuto)
