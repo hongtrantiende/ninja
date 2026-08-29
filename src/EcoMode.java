@@ -204,7 +204,7 @@ public class EcoMode {
 
             int sm = AutoBossEvent.getSavedMap();
             int sz = AutoBossEvent.getSavedZone();
-            String originStr = (sm > 0 && (sm != TileMap.mapID || sz != TileMap.zoneID)) ? " [G\u1ed1c: M" + sm + " K" + sz + "]" : "";
+            String originStr = (sm > 0) ? " [G\u1ed1c: M" + sm + " K" + sz + "]" : "";
 
             // Dong 1: Thoi gian & Vi tri (Can giua, vang)
             mFont.tahoma_7_yellow.gameAA(ecoGraphics, "Treo: " + timeStr + " | Map: " + TileMap.mapID + " - Khu: " + TileMap.zoneID + " (" + cx + "," + cy + ")" + originStr, centerX, startY, 2);

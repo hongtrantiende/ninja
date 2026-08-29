@@ -162,11 +162,18 @@ public class ThongKe {
                 }
             } catch (Exception e) {}
 
+            // Tu dong luu map goc neu dang chay TS ma chua co savedMap
+            if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss) && !(Code.gameAB instanceof SanBossHolder) && !AutoBossEvent.inEvent) {
+                if (AutoBossEvent.getSavedMap() < 0) {
+                    AutoBossEvent.saveLocalState();
+                }
+            }
+
             // Dong 1: Map ID, Khu, Toa do, So quai song & Map goc TS
             int sm = AutoBossEvent.getSavedMap();
             int sz = AutoBossEvent.getSavedZone();
-            String originStr = (sm > 0 && (sm != TileMap.mapID || sz != TileMap.zoneID)) ? " [G\u1ed1c: M" + sm + " K" + sz + "]" : "";
-            cachedLine1 = "Map: " + TileMap.mapID + " | Khu: " + TileMap.zoneID + " (" + cx + "," + cy + ") | " + aliveMapMobs + " qu\u00e1i" + originStr;
+            String originStr = (sm > 0) ? " [G\u1ed1c: M" + sm + " K" + sz + "]" : "";
+            cachedLine1 = "Map: " + TileMap.mapID + " | Khu: " + TileMap.zoneID + " (" + cx + "," + cy + ")" + originStr + " | " + aliveMapMobs + " qu\u00e1i";
 
             // Dong 2: Thoi gian Up, Yen, Xu, Luong
             cachedLine2 = "T: " + timeStr + " | Y: +" + gainYen + " | X: +" + gainXu + " | L: +" + gainLuong;
