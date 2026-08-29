@@ -294,8 +294,13 @@ public final class AutoBossEvent implements Runnable {
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
+        // Fallback: neu co bat TS Map VIP hoac Tu Luyen
+        if (savedMap < 0) {
+            if (AutoVipMap.isEnabled) savedMap = AutoVipMap.targetMapID;
+            else if (AutoTuLuyen.isEnabled) savedMap = 192;
+        }
         // Neu co savedMap -> ve map cu
-        if (savedMap >= 0 || savedAuto != null) {
+        if (savedMap >= 0 || savedAuto != null || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
             returnAndResume();
         } else {
             // Khong co state da luu -> chi dung auto, khong travel
@@ -306,8 +311,8 @@ public final class AutoBossEvent implements Runnable {
 
     private static void saveLocalState() {
         int curMap = TileMap.mapID;
-        // Khong luu map gated / map boss
-        if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap) || curMap == 195 || curMap == 196) {
+        // Khong luu map gated / map boss Lang Co (135, 136, 138)
+        if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap)) {
             return;
         }
         savedMap = curMap;
@@ -350,7 +355,7 @@ public final class AutoBossEvent implements Runnable {
             }
         }
         int curMap = TileMap.mapID;
-        if (curMap != 135 && curMap != 136 && curMap != 138 && !TileMap.isLangCo(curMap) && curMap != 195 && curMap != 196) {
+        if (curMap != 135 && curMap != 136 && curMap != 138 && !TileMap.isLangCo(curMap)) {
             savedMap = curMap;
             savedZone = TileMap.zoneID;
             try {
@@ -978,6 +983,11 @@ public final class AutoBossEvent implements Runnable {
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
+        // Fallback: neu co bat TS Map VIP hoac Tu Luyen
+        if (savedMap < 0) {
+            if (AutoVipMap.isEnabled) savedMap = AutoVipMap.targetMapID;
+            else if (AutoTuLuyen.isEnabled) savedMap = 192;
+        }
         final int map = savedMap;
         final int zone = savedZone;
         final int targetX = savedX;
@@ -990,10 +1000,29 @@ public final class AutoBossEvent implements Runnable {
         savedY = -1;
         savedAuto = null;
         clearSavedStateRMS();
-        if (map < 0) return;
+        if (map < 0 && !AutoVipMap.isEnabled && !AutoTuLuyen.isEnabled) return;
 
-        // === CHECK: Neu VipMap hoac TuLuyen dang bat, tu sat ve thon de auto re-enter ===
-        final boolean useNpcReturn = AutoVipMap.isEnabled || AutoTuLuyen.isEnabled;
+        // Xac dinh neu day la Map VIP hoac Tu Luyen (vao qua NPC)
+        final int targetNpcMap;
+        final int npcOption;
+        final boolean isNpcMap;
+        if (map == 196 || (AutoVipMap.isEnabled && AutoVipMap.targetMapID == 196)) {
+            targetNpcMap = 196;
+            npcOption = 5;
+            isNpcMap = true;
+        } else if (map == 195 || (AutoVipMap.isEnabled && AutoVipMap.targetMapID == 195)) {
+            targetNpcMap = 195;
+            npcOption = 4;
+            isNpcMap = true;
+        } else if (map == 192 || AutoTuLuyen.isEnabled) {
+            targetNpcMap = 192;
+            npcOption = 3;
+            isNpcMap = true;
+        } else {
+            targetNpcMap = map;
+            npcOption = -1;
+            isNpcMap = false;
+        }
 
         new Thread(new Runnable() {
             public void run() {
@@ -1001,40 +1030,88 @@ public final class AutoBossEvent implements Runnable {
                     // Dong dialog/NPC neu dang mo (tranh chan travel)
                     try { GameCanvas.endDlg(); } catch (Exception e) {}
 
-                    if (useNpcReturn) {
-                        // === CHE DO VIP/TU LUYEN: Tu sat -> hoi sinh ve thon -> auto checkAndReturn ===
-                        GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o l\u1ea1i map farm...");
-                        // Xoa auto hien tai
-                        LockGame.gameBK();
-                        if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
-                            Code.gameAB = null;
-                        }
-                        // Tu sat
-                        try { Code.gameAN(); } catch (Exception e) {}
-                        sleep(1000L);
-                        // An "Ve lang" (gameAK) - KHONG dung HSL vi can ve thon co NPC
-                        for (int r = 0; r < 10; r++) {
-                            try {
-                                Char me = Char.getMyChar();
-                                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
-                                GameCanvas.endDlg();
-                                sleep(20L);
-                                Auto.gameAN.removeAllElements();
-                                Auto.gameAM = false;
-                                LockGame.gameAA = true;
-                                Service.gI().gameAK(); // Ve lang (LUON LUON)
-                                TileMap.gameAF();
-                                LockGame.gameAA = false;
+                    if (isNpcMap) {
+                        // === CHE DO VIP / TU LUYEN: Vao qua NPC 47 ===
+                        if (TileMap.mapID != targetNpcMap) {
+                            GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M" + targetNpcMap + "...");
+                            // Xoa auto hien tai
+                            LockGame.gameBK();
+                            if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+                                Code.gameAB = null;
+                            }
+                            // Clean Lang Co neu con sot
+                            if (TileMap.isLangCo(TileMap.mapID) || TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138) {
+                                AutoSanBoss.cleanKhaoDiLenh();
                                 sleep(300L);
+                            }
+                            // Tu sat
+                            try { Code.gameAN(); } catch (Exception e) {}
+                            sleep(500L);
+                            // Cho nhan vat chet (statusMe == 14 hoac cHP <= 0)
+                            for (int d = 0; d < 30; d++) {
+                                sleep(100L);
+                                try {
+                                    Char me2 = Char.getMyChar();
+                                    if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
+                                } catch (Exception e) {}
+                            }
+                            // Hoi sinh ve lang (gameAK) - LUON LUON de ve thon co NPC 47
+                            for (int r = 0; r < 15; r++) {
+                                try {
+                                    Char me = Char.getMyChar();
+                                    if (me != null && me.statusMe != 14 && me.cHP > 0) break;
+                                    GameCanvas.endDlg();
+                                    sleep(20L);
+                                    Auto.gameAN.removeAllElements();
+                                    Auto.gameAM = false;
+                                    LockGame.gameAA = true;
+                                    Service.gI().gameAK(); // Ve lang (LUON LUON)
+                                    TileMap.gameAF();
+                                    LockGame.gameAA = false;
+                                    sleep(150L);
+                                } catch (Exception ex) { break; }
+                            }
+                            sleep(500L);
+
+                            // Goi NPC 47 de vao targetNpcMap
+                            GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M" + targetNpcMap + "...");
+                            for (int retry = 0; retry < 3 && TileMap.mapID != targetNpcMap; retry++) {
+                                try {
+                                    GameScr.gameAB(47, npcOption, 0);
+                                } catch (Exception e) {
+                                    sleep(1000L);
+                                    continue;
+                                }
+                                for (int w = 0; w < 150 && TileMap.mapID != targetNpcMap; w++) {
+                                    sleep(100L);
+                                }
+                                if (TileMap.mapID != targetNpcMap) sleep(1000L);
+                            }
+                        }
+
+                        // Doi khu cu neu da vao dung map
+                        if (TileMap.mapID == targetNpcMap && zone >= 0 && TileMap.zoneID != zone) {
+                            Auto.gameAA(zone);
+                            for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
+                        }
+                        // Di chuyen ve toa do (x, y) da luu
+                        if (TileMap.mapID == targetNpcMap && targetX > 0 && targetY > 0) {
+                            try {
+                                Char.gameAE(targetX, targetY);
+                                Char.getMyChar().cx = targetX;
+                                Char.getMyChar().cy = targetY;
+                                Service.gI().gameAC(targetX, targetY);
+                                sleep(200L);
                             } catch (Exception ex) {}
                         }
-                        sleep(2000L);
-                        // Khoi phuc auto de VipMap/TuLuyen.checkAndReturn() co the detect
+
+                        // Khoi phuc auto
                         if (oldAuto != null) {
                             Code.gameAW = savedZoneIndex;
                             Code.gameAB = oldAuto;
                             AutoPickup.start();
                             TsBoost.onTsStarted();
+                            GameScr.gameAC("TSBoss: V\u1ec1 M" + targetNpcMap + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - ti\u1ebfp t\u1ee5c TS");
                         } else {
                             try {
                                 Code.gameAW = savedZoneIndex;
@@ -1042,9 +1119,8 @@ public final class AutoBossEvent implements Runnable {
                                 AutoPickup.start();
                                 TsBoost.onTsStarted();
                             } catch (Exception e) {}
+                            GameScr.gameAC("TSBoss: V\u1ec1 M" + targetNpcMap + " K" + (zone >= 0 ? zone : TileMap.zoneID) + " - ti\u1ebfp t\u1ee5c TS");
                         }
-                        GameScr.gameAC("TSBoss: \u0110\u00e3 h\u1ed3i sinh, ch\u1edd auto v\u00e0o map...");
-                        // checkAndReturn se tu dong chay trong game loop
                         return;
                     }
 
@@ -1059,7 +1135,7 @@ public final class AutoBossEvent implements Runnable {
                     // Travel ve map cu voi retry 3 lan
                     for (int retry = 0; retry < 3 && TileMap.mapID != map; retry++) {
                         if (retry > 0) {
-                            GameScr.gameAC("TSBoss: Thu lai lan " + (retry + 1) + "...");
+                            GameScr.gameAC("TSBoss: Th\u1eed l\u1ea1i l\u1ea7n " + (retry + 1) + "...");
                             sleep(2000L);
                             try { GameCanvas.endDlg(); } catch (Exception e) {}
                             LockGame.gameBK();
@@ -1070,7 +1146,7 @@ public final class AutoBossEvent implements Runnable {
                         if (Code.gameAB == travel) Code.gameAB = null;
                     }
                     // Doi khu cu
-                    if (TileMap.mapID == map && TileMap.zoneID != zone) {
+                    if (TileMap.mapID == map && zone >= 0 && TileMap.zoneID != zone) {
                         Auto.gameAA(zone);
                         for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
                     }
@@ -1091,7 +1167,7 @@ public final class AutoBossEvent implements Runnable {
                     Code.gameAB = oldAuto;
                     AutoPickup.start();
                     TsBoost.onTsStarted();
-                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - tiep tuc TS");
+                    GameScr.gameAC("TSBoss: V\u1ec1 M" + map + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - ti\u1ebfp t\u1ee5c TS");
                 } else {
                     // Fallback: khong co auto cu -> restart TanSat tai map hien tai
                     try {
@@ -1100,7 +1176,7 @@ public final class AutoBossEvent implements Runnable {
                         AutoPickup.start();
                         TsBoost.onTsStarted();
                     } catch (Exception e) {}
-                    GameScr.gameAC("TSBoss: Ve M" + map + " K" + zone + " - bat lai TS moi");
+                    GameScr.gameAC("TSBoss: V\u1ec1 M" + map + " K" + (zone >= 0 ? zone : TileMap.zoneID) + " - b\u1eadt l\u1ea1i TS m\u1edbi");
                 }
             }
         }).start();

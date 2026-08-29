@@ -1,5 +1,20 @@
 # Decisions Log
 
+## 2026-08-29: Fix Lỗi Lưu Vị Trí & Quay Lại Map VIP (M195/M196) / Tu Luyện (M192) Sau Khi Săn Boss Ưu Tiên (TS Boss)
+- **Vấn đề:** Khi bật "TS VIP Map" hoặc "TS Tu Luyện", sau khi phiên săn boss kết thúc, nhân vật không quay lại Map VIP (195/196) hoặc Map Tu Luyện (192) như cũ.
+- **Nguyên nhân:**
+  1. `AutoBossEvent.java` trong `saveLocalState()` và `pauseLeaderAndWaitStable()` có điều kiện loại trừ `curMap == 195 || curMap == 196`, khiến `savedMap` bị đặt thành `-1` (bỏ qua không lưu map VIP, khu, tọa độ và RMS).
+  2. Trong `returnAndResume()`, kiểm tra `if (map < 0) return;` làm kết thúc ngay luồng quay về khi `savedMap == -1`, không kích hoạt được logic quay lại qua NPC.
+  3. Nhánh `useNpcReturn` cũ chỉ tự sát về làng rồi dừng lại chờ `Code.run()` gọi `AutoVipMap.checkAndReturn()`, không trực tiếp tương tác NPC 47, không chọn đúng khu và tọa độ đã lưu.
+  4. Trong `ChatRouter.java`, thành viên nhóm khi nhận lệnh `pkm` sang map boss bị chặn thoát map gated do cờ `!AutoBossEvent.inEvent`.
+- **Giải pháp & Quyết định:**
+  1. Cho phép `saveLocalState()` và `pauseLeaderAndWaitStable()` lưu trữ đầy đủ `savedMap`, `savedZone`, `savedX`, `savedY` cho cả Map VIP (195/196) và Tu Luyện (192).
+  2. Bổ sung fallback trong `returnMemberState()` và `returnAndResume()`: nếu `savedMap < 0` mà `AutoVipMap.isEnabled` hoặc `AutoTuLuyen.isEnabled` đang bật, tự động lấy đúng map đích (195, 196 hoặc 192).
+  3. Viết lại logic `returnAndResume()`: nếu map đích là Map VIP (195/196) hoặc Tu Luyện (192), tự động tự sát về làng (nếu chưa ở thôn) -> hồi sinh bằng `Service.gI().gameAK()` -> gọi trực tiếp NPC 47 với option tương ứng (195: option 4, 196: option 5, 192: option 3) -> chuyển đúng khu (`zone`) -> di chuyển về tọa độ `(savedX, savedY)` -> khôi phục `oldAuto` / bật lại tàn sát.
+  4. Cập nhật `ChatRouter.java` cho thành viên nhóm: kiểm tra `curMap != auto.mapID` để tự sát thoát khỏi map VIP/Tu Luyện khi có lệnh sang map boss ngoài.
+- **Files thay đổi:** `src/AutoBossEvent.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+
+
 ## 2026-08-28 (Session 2): Synchronized Boss Finding with Configurable Zone Delay & Range in BossConfig
 - **Bản chính (`Aeharuna.jar`):**
   - Thêm ô nhập **"Tốc độ chuyển khu (ms)"** vào Form **Cài đặt Săn Boss** (`BossConfig`), tùy chỉnh từ `10ms` đến `5000ms` (mặc định `10ms`), lưu RMS `boss_zone_delay`.

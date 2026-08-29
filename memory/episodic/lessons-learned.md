@@ -1,5 +1,13 @@
 # Lessons Learned
 
+## 2026-08-29: Map VIP (195/196) & Tu Luyện (192) trong TS Boss Ưu Tiên
+- **Nguyên nhân bug:** Khi tối ưu TS Boss lưu vị trí farm vào RMS, `saveLocalState()` đã lọc bỏ Map VIP (195, 196) vì nhầm lẫn với map boss tạm thời (như Làng Cổ 135/136). Khi người dùng đang cắm farm tàn sát tại Map VIP hoặc Tu Luyện, `savedMap` bị gán `-1` dẫn tới `returnAndResume()` thoát sớm (`if (map < 0) return;`) và không tự động quay lại map.
+- **Quy tắc vàng:**
+  1. Map VIP 1 (195), Map VIP 2 (196) và Map Tu Luyện (192) là các map cắm farm lâu dài của người chơi. BẮT BUỘC phải lưu đầy đủ `savedMap`, `savedZone`, `savedX`, `savedY` và ghi vào RMS khi bắt đầu phiên săn boss.
+  2. Khi quay lại Map VIP/Tu Luyện, KHÔNG dùng `PkBoss` (vì map không có cổng dịch chuyển thông thường) mà PHẢI: tự sát về làng -> hồi sinh `Service.gI().gameAK()` -> gọi NPC 47 với menu option tương ứng (195: option 4, 196: option 5, 192: option 3) -> chuyển đúng khu -> di chuyển đúng tọa độ -> tiếp tục tàn sát.
+  3. Khi thành viên nhóm nhận lệnh `pkm` sang map boss ngoài, phải kiểm tra `curMap != auto.mapID` để tự sát thoát ra khỏi Map VIP/Tu Luyện đi theo nhóm.
+
+
 ## 2026-08-28: TsBoost Thread Lifecycle & Limiter Recovery
 - **Nguyên nhân bug:** `TsBoost.run()` có đoạn `if (Code.gameAB == null) { sleep(1500); if (Code.gameAB == null) break; }`. Khi có sự kiện ngắt quãng như TS Boss chuyển map/săn boss, hoặc mất kết nối, `Code.gameAB` bị `null` hoặc đổi sang `PkBoss` tạm thời khiến luồng `TsBoost` bị `break` và chết hẳn (`isRunning = false`). Khi TS được khôi phục hoặc kết nối lại, TsBoost không được gọi lại -> các tính năng như tự bán Phân Thân Lệnh, AoE boost bị mất.
 - **Quy tắc vàng:**
