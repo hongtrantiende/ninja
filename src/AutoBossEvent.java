@@ -359,6 +359,33 @@ public final class AutoBossEvent implements Runnable {
             savedAuto = a;
         }
         saveSavedStateToRMS();
+
+        // Tu dong nhan dien va bat Auto vao lai Map VIP 1, Map VIP 2, Map Tu Luyen
+        if (curMap == 195) {
+            if (!AutoVipMap.isEnabled || AutoVipMap.targetMapID != 195) {
+                AutoVipMap.isEnabled = true;
+                AutoVipMap.targetMapID = 195;
+                AutoVipMap.menuOption = 4;
+                AutoVipMap.saveConfigToRMS();
+                GameScr.gameAC("TS: T\u1ef1 \u0111\u1ed9ng b\u1eadt Auto v\u00e0o Map VIP 1 (M195)!");
+            }
+        } else if (curMap == 196) {
+            if (!AutoVipMap.isEnabled || AutoVipMap.targetMapID != 196) {
+                AutoVipMap.isEnabled = true;
+                AutoVipMap.targetMapID = 196;
+                AutoVipMap.menuOption = 5;
+                AutoVipMap.saveConfigToRMS();
+                GameScr.gameAC("TS: T\u1ef1 \u0111\u1ed9ng b\u1eadt Auto v\u00e0o Map VIP 2 (M196)!");
+            }
+        } else if (curMap == 192) {
+            if (!AutoTuLuyen.isEnabled) {
+                AutoTuLuyen.isEnabled = true;
+                AutoTuLuyen.targetMapID = 192;
+                AutoTuLuyen.menuOption = 3;
+                AutoTuLuyen.saveConfigToRMS();
+                GameScr.gameAC("TS: T\u1ef1 \u0111\u1ed9ng b\u1eadt Auto v\u00e0o Map Tu Luy\u1ec7n (M192)!");
+            }
+        }
     }
 
     private static void pauseLeaderAndWaitStable() {

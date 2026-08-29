@@ -34,5 +34,13 @@ public class ModInit {
         try {
             ExploitConfig.loadConfigFromRMS();
         } catch (Exception e) {}
+
+        try {
+            AutoVipMap.loadConfigFromRMS();
+        } catch (Exception e) {}
+
+        try {
+            AutoTuLuyen.loadConfigFromRMS();
+        } catch (Exception e) {}
     }
 }

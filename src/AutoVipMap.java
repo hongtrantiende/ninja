@@ -30,16 +30,17 @@ public final class AutoVipMap {
         if (isEnabled) {
             targetMapID = 195;
             menuOption = 4;
+            saveConfigToRMS();
             GameScr.gameAC("AutoVIP: ON - T\u1ef1 v\u00e0o l\u1ea1i M195 khi ch\u1ebft/disconnect");
         } else {
             returning = false;
+            saveConfigToRMS();
             GameScr.gameAC("AutoVIP: OFF");
         }
     }
 
     /** Toggle on/off Map VIP 2 (M196) */
     public static void toggle2() {
-        // Neu dang bat VIP1, tat truoc
         if (isEnabled && targetMapID == 195) {
             isEnabled = false;
             returning = false;
@@ -48,11 +49,44 @@ public final class AutoVipMap {
         if (isEnabled) {
             targetMapID = 196;
             menuOption = 5;
+            saveConfigToRMS();
             GameScr.gameAC("AutoVIP2: ON - T\u1ef1 v\u00e0o l\u1ea1i M196 khi ch\u1ebft/disconnect");
         } else {
             returning = false;
+            saveConfigToRMS();
             GameScr.gameAC("AutoVIP2: OFF");
         }
+    }
+
+    /** Luu config vao RMS */
+    public static void saveConfigToRMS() {
+        try {
+            RMS.gameAA("auto_vip_map_cfg", (isEnabled ? 1 : 0) + ";" + targetMapID + ";" + menuOption);
+        } catch (Exception e) {}
+    }
+
+    /** Load config tu RMS */
+    public static void loadConfigFromRMS() {
+        try {
+            String data = RMS.gameAC("auto_vip_map_cfg");
+            if (data != null && data.length() > 0) {
+                int[] v = new int[3];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 3; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        v[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 1) isEnabled = (v[0] == 1);
+                if (idx >= 2 && v[1] > 0) targetMapID = v[1];
+                if (idx >= 3 && v[2] > 0) menuOption = v[2];
+            }
+        } catch (Exception e) {}
+    }
+
+    static {
+        loadConfigFromRMS();
     }
 
     /**
@@ -99,12 +133,11 @@ public final class AutoVipMap {
 
         GameScr.gameAC("AutoVIP: T\u00ecm NPC VIP \u0111\u1ec3 v\u00e0o M" + targetMapID + "...");
 
-        // Retry toi da 3 lan (phong truong hop NPC chua load xong)
-        for (int retry = 0; retry < 3 && isEnabled; retry++) {
-            if (TileMap.mapID == targetMapID) return;
+        // Retry toi da 5 lan (phong truong hop NPC chua load xong)
+        for (int retry = 0; retry < 5 && isEnabled; retry++) {
+            if (TileMap.mapID == targetMapID) break;
 
-            // Talk NPC VIP voi option "Map Up Luong" (o thu 5, index 4)
-            // GameScr.gameAB(npcType, optionIndex, 0) — param2 = lua chon menu
+            // Talk NPC VIP voi option "Map Up Luong" (o thu 5, index 4 cho M195; o thu 6, index 5 cho M196)
             try {
                 GameScr.gameAB(npcType, menuOption, 0);
             } catch (Exception e) {
@@ -117,17 +150,37 @@ public final class AutoVipMap {
             for (int w = 0; w < 150 && isEnabled; w++) {
                 sleep(100);
                 if (TileMap.mapID == targetMapID) {
-                    GameScr.gameAC("AutoVIP: \u0110\u00e3 v\u00e0o M" + targetMapID + "!");
-                    return;
+                    break;
                 }
             }
 
+            if (TileMap.mapID == targetMapID) break;
             GameScr.gameAC("AutoVIP: Th\u1eed l\u1ea1i l\u1ea7n " + (retry + 2) + "...");
             sleep(2000);
         }
 
-        if (TileMap.mapID != targetMapID) {
-            GameScr.gameAC("AutoVIP: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c M" + targetMapID + " sau 3 l\u1ea7n!");
+        if (TileMap.mapID == targetMapID) {
+            GameScr.gameAC("AutoVIP: \u0110\u00e3 v\u00e0o M" + targetMapID + "!");
+            // Doi khu cu
+            int sz = AutoBossEvent.getSavedZone();
+            if (sz >= 0 && TileMap.zoneID != sz) {
+                Auto.gameAA(sz);
+                for (int i = 0; i < 1000 && TileMap.zoneID != sz; i++) sleep(10L);
+            }
+            // Di chuyen ve toa do (x, y) cu
+            int sx = AutoBossEvent.getSavedX();
+            int sy = AutoBossEvent.getSavedY();
+            if (sx > 0 && sy > 0) {
+                try {
+                    Char.gameAE(sx, sy);
+                    Char.getMyChar().cx = sx;
+                    Char.getMyChar().cy = sy;
+                    Service.gI().gameAC(sx, sy);
+                    sleep(200L);
+                } catch (Exception ex) {}
+            }
+        } else {
+            GameScr.gameAC("AutoVIP: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c M" + targetMapID + " sau 5 l\u1ea7n!");
         }
     }
 
