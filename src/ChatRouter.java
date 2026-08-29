@@ -327,6 +327,23 @@ public class ChatRouter {
             TsBoost.showFullStats();
             return true;
         }
+
+        // === NHAT KY & THONG KE BOSS ===
+        if (text.equals("lb") || text.equals("logboss") || text.equals("tkb")) {
+            BossLog.showLogForm();
+            return true;
+        }
+        if (text.equals("rsb") || text.equals("resetboss")) {
+            BossLog.resetStats();
+            GameScr.gameAC("Nh\u1eadt k\u00fd Boss: \u0110\u00e3 reset b\u1ed9 \u0111\u1ebfm v\u1ec1 0!");
+            return true;
+        }
+
+        // === TIET KIEM PIN & CPU (ECO MODE) ===
+        if (text.equals("eco") || text.equals("sleep") || text.equals("tkp") || text.equals("pin")) {
+            EcoMode.toggle();
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
@@ -341,6 +358,7 @@ public class ChatRouter {
                     if (!isAk) {
                         TsBoost.onTsStarted();
                     }
+                    onTsActivated();
                     GameScr.gameAC(!isAk && TsBoost.isRunning ? "TS + Ts Pro!" : "TS ON!");
                 } else if (hadAuto) {
                     TsBoost.stop();
@@ -397,5 +415,29 @@ public class ChatRouter {
         } catch (Exception e) {
             GameScr.gameAC("Loi quet mob: " + e.getMessage());
         }
+    }
+
+    public static void onTsActivated() {
+        int curMap = TileMap.mapID;
+        // 1. Tu dong nhan dien va bat Auto cho Map VIP 1, Map VIP 2, Map Tu Luyen
+        if (curMap == 195) {
+            AutoVipMap.isEnabled = true;
+            AutoVipMap.targetMapID = 195;
+            AutoVipMap.menuOption = 4;
+            GameScr.gameAC("TS: Ghi nh\u1edb Map VIP 1 (M195)!");
+        } else if (curMap == 196) {
+            AutoVipMap.isEnabled = true;
+            AutoVipMap.targetMapID = 196;
+            AutoVipMap.menuOption = 5;
+            GameScr.gameAC("TS: Ghi nh\u1edb Map VIP 2 (M196)!");
+        } else if (curMap == 192) {
+            AutoTuLuyen.isEnabled = true;
+            AutoTuLuyen.targetMapID = 192;
+            AutoTuLuyen.menuOption = 3;
+            GameScr.gameAC("TS: Ghi nh\u1edb Map Tu Luy\u1ec7n (M192)!");
+        }
+
+        // 2. Luu map goc cho TS Boss Uu Tien & Reconnect
+        AutoBossEvent.saveLocalState();
     }
 }

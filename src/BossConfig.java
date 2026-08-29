@@ -54,6 +54,12 @@ public final class BossConfig implements CommandListener {
     private ChoiceGroup cgGhostAttack;
     private TextField tfGhostRange;
 
+    // So lan hoi sinh toi da khi danh boss (0=vo han)
+    private TextField tfMaxDeathRevive;
+
+    // San nguoc map (MapNgoai & VDMQ)
+    private ChoiceGroup cgReverseHunt;
+
     // Luu map IDs tuong ung voi tung ChoiceGroup
     private final int[] mapsVDMQ;
     private final int[] mapsMN;
@@ -161,6 +167,15 @@ public final class BossConfig implements CommandListener {
 
         tfGhostRange = new TextField("T\u1ea7m Ghost Boss (px, 9999=full)", "", 5, TextField.NUMERIC);
         form.append(tfGhostRange);
+
+        // === So lan HS toi da (0=vo han) ===
+        tfMaxDeathRevive = new TextField("S\u1ed1 l\u1ea7n HS t\u1ed1i \u0111a (0=v\u00f4 h\u1ea1n)", "", 5, TextField.NUMERIC);
+        form.append(tfMaxDeathRevive);
+
+        // === San nguoc map (MapNgoai & VDMQ) ===
+        cgReverseHunt = new ChoiceGroup("Th\u1ee9 t\u1ef1 s\u0103n map", Choice.MULTIPLE);
+        cgReverseHunt.append("S\u0103n ng\u01b0\u1ee3c (VDMQ & MapNgo\u00e0i)", null);
+        form.append(cgReverseHunt);
     }
 
     /** Load trang thai tu AutoSanBoss vao checkbox + textfield */
@@ -195,6 +210,12 @@ public final class BossConfig implements CommandListener {
         // Ghost Attack Boss
         cgGhostAttack.setSelectedIndex(0, AutoSanBoss.isGhostAttack);
         tfGhostRange.setString(String.valueOf(AutoSanBoss.ghostRange));
+
+        // So lan HS toi da
+        tfMaxDeathRevive.setString(String.valueOf(AutoSanBoss.maxDeathRevive));
+
+        // San nguoc map
+        cgReverseHunt.setSelectedIndex(0, AutoSanBoss.isReverseMapHunt);
     }
 
     private void loadGroup(ChoiceGroup cg, int[] maps) {
@@ -309,6 +330,17 @@ public final class BossConfig implements CommandListener {
             } catch (Exception e) {
                 errMsg.append("GhostRange");
             }
+
+            // Luu so lan HS toi da (0=vo han)
+            try {
+                int md = safeParseInt(tfMaxDeathRevive.getString(), 100);
+                if (md >= 0) {
+                    AutoSanBoss.maxDeathRevive = md;
+                }
+            } catch (Exception e) {}
+
+            // Luu san nguoc map
+            AutoSanBoss.isReverseMapHunt = cgReverseHunt.isSelected(0);
             AutoSanBoss.saveToRMS();
 
             int disabled = AutoSanBoss.disabledMaps.size();
@@ -316,6 +348,8 @@ public final class BossConfig implements CommandListener {
             if (disabled > 0) msg.append(" (").append(disabled).append(" map t\u1eaft)");
             msg.append(" | Delay: ").append(AutoSanBoss.zoneChangeDelayMs).append("ms");
             msg.append(" | Khu: ").append(AutoSanBoss.getZoneRangeStr());
+            msg.append(" | HS max: ").append(AutoSanBoss.maxDeathRevive == 0 ? "V\u00f4 h\u1ea1n" : String.valueOf(AutoSanBoss.maxDeathRevive));
+            msg.append(" | S\u0103n ng\u01b0\u1ee3c: ").append(AutoSanBoss.isReverseMapHunt ? "B\u1eadt" : "T\u1eaft");
             msg.append(" | Ghost: ").append(AutoSanBoss.isGhostAttack ? "B\u1eadt" : "T\u1eaft");
             if (errMsg.length() > 0) msg.append(" | Gi\u1edd l\u1ed7i: ").append(errMsg);
             GameScr.gameAC(msg.toString());
@@ -333,10 +367,12 @@ public final class BossConfig implements CommandListener {
             AutoSanBoss.scanZoneEnd = 29;
             AutoSanBoss.isGhostAttack = true;
             AutoSanBoss.ghostRange = 9999;
+            AutoSanBoss.maxDeathRevive = 100;
+            AutoSanBoss.isReverseMapHunt = false;
             AutoSanBoss.saveToRMS();
             // Cap nhat lai text field
             loadCurrentState();
-            GameScr.gameAC("Boss Config: \u0110\u00e3 reset v\u1ec1 m\u1eb7c \u0111\u1ecbnh (10ms, 0-29, Ghost ON)");
+            GameScr.gameAC("Boss Config: \u0110\u00e3 reset v\u1ec1 m\u1eb7c \u0111\u1ecbnh (10ms, 0-29, Ghost ON, HS 100, S\u0103n xu\u00f4i)");
             return; // Khong dong form
         }
         // Quay ve man hinh game (giong SetAuto)

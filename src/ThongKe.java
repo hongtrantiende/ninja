@@ -1,6 +1,11 @@
 /**
  * ThongKe — Quan ly va hien thi bang thong ke Up trong Menu Pro (Dua Mod).
- * Hiển thị trực tiếp 2 dòng HUD trên màn hình game khi bật [x] Hiện Exp/Yên Khi Up.
+ * Hien thi truc tiep thong tin HUD tren man hinh game:
+ * 1. Map ID, Khu, Toa do nhan vat, so quai song tren map.
+ * 2. Thoi gian up, Yen, Xu, Luong thu hoach.
+ * 3. Exp % va so quai tieu diet.
+ * 4. Trang thai TS Boss Uu Tien & Dem nguoc san boss.
+ * 5. Dem nguoc Tu Sat khi dung im qua lau tai 1 vi tri & Vi tri check.
  */
 public class ThongKe {
     public static boolean isRunning = false;
@@ -18,10 +23,10 @@ public class ThongKe {
             Char myChar = Char.getMyChar();
             if (myChar != null) {
                 resetStats(myChar);
-                GameScr.gameAC("Bật thống kê Up!");
+                GameScr.gameAC("B\u1eadt th\u1ed1ng k\u00ea Up!");
             }
         } else {
-            GameScr.gameAC("Tắt thống kê Up!");
+            GameScr.gameAC("T\u1eaft th\u1ed1ng k\u00ea Up!");
         }
     }
 
@@ -44,25 +49,35 @@ public class ThongKe {
     }
 
     /**
-     * Ve 2 dong thong ke HUD len man hinh (duoc goi tu GameScr.paint)
-     * CHỈ HIỆN KHI ĐANG BẬT TÀN SÁT (Code.gameAB != null)!
+     * Ve cac dong thong ke HUD len man hinh (duoc goi tu GameScr.paint)
      */
     // === CACHE: chi tinh toan lai moi 1 giay, khong moi frame ===
     private static long lastCalcTime = 0;
     private static String cachedLine1 = "";
     private static String cachedLine2 = "";
     private static String cachedLine3 = "";
+    private static String cachedLine4 = "";
+    private static String cachedLine5 = "";
 
     public static void draaw(mGraphics g) {
-        if (Code.gameAB == null) {
+        ModInit.initAll();
+
+        // Kiem tra neu khong co auto nao bat -> reset thoi gian & stats
+        boolean autoActive = (Code.gameAB != null || AutoSanBoss.isRunning || AutoBossEvent.inEvent || AutoBossEvent.isEnabled);
+        if (!autoActive && !isRunning && !SetAuto.hienexp) {
             startTime = 0L;
             kills = 0;
             return;
         }
+
+        if (EcoMode.isEnabled) {
+            return;
+        }
+
         if (!SetAuto.hienexp && !isRunning) return;
 
         int x = 2;
-        int y = 155;
+        int y = 150;
 
         // Chi tinh toan lai moi 1 giay (tranh tao string moi 60 lan/giay)
         long now = System.currentTimeMillis();
@@ -72,9 +87,27 @@ public class ThongKe {
         }
 
         try {
-            mFont.tahoma_7_yellow.gameAA(g, cachedLine1, x, y, 0, mFont.tahoma_7_grey);
-            mFont.tahoma_7_yellow.gameAA(g, cachedLine2, x, y + 12, 0, mFont.tahoma_7_grey);
-            mFont.tahoma_7_yellow.gameAA(g, cachedLine3, x, y + 24, 0, mFont.tahoma_7_grey);
+            int drawY = y;
+            if (cachedLine1.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(g, cachedLine1, x, drawY, 0, mFont.tahoma_7_grey);
+                drawY += 11;
+            }
+            if (cachedLine2.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(g, cachedLine2, x, drawY, 0, mFont.tahoma_7_grey);
+                drawY += 11;
+            }
+            if (cachedLine3.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(g, cachedLine3, x, drawY, 0, mFont.tahoma_7_grey);
+                drawY += 11;
+            }
+            if (cachedLine4.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(g, cachedLine4, x, drawY, 0, mFont.tahoma_7_grey);
+                drawY += 11;
+            }
+            if (cachedLine5.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(g, cachedLine5, x, drawY, 0, mFont.tahoma_7_grey);
+                drawY += 11;
+            }
         } catch (Exception e) {}
     }
 
@@ -87,6 +120,9 @@ public class ThongKe {
                 resetStats(myChar);
             }
             if (startTime == 0L) return;
+
+            int cx = myChar.cx;
+            int cy = myChar.cy;
 
             long sec = (System.currentTimeMillis() - startTime) / 1000L;
             if (sec <= 0) sec = 1L;
@@ -111,7 +147,7 @@ public class ThongKe {
 
             String timeStr = NinjaUtil.gameAB((int)sec);
 
-            // Dem quai map hien tai
+            // Dem quai song tren map hien tai
             int aliveMapMobs = 0;
             try {
                 int size = GameScr.vMob.size();
@@ -126,9 +162,63 @@ public class ThongKe {
                 }
             } catch (Exception e) {}
 
-            cachedLine1 = "T: " + timeStr + " | Map: " + aliveMapMobs + " quái";
-            cachedLine2 = "Yên: +" + gainYen + " | Xu: +" + gainXu + " | Lượng: +" + gainLuong;
-            cachedLine3 = "Exp: +" + expPercent + "% | Diệt: " + kills;
+            // Dong 1: Map ID, Khu, Toa do, So quai song & Map goc TS
+            int sm = AutoBossEvent.getSavedMap();
+            int sz = AutoBossEvent.getSavedZone();
+            String originStr = (sm > 0 && (sm != TileMap.mapID || sz != TileMap.zoneID)) ? " [G\u1ed1c: M" + sm + " K" + sz + "]" : "";
+            cachedLine1 = "Map: " + TileMap.mapID + " | Khu: " + TileMap.zoneID + " (" + cx + "," + cy + ") | " + aliveMapMobs + " qu\u00e1i" + originStr;
+
+            // Dong 2: Thoi gian Up, Yen, Xu, Luong
+            cachedLine2 = "T: " + timeStr + " | Y: +" + gainYen + " | X: +" + gainXu + " | L: +" + gainLuong;
+
+            // Dong 3: Exp %, Diet quai
+            cachedLine3 = "Exp: +" + expPercent + "% | Di\u1ec7t: " + kills;
+
+            // Dong 4: TS Boss Uu Tien & Dem nguoc san boss & Boss da ha
+            int totalBoss = BossLog.getTotalKills();
+            String bossKillStr = totalBoss > 0 ? " | H\u1ea1: " + totalBoss : "";
+            if (AutoBossEvent.isEnabled) {
+                String pName = AutoBossEvent.priorityName();
+                if (AutoBossEvent.inEvent) {
+                    long huntSec = (AutoBossEvent.eventStartTime > 0) ? (System.currentTimeMillis() - AutoBossEvent.eventStartTime) / 1000L : 0L;
+                    if (huntSec < 0) huntSec = 0L;
+                    long remainHuntSec = 360L - huntSec;
+                    if (remainHuntSec < 0) remainHuntSec = 0L;
+                    cachedLine4 = "TS Boss: \u0110ang s\u0103n [" + pName + "] (M" + TileMap.mapID + " K" + TileMap.zoneID + " - c\u00f2n " + remainHuntSec + "s/6p" + bossKillStr + ")";
+                } else {
+                    int secLeft = AutoBossEvent.getSecondsTillNextForPriority();
+                    if (secLeft > 0 && secLeft <= AutoBossEvent.PRE_SPAWN_SECONDS) {
+                        cachedLine4 = "TS Boss: Chu\u1ea9n b\u1ecb [" + pName + "] (c\u00f2n " + secLeft + "s" + bossKillStr + ")";
+                    } else if (secLeft > AutoBossEvent.PRE_SPAWN_SECONDS && secLeft < Integer.MAX_VALUE) {
+                        int m = secLeft / 60;
+                        int s = secLeft % 60;
+                        cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Boss t\u1edbi: " + (m > 0 ? m + "p" : "") + s + "s" + bossKillStr + ")";
+                    } else {
+                        cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Ch\u1edd boss..." + bossKillStr + ")";
+                    }
+                }
+            } else {
+                cachedLine4 = "TS Boss: T\u1eaft" + (totalBoss > 0 ? " (\u0110\u00e3 h\u1ea1 " + totalBoss + " boss)" : "");
+            }
+
+            // Dong 5: Dem nguoc Tu Sat khi dung im qua lau & Vi tri check
+            if (AutoSuicide.isEnabled) {
+                int lastX = AutoSuicide.lastX;
+                int lastY = AutoSuicide.lastY;
+                long idleMs = System.currentTimeMillis() - AutoSuicide.lastMoveTime;
+                long timeoutSec = AutoSuicide.IDLE_TIMEOUT_MS / 1000L;
+                long idleSec = idleMs / 1000L;
+                long remainSec = timeoutSec - idleSec;
+                if (remainSec < 0) remainSec = 0;
+
+                if (lastX != -1 && lastY != -1 && cx == lastX && cy == lastY) {
+                    cachedLine5 = "T\u1ef1 s\u00e1t: c\u00f2n " + remainSec + "s (" + idleSec + "/" + timeoutSec + "s)";
+                } else {
+                    cachedLine5 = "T\u1ef1 s\u00e1t: " + timeoutSec + "s (\u0110ang di chuy\u1ec3n)";
+                }
+            } else {
+                cachedLine5 = "";
+            }
         } catch (Exception e) {}
     }
 }

@@ -17,6 +17,8 @@ public class AutoSanBoss implements Runnable {
     public static boolean isPartyMode = false;
     public static boolean treoMode = false; // true = tim boss nhung khong danh, chi goi nhom roi dung cho
     public static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
+    public static long huntStartTime = 0L;
+    public static final long MAX_HUNT_DURATION_MS = 360000L; // 6 phut
     private static Thread thread;
     private static Thread memberMoveThread;
     private static int memberTargetZone = -1;
@@ -36,7 +38,7 @@ public class AutoSanBoss implements Runnable {
     public static final int TYPE_TEST_1MAP = 7;
     public static int testMapId = 141;
 
-    private static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "Map VIP", "Map VIP2", "T\u1ea5t C\u1ea3", "Test 1 Map"};
+    public static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "Map VIP", "Map VIP2", "T\u1ea5t C\u1ea3", "Test 1 Map"};
 
     /** Lay ten boss theo type (dung cho thong bao) */
     public static String getBossName(int bossType) {
@@ -61,6 +63,12 @@ public class AutoSanBoss implements Runnable {
     /** Tam Ghost Attack Boss (px, 9999=toan map). */
     public static int ghostRange = 9999;
 
+    /** So lan hoi sinh toi da khi danh boss (0 = vo han, mac dinh 100). */
+    public static int maxDeathRevive = 100;
+
+    /** San nguoc thu tu map (MapNgoai: 54->14, VDMQ: 143->141). Mac dinh tat (false). */
+    public static boolean isReverseMapHunt = false;
+
     static {
         loadFromRMS();
         loadBossHoursFromRMS();
@@ -78,9 +86,9 @@ public class AutoSanBoss implements Runnable {
             if (dash != -1) {
                 int z1 = Integer.parseInt(str.substring(0, dash).trim());
                 int z2 = Integer.parseInt(str.substring(dash + 1).trim());
-                if (z1 >= 0 && z1 <= 29 && z2 >= 0 && z2 <= 29 && z1 <= z2) {
-                    scanZoneStart = z1;
-                    scanZoneEnd = z2;
+                if (z1 >= 0 && z1 <= 29 && z2 >= 0 && z2 <= 29) {
+                    scanZoneStart = Math.min(z1, z2);
+                    scanZoneEnd = Math.max(z1, z2);
                     return true;
                 }
             } else {
@@ -136,6 +144,15 @@ public class AutoSanBoss implements Runnable {
                 int r = Integer.parseInt(ghostRangeStr.trim());
                 if (r >= 100 && r <= 9999) ghostRange = r;
             }
+            String maxDeathStr = RMS.gameAC("boss_max_death");
+            if (maxDeathStr != null && maxDeathStr.trim().length() > 0) {
+                int md = Integer.parseInt(maxDeathStr.trim());
+                if (md >= 0) maxDeathRevive = md;
+            }
+            String revHuntStr = RMS.gameAC("boss_rev_hunt");
+            if (revHuntStr != null && revHuntStr.trim().length() > 0) {
+                isReverseMapHunt = "1".equals(revHuntStr.trim()) || "true".equalsIgnoreCase(revHuntStr.trim());
+            }
         } catch (Exception e) {}
     }
 
@@ -151,6 +168,8 @@ public class AutoSanBoss implements Runnable {
             RMS.gameAA("boss_zone_range", getZoneRangeStr());
             RMS.gameAA("boss_ghost_atk", isGhostAttack ? "1" : "0");
             RMS.gameAA("boss_ghost_range", String.valueOf(ghostRange));
+            RMS.gameAA("boss_max_death", String.valueOf(maxDeathRevive));
+            RMS.gameAA("boss_rev_hunt", isReverseMapHunt ? "1" : "0");
         } catch (Exception e) {}
     }
 
@@ -247,6 +266,16 @@ public class AutoSanBoss implements Runnable {
         if (bossType == TYPE_MAPVIP) return new int[]{195};
         if (bossType == TYPE_MAPVIP2) return new int[]{196};
         return new int[0];
+    }
+
+    /** Xac dinh loai boss dua vao map ID */
+    public static int getBossTypeFromMap(int mapId) {
+        if (mapId == 195) return TYPE_MAPVIP;
+        if (mapId == 196) return TYPE_MAPVIP2;
+        if (mapId == 135 || mapId == 136 || mapId == 138) return TYPE_LANGCO;
+        if (mapId == 20) return TYPE_THEGIOI;
+        if (mapId == 141 || mapId == 142 || mapId == 143) return TYPE_VDMQ;
+        return TYPE_MAPNGOAI;
     }
 
     /** Kiem tra map co phai la map Boss The Gioi khong */
@@ -1034,6 +1063,7 @@ public class AutoSanBoss implements Runnable {
             GameScr.gameAC("T\u1eaft T\u1ef1 S\u0103n Boss!");
         } else {
             isRunning = true;
+            huntStartTime = System.currentTimeMillis();
             isPartyMode = partyMode;
             forcedBossType = forcedType;
             dummyAuto = new SanBossHolder();
@@ -1083,6 +1113,7 @@ public class AutoSanBoss implements Runnable {
     public static void stop() {
         if (isRunning) {
             isRunning = false;
+            huntStartTime = 0L;
             isPartyMode = false;
             treoMode = false;
             forcedBossType = -1;
@@ -1109,9 +1140,18 @@ public class AutoSanBoss implements Runnable {
     /**
      * Kiem tra AutoSanBoss con dang chay khong.
      * Detect ca truong hop user nhan "Tat Auto" tu menu (Code.gameAF() set gameAB = null).
+     * Hoac qua 6 phut san boss -> tu ngat de tranh treo vo han.
      */
     private boolean checkStillRunning() {
         if (!isRunning) return false;
+        if (huntStartTime > 0 && (System.currentTimeMillis() - huntStartTime > MAX_HUNT_DURATION_MS)) {
+            GameScr.gameAC("SanBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 ng\u1eaft \u0111\u1ec3 v\u1ec1 map TS!");
+            stop();
+            if (AutoBossEvent.getSavedMap() > 0) {
+                AutoBossEvent.returnMemberState();
+            }
+            return false;
+        }
         return true;
     }
 
@@ -1627,16 +1667,25 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Lay map IDs cho 1 loai boss
+     * Lay map IDs cho 1 loai boss (ho tro san nguoc map cho MapNgoai va VDMQ)
      */
     private int[] getMapsForBoss(int bossType) {
+        int[] original;
         if (bossType == TYPE_MAPNGOAI) {
-            return getMapNgoaiMaps();
+            original = getMapNgoaiMaps();
+        } else if (bossType >= 0 && bossType < BOSS_MAPS.length) {
+            original = BOSS_MAPS[bossType];
+        } else {
+            return new int[0];
         }
-        if (bossType >= 0 && bossType < BOSS_MAPS.length) {
-            return BOSS_MAPS[bossType];
+        if (isReverseMapHunt && (bossType == TYPE_MAPNGOAI || bossType == TYPE_VDMQ)) {
+            int[] rev = new int[original.length];
+            for (int i = 0; i < original.length; i++) {
+                rev[i] = original[original.length - 1 - i];
+            }
+            return rev;
         }
-        return new int[0];
+        return original;
     }
 
     /**
@@ -1997,8 +2046,8 @@ public class AutoSanBoss implements Runnable {
             return false;
         }
 
-        // 2. Quet khu theo pham vi scanZoneStart -> scanZoneEnd
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        // 2. Quet khu theo pham vi scanZoneEnd -> scanZoneStart (29 ve 0)
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != mapID) {
                 GameScr.gameAC("TREO: Ch\u1ebft/l\u1ea1c map khi t\u00ecm boss! H\u1ed3i sinh...");
                 if (isDead()) respawnFast();
@@ -2016,7 +2065,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TREO: Ch\u1ebft khi qu\u00e9t K" + zone + "! H\u1ed3i sinh...");
                 if (isDead()) respawnFast();
                 if (!navigateToMap(mapID)) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2030,8 +2079,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map
                     if (isDead() || TileMap.mapID != mapID) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", d\u1eebng!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M" + mapID + ", d\u1eebng!");
                             break;
                         }
                         GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2060,6 +2109,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300);
                         if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
                             GameScr.gameAC("TREO: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            BossLog.recordBossKill(getBossTypeFromMap(mapID), mapID, bossZone, deathCount);
                             grabAllItems();
                             return true;
                         }
@@ -2088,7 +2138,7 @@ public class AutoSanBoss implements Runnable {
         }
         restoreDummyAuto();
 
-        for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
+        for (int zone = 2; zone >= 0 && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != mapID) {
                 GameScr.gameAC("TREO: Ch\u1ebft/tho\u00e1t LC M" + mapID + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2111,7 +2161,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TREO: Ch\u1ebft khi qu\u00e9t LC K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterLangCoSpecificMap(mapID)) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2125,8 +2175,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map
                     if (isDead() || TileMap.mapID != mapID) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", d\u1eebng!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i LC M" + mapID + ", d\u1eebng!");
                             break;
                         }
                         GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss LC M" + mapID + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2155,6 +2205,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300);
                         if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
                             GameScr.gameAC("TREO: Boss LC M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            BossLog.recordBossKill(TYPE_LANGCO, mapID, bossZone, deathCount);
                             grabAllItems();
                             return true;
                         }
@@ -2319,8 +2370,8 @@ public class AutoSanBoss implements Runnable {
 
         GameScr.gameAC("TSB: Qu\u00e9t boss M195...");
 
-        // 2. Quet khu theo pham vi scanZoneStart -> scanZoneEnd
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        // 2. Quet khu theo pham vi scanZoneEnd -> scanZoneStart (29 ve 0)
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != 195) {
                 GameScr.gameAC("TSB: Ch\u1ebft/tho\u00e1t M195! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2338,7 +2389,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TSB: Ch\u1ebft khi qu\u00e9t VIP K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterMapVIP()) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2367,8 +2418,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
                     if (isDead() || TileMap.mapID != 195) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, b\u1ecf qua!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M195, b\u1ecf qua!");
                             break;
                         }
                         GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M195! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2435,6 +2486,7 @@ public class AutoSanBoss implements Runnable {
                     restoreDummyAuto();
 
                     GameScr.gameAC("TSB: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                    BossLog.recordBossKill(TYPE_MAPVIP, 195, bossZone, deathCount);
                     grabAllItems();
                     sendPartyCommand("pkm -6");
                     return true;
@@ -2468,8 +2520,8 @@ public class AutoSanBoss implements Runnable {
 
         GameScr.gameAC("TREO: Qu\u00e9t M195...");
 
-        // 2. Quet khu theo pham vi scanZoneStart -> scanZoneEnd
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        // 2. Quet khu theo pham vi scanZoneEnd -> scanZoneStart (29 ve 0)
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != 195) {
                 GameScr.gameAC("TREO: Ch\u1ebft/tho\u00e1t M195! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2487,7 +2539,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TREO: Ch\u1ebft khi qu\u00e9t VIP K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterMapVIP()) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2501,8 +2553,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map
                     if (isDead() || TileMap.mapID != 195) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M195, d\u1eebng!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M195, d\u1eebng!");
                             break;
                         }
                         GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M195! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2531,6 +2583,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300);
                         if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
                             GameScr.gameAC("TREO: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            BossLog.recordBossKill(TYPE_MAPVIP, 195, bossZone, deathCount);
                             grabAllItems();
                             return true;
                         }
@@ -2649,8 +2702,8 @@ public class AutoSanBoss implements Runnable {
 
         GameScr.gameAC("TSB: Qu\u00e9t boss M196...");
 
-        // 2. Quet khu theo pham vi scanZoneStart -> scanZoneEnd
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        // 2. Quet khu theo pham vi scanZoneEnd -> scanZoneStart (29 ve 0)
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != 196) {
                 GameScr.gameAC("TSB: Ch\u1ebft/tho\u00e1t M196! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2668,7 +2721,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TSB: Ch\u1ebft khi qu\u00e9t VIP2 K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterMapVIP2()) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2697,8 +2750,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
                     if (isDead() || TileMap.mapID != 196) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, b\u1ecf qua!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M196, b\u1ecf qua!");
                             break;
                         }
                         GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M196! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2765,6 +2818,7 @@ public class AutoSanBoss implements Runnable {
                     restoreDummyAuto();
 
                     GameScr.gameAC("TSB: Boss M196 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                    BossLog.recordBossKill(TYPE_MAPVIP2, 196, bossZone, deathCount);
                     grabAllItems();
                     sendPartyCommand("pkm -6");
                     return true;
@@ -2796,7 +2850,7 @@ public class AutoSanBoss implements Runnable {
 
         GameScr.gameAC("TREO: Qu\u00e9t M196...");
 
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != 196) {
                 GameScr.gameAC("TREO: Ch\u1ebft/tho\u00e1t M196! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2814,7 +2868,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TREO: Ch\u1ebft khi qu\u00e9t VIP2 K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterMapVIP2()) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -2828,8 +2882,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map
                     if (isDead() || TileMap.mapID != 196) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M196, d\u1eebng!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TREO: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M196, d\u1eebng!");
                             break;
                         }
                         GameScr.gameAC("TREO: Ch\u1ebft khi theo d\u00f5i boss M196! H\u1ed3i sinh + v\u00e0o l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -2858,6 +2912,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300);
                         if (!hasBossOnCurrentMap() && TileMap.zoneID == bossZone && !isDead()) {
                             GameScr.gameAC("TREO: Boss M196 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                            BossLog.recordBossKill(TYPE_MAPVIP2, 196, bossZone, deathCount);
                             grabAllItems();
                             return true;
                         }
@@ -2960,7 +3015,7 @@ public class AutoSanBoss implements Runnable {
      * @return true neu boss da chet
      */
     private boolean scanLangCoZones(int mapID) {
-        for (int zone = 0; zone < 3 && checkStillRunning(); zone++) {
+        for (int zone = 2; zone >= 0 && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != mapID) {
                 GameScr.gameAC("TSB: Ch\u1ebft/tho\u00e1t LC M" + mapID + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
@@ -2983,7 +3038,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TSB: Ch\u1ebft khi qu\u00e9t LC K" + zone + "! H\u1ed3i sinh + v\u00e0o l\u1ea1i...");
                 if (isDead()) respawnFast();
                 if (!enterLangCoSpecificMap(mapID)) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -3012,8 +3067,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
                     if (isDead() || TileMap.mapID != mapID) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i LC M" + mapID + ", b\u1ecf qua!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i LC M" + mapID + ", b\u1ecf qua!");
                             break;
                         }
                         GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss LC M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -3080,6 +3135,7 @@ public class AutoSanBoss implements Runnable {
                     restoreDummyAuto();
 
                     GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                    BossLog.recordBossKill(TYPE_LANGCO, mapID, bossZone, deathCount);
                     grabAllItems();
                     sendPartyCommand("pkm -6");
                     return true;
@@ -3120,8 +3176,8 @@ public class AutoSanBoss implements Runnable {
             return false;
         }
 
-        // 2. Quet khu theo pham vi scanZoneStart -> scanZoneEnd voi delay zoneChangeDelayMs
-        for (int zone = scanZoneStart; zone <= scanZoneEnd && checkStillRunning(); zone++) {
+        // 2. Quet khu theo pham vi scanZoneEnd -> scanZoneStart voi delay zoneChangeDelayMs (29 ve 0)
+        for (int zone = scanZoneEnd; zone >= scanZoneStart && checkStillRunning(); zone--) {
             if (isDead() || TileMap.mapID != mapID) {
                 GameScr.gameAC("TSB: Ch\u1ebft/l\u1ea1c map khi t\u00ecm boss! H\u1ed3i sinh...");
                 if (isDead()) respawnFast();
@@ -3139,7 +3195,7 @@ public class AutoSanBoss implements Runnable {
                 GameScr.gameAC("TSB: Ch\u1ebft khi qu\u00e9t K" + zone + "! H\u1ed3i sinh...");
                 if (isDead()) respawnFast();
                 if (!navigateToMap(mapID)) return false;
-                zone--;
+                zone++;
                 continue;
             }
 
@@ -3168,8 +3224,8 @@ public class AutoSanBoss implements Runnable {
                     // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN
                     if (isDead() || TileMap.mapID != mapID) {
                         deathCount++;
-                        if (deathCount > 10) {
-                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 10 l\u1ea7n t\u1ea1i M" + mapID + ", b\u1ecf qua!");
+                        if (maxDeathRevive > 0 && deathCount > maxDeathRevive) {
+                            GameScr.gameAC("TSB: Ch\u1ebft qu\u00e1 " + maxDeathRevive + " l\u1ea7n t\u1ea1i M" + mapID + ", b\u1ecf qua!");
                             break;
                         }
                         GameScr.gameAC("TSB: Ch\u1ebft khi \u0111\u00e1nh boss M" + mapID + "! H\u1ed3i sinh + quay l\u1ea1i (l\u1ea7n " + deathCount + ")...");
@@ -3231,8 +3287,10 @@ public class AutoSanBoss implements Runnable {
                         Code.gameAC();
                     }
                     restoreDummyAuto();
-                    GameScr.gameAC("TSB: Xong M" + mapID);
+                    GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
+                    BossLog.recordBossKill(getBossTypeFromMap(mapID), mapID, bossZone, deathCount);
                     grabAllItems();
+                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();

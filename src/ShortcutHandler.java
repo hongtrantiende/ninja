@@ -33,6 +33,7 @@ public final class ShortcutHandler {
             } else {
                 Code.gameAA(-1, (int) TileMap.mapID);
                 AutoPickup.start();
+                ChatRouter.onTsActivated();
                 GameScr.gameAC("Bat Tan Sat + Hut VP");
             }
         }

@@ -40,6 +40,11 @@ effect_auto_class = os.path.join(unpacked_dir, "EffectAuto.class")
 if os.path.exists(effect_auto_class):
     subprocess.run(["python", "scripts/patch_effectauto.py", effect_auto_class], check=True)
 
+# 3c. Patch MotherCanvas for EcoMode (paint + touch wake up)
+mothercanvas_class = os.path.join(unpacked_dir, "MotherCanvas.class")
+if os.path.exists(mothercanvas_class):
+    subprocess.run(["python", "scripts/patch_mothercanvas_eco.py", mothercanvas_class], check=True)
+
 print("=== 4. Pack Aeharuna.jar ===")
 for root_d, dirs_d, files_d in os.walk(unpacked_dir):
     for f in files_d:

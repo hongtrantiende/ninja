@@ -27,6 +27,10 @@ public final class AutoBossEvent implements Runnable {
     /** Nếu TS Boss chưa bật trước triggerImmediate → tắt lại sau hunt */
     private static boolean wasEnabledBeforeTrigger = true;
 
+    /** Thoi diem bat dau san boss (ms) & Timeout toi da 6 phut */
+    public static long eventStartTime = 0L;
+    public static final long MAX_EVENT_DURATION_MS = 360000L; // 6 phut
+
     static {
         loadConfigFromRMS();
     }
@@ -85,6 +89,7 @@ public final class AutoBossEvent implements Runnable {
         forceAllNext = false;
         disableAfterTest = false;
         membersSentBack = false;
+        eventStartTime = 0L;
         if (inEvent) {
             AutoSanBoss.stopEventHunt();
             sendParty("pkm -3");
@@ -121,6 +126,7 @@ public final class AutoBossEvent implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 GameScr.gameAC("TSBoss Test: L\u01b0u v\u1ecb tr\u00ed & qu\u00e9t 1 map test...");
+                eventStartTime = System.currentTimeMillis();
                 saveLocalState();
                 pauseLeaderAndWaitStable();
                 inEvent = true;
@@ -268,6 +274,7 @@ public final class AutoBossEvent implements Runnable {
             saveLocalState();
         }
         inEvent = true;
+        eventStartTime = System.currentTimeMillis();
         GameScr.gameAC("TSBoss: Da luu M" + savedMap + " K" + savedZone + (savedX > 0 ? " (" + savedX + "," + savedY + ")" : ""));
     }
 
@@ -309,7 +316,24 @@ public final class AutoBossEvent implements Runnable {
         }
     }
 
-    private static void saveLocalState() {
+    public static int getSavedMap() {
+        if (savedMap < 0) loadSavedStateFromRMS();
+        return savedMap;
+    }
+    public static int getSavedZone() {
+        if (savedZone < 0) loadSavedStateFromRMS();
+        return savedZone;
+    }
+    public static int getSavedX() {
+        if (savedX < 0) loadSavedStateFromRMS();
+        return savedX;
+    }
+    public static int getSavedY() {
+        if (savedY < 0) loadSavedStateFromRMS();
+        return savedY;
+    }
+
+    public static void saveLocalState() {
         int curMap = TileMap.mapID;
         // Khong luu map gated / map boss Lang Co (135, 136, 138)
         if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap)) {
@@ -440,13 +464,13 @@ public final class AutoBossEvent implements Runnable {
     /** Flag: da trigger pre-spawn cho gio boss tiep theo (tranh lap) */
     private static boolean preSpawnTriggered = false;
     /** Thoi gian chuan bi truoc khi boss spawn (giay) */
-    private static final int PRE_SPAWN_SECONDS = 30;
+    public static final int PRE_SPAWN_SECONDS = 30;
 
     /**
      * Tra ve so giay con lai toi gio boss gan nhat phu hop voi eventPriority.
      * Tra ve Integer.MAX_VALUE neu khong co boss nao sap spawn.
      */
-    private static int getSecondsTillNextForPriority() {
+    public static int getSecondsTillNextForPriority() {
         int min = Integer.MAX_VALUE;
         switch (eventPriority) {
             case 1: // VDMQ + Lang Co
@@ -652,25 +676,45 @@ public final class AutoBossEvent implements Runnable {
     private static int getFirstMapForPriority(int priority) {
         switch (priority) {
             case 1: // VDMQ + Lang Co
-                if (AutoSanBoss.isMapEnabled(141)) return 141;
-                if (AutoSanBoss.isMapEnabled(142)) return 142;
-                if (AutoSanBoss.isMapEnabled(143)) return 143;
+                if (AutoSanBoss.isReverseMapHunt) {
+                    if (AutoSanBoss.isMapEnabled(143)) return 143;
+                    if (AutoSanBoss.isMapEnabled(142)) return 142;
+                    if (AutoSanBoss.isMapEnabled(141)) return 141;
+                } else {
+                    if (AutoSanBoss.isMapEnabled(141)) return 141;
+                    if (AutoSanBoss.isMapEnabled(142)) return 142;
+                    if (AutoSanBoss.isMapEnabled(143)) return 143;
+                }
                 return 138;
             case 2: // MapNgoai
                 int[] mnMaps = AutoSanBoss.getMapNgoaiMaps();
-                for (int i = 0; i < mnMaps.length; i++) {
-                    if (AutoSanBoss.isMapEnabled(mnMaps[i])) return mnMaps[i];
+                if (AutoSanBoss.isReverseMapHunt) {
+                    for (int i = mnMaps.length - 1; i >= 0; i--) {
+                        if (AutoSanBoss.isMapEnabled(mnMaps[i])) return mnMaps[i];
+                    }
+                    return 54;
+                } else {
+                    for (int i = 0; i < mnMaps.length; i++) {
+                        if (AutoSanBoss.isMapEnabled(mnMaps[i])) return mnMaps[i];
+                    }
+                    return 14;
                 }
-                return 14;
             case 3: // TheGioi
                 return 20;
             case 4: // Lang Co
                 return 138;
             case 5: // VDMQ
-                if (AutoSanBoss.isMapEnabled(141)) return 141;
-                if (AutoSanBoss.isMapEnabled(142)) return 142;
-                if (AutoSanBoss.isMapEnabled(143)) return 143;
-                return 141;
+                if (AutoSanBoss.isReverseMapHunt) {
+                    if (AutoSanBoss.isMapEnabled(143)) return 143;
+                    if (AutoSanBoss.isMapEnabled(142)) return 142;
+                    if (AutoSanBoss.isMapEnabled(141)) return 141;
+                    return 143;
+                } else {
+                    if (AutoSanBoss.isMapEnabled(141)) return 141;
+                    if (AutoSanBoss.isMapEnabled(142)) return 142;
+                    if (AutoSanBoss.isMapEnabled(143)) return 143;
+                    return 141;
+                }
             case 6: // Map VIP — vao qua NPC, khong can GoMap truoc
                 return -1;
             case 7: // Map VIP2 — vao qua NPC, khong can GoMap truoc
@@ -699,8 +743,13 @@ public final class AutoBossEvent implements Runnable {
                 }
                 if (closestType >= 0) return mapForBossType(closestType);
                 // Fallback
-                if (AutoSanBoss.isMapEnabled(141)) return 141;
-                return 14;
+                if (AutoSanBoss.isReverseMapHunt) {
+                    if (AutoSanBoss.isMapEnabled(143)) return 143;
+                    return 54;
+                } else {
+                    if (AutoSanBoss.isMapEnabled(141)) return 141;
+                    return 14;
+                }
             }
         }
     }
@@ -731,6 +780,11 @@ public final class AutoBossEvent implements Runnable {
                     // Sau reconnect, reset lastWindowKey de co the trigger lai
                     lastWindowKey = -1;
                     preSpawnTriggered = false;
+                    // Neu khong trong event va co map goc da luu, quay lai map do de tiep tuc farm
+                    if (!inEvent && savedMap > 0 && TileMap.mapID != savedMap) {
+                        GameScr.gameAC("TSBoss: Reconnect! Quay l\u1ea1i map g\u1ed1c M" + savedMap + "...");
+                        returnAndResume();
+                    }
                     continue;
                 }
 
@@ -768,6 +822,7 @@ public final class AutoBossEvent implements Runnable {
         saveLocalState();
         pauseLeaderAndWaitStable();
         inEvent = true;
+        eventStartTime = System.currentTimeMillis();
         membersSentBack = false;
         GameScr.gameAC("TSBoss: Chu\u1ea9n b\u1ecb s\u0103n boss! L\u01b0u M" + savedMap + " K" + savedZone);
         AutoSanBoss.autoInviteFriends();
@@ -889,6 +944,11 @@ public final class AutoBossEvent implements Runnable {
         // === Luot 1: Quet TAT CA boss active theo HUNT_PRIORITY + goi ae fang boss ===
         while (isEnabled && inEvent) {
             if (AutoSanBoss.consumeEventRoundCompleted()) break;
+            // Kiem tra timeout 6 phut
+            if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
+                GameScr.gameAC("TSBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 \u0111\u1ed9ng k\u1ebft th\u00fac \u0111\u1ec3 v\u1ec1 map TS!");
+                break;
+            }
             // Neu AutoSanBoss da dung (disconnect/error) -> thoat luot
             if (!AutoSanBoss.isRunning) {
                 GameScr.gameAC("TSBoss: AutoSanBoss d\u1eebng, k\u1ebft th\u00fac l\u01b0\u1ee3t");
@@ -927,6 +987,11 @@ public final class AutoBossEvent implements Runnable {
             GameScr.gameAC("TSBoss: Leader qu\u00e9t l\u01b0\u1ee3t " + (round + 2) + "/" + (extraRounds + 1) + "...");
             while (isEnabled && inEvent) {
                 if (AutoSanBoss.consumeEventRoundCompleted()) break;
+                // Kiem tra timeout 6 phut
+                if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
+                    GameScr.gameAC("TSBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 \u0111\u1ed9ng k\u1ebft th\u00fac \u0111\u1ec3 v\u1ec1 map TS!");
+                    break;
+                }
                 if (!AutoSanBoss.isRunning) break;
                 if (isDisconnected()) {
                     if (!waitForReconnect()) { finishEvent(false); return; }
@@ -938,6 +1003,9 @@ public final class AutoBossEvent implements Runnable {
                 }
                 sleep(500L);
             }
+            if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
+                break;
+            }
         }
 
         // Xong tat ca luot -> ve TS
@@ -946,6 +1014,7 @@ public final class AutoBossEvent implements Runnable {
 
     private static void finishEvent(boolean disabledByUser) {
         if (!inEvent) return;
+        eventStartTime = 0L;
         AutoSanBoss.stopEventHunt();
         if (!membersSentBack) {
             sendParty("pkm -5");
@@ -980,6 +1049,7 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void returnAndResume() {
+        eventStartTime = 0L;
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
@@ -994,12 +1064,10 @@ public final class AutoBossEvent implements Runnable {
         final int targetY = savedY;
         final Auto oldAuto = savedAuto;
         inEvent = false;
-        savedMap = -1;
-        savedZone = -1;
-        savedX = -1;
-        savedY = -1;
-        savedAuto = null;
-        clearSavedStateRMS();
+
+        // GIU NGUYEN savedMap, savedZone trong RMS de phong crash/disconnect tiep
+        saveSavedStateToRMS();
+
         if (map < 0 && !AutoVipMap.isEnabled && !AutoTuLuyen.isEnabled) return;
 
         // Xac dinh neu day la Map VIP hoac Tu Luyen (vao qua NPC)
@@ -1075,7 +1143,7 @@ public final class AutoBossEvent implements Runnable {
 
                             // Goi NPC 47 de vao targetNpcMap
                             GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M" + targetNpcMap + "...");
-                            for (int retry = 0; retry < 3 && TileMap.mapID != targetNpcMap; retry++) {
+                            for (int retry = 0; retry < 5 && TileMap.mapID != targetNpcMap; retry++) {
                                 try {
                                     GameScr.gameAB(47, npcOption, 0);
                                 } catch (Exception e) {
@@ -1132,8 +1200,8 @@ public final class AutoBossEvent implements Runnable {
                     if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
                         Code.gameAB = null;
                     }
-                    // Travel ve map cu voi retry 3 lan
-                    for (int retry = 0; retry < 3 && TileMap.mapID != map; retry++) {
+                    // Travel ve map cu voi retry toi da 5 lan
+                    for (int retry = 0; retry < 5 && TileMap.mapID != map; retry++) {
                         if (retry > 0) {
                             GameScr.gameAC("TSBoss: Th\u1eed l\u1ea1i l\u1ea7n " + (retry + 1) + "...");
                             sleep(2000L);
@@ -1145,6 +1213,26 @@ public final class AutoBossEvent implements Runnable {
                         for (int i = 0; i < 9000 && TileMap.mapID != map; i++) sleep(10L);
                         if (Code.gameAB == travel) Code.gameAB = null;
                     }
+
+                    // Neu thu 5 lan van chua ve dung map -> Tu sat ve lang de vao lai
+                    if (TileMap.mapID != map) {
+                        GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u00fang map sau 5 l\u1ea7n! T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 \u0111i l\u1ea1i...");
+                        try { Code.gameAN(); } catch (Exception e) {}
+                        sleep(1000L);
+                        if (Char.getMyChar() != null && Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
+                            try { Service.gI().gameAE(); } catch (Exception e) {}
+                            sleep(800L);
+                        }
+                        ensureAlive();
+                        sleep(1500L);
+                        // Re-navigate from village
+                        GameScr.gameAC("TSBoss: T\u1eeb l\u00e0ng \u0111i l\u1ea1i v\u1ec1 M" + map + "...");
+                        PkBoss travelFinal = new PkBoss(map);
+                        Code.gameAB = travelFinal;
+                        for (int i = 0; i < 9000 && TileMap.mapID != map; i++) sleep(10L);
+                        if (Code.gameAB == travelFinal) Code.gameAB = null;
+                    }
+
                     // Doi khu cu
                     if (TileMap.mapID == map && zone >= 0 && TileMap.zoneID != zone) {
                         Auto.gameAA(zone);

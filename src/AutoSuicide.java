@@ -8,7 +8,7 @@
 public final class AutoSuicide implements Runnable {
     // === CONFIG Tu Sat ===
     private static final int DEF_IDLE_TIMEOUT_MS = 30000;   // 30 giay dung im -> tu sat
-    private static final int DEF_CHECK_INTERVAL_MS = 5000;   // Kiem tra moi 5 giay
+    private static final int DEF_CHECK_INTERVAL_MS = 1000;   // Kiem tra moi 1 giay (mac dinh)
 
     public static int IDLE_TIMEOUT_MS = DEF_IDLE_TIMEOUT_MS;
     public static int CHECK_INTERVAL_MS = DEF_CHECK_INTERVAL_MS;
@@ -30,9 +30,9 @@ public final class AutoSuicide implements Runnable {
     private static Thread jumpThread;
 
     // Toa do cuoi cung thay doi
-    private static int lastX = -1;
-    private static int lastY = -1;
-    private static long lastMoveTime = 0;
+    public static int lastX = -1;
+    public static int lastY = -1;
+    public static long lastMoveTime = 0;
 
     static {
         loadConfigFromRMS();

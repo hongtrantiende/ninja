@@ -1,5 +1,103 @@
 # Decisions Log
 
+## 2026-08-29 (Session 10): Giới Hạn Tối Đa 6 Phút Săn Boss (Auto-Abort Timeout) & Đếm Ngược Thời Gian Săn Trên Eco Mode
+- **Yêu cầu:**
+  1. Khi đang ở trạng thái săn boss (cả `AutoBossEvent.inEvent` và `AutoSanBoss.isRunning`), nếu thời gian săn vượt quá 6 phút (360s), hệ thống phải tự động ngắt săn boss (`stop()` / `finishEvent()`) và tự động kích hoạt hành trình trở về đúng Map Gốc TS để tiếp tục farm, tránh bị kẹt treo săn boss mãi mãi khi boss đã bị người khác ăn mất hoặc lag không tìm thấy.
+  2. Bổ sung hiển thị thời gian săn boss hiện tại và đếm ngược còn lại của giới hạn 6 phút lên màn hình `EcoMode.java` (`Trạng thái: [Đang Săn Boss (2p15s/6p)]` và `TS Boss: Đang săn [Tên] (còn 225s/6p)`) cũng như trên HUD Bảng Thống Kê (`ThongKe.java`).
+- **Files tạo & thay đổi:** `src/AutoBossEvent.java`, `src/AutoSanBoss.java`, `src/EcoMode.java`, `src/ThongKe.java`, `Aeharuna.jar`
+
+## 2026-08-29 (Session 9): Tự Động Lưu Map Gốc TS, Tự Nhận Diện Map VIP/Tu Luyện, Reconnect Tự Về Map & Cơ Chế Tự Sát Sau 5 Lần Thất Bại
+- **Yêu cầu:**
+  1. Khi bật `ts` / `tsn` / `ak`: Ngay lập tức lưu map, khu, tọa độ và loại auto làm Map Gốc vào RMS (`boss_saved_pos`).
+  2. Tự động nhận diện: Nếu bật TS ở Map VIP 1 (M195), VIP 2 (M196) hoặc Map Tu Luyện (M192) thì tự động kích hoạt `AutoVipMap` / `AutoTuLuyen` và lưu cấu hình vào RMS.
+  3. Duy trì Map Gốc: Khi có TS Boss hoặc mất kết nối vào lại, không xóa Map Gốc trong RMS mà giữ nguyên để luôn quay về đúng map gốc tiếp tục farm.
+  4. Khôi phục với cơ chế Fail-Safe: Khi trở về map sau sự kiện boss, retry tối đa 5 lần. Nếu sau 5 lần vẫn chưa về đúng map, tự động kích hoạt tự sát về làng (`Code.gameAN` / `Service.gameAE`) rồi tái di chuyển từ làng về map.
+  5. Hiển thị Map Gốc TS trên Bảng Thống Kê HUD (`ThongKe.java`) và màn hình `EcoMode.java` (`[Gốc: M... K...]`).
+- **Files tạo & thay đổi:** `src/AutoBossEvent.java`, `src/ChatRouter.java`, `src/ShortcutHandler.java`, `src/ThongKe.java`, `src/EcoMode.java`, `Aeharuna.jar`
+
+## 2026-08-29 (Session 8): Cài Đặt Mặc Định Auto Tự Sát & Khởi Động Sớm Toàn Bộ Hệ Thống Auto Khi Vào Game (ModInit)
+- **Yêu cầu:**
+  1. Đặt mặc định thời gian đứng im tự sát là 30s (`DEF_IDLE_TIMEOUT_MS = 30000`) và chu kỳ kiểm tra là 1s/lần (`DEF_CHECK_INTERVAL_MS = 1000`) trong `AutoSuicide` & `TsConfig`.
+  2. Khắc phục triệt để lỗi: Khi thoát hẳn game ra và mở lại, TS Boss Ưu Tiên đã bật trong RMS nhưng không chạy cho đến khi người dùng bấm vào Menu NamMod (do cơ chế Lazy Loading của JVM chỉ load class khi có lời gọi).
+  3. Bổ sung thông tin TS Boss Ưu Tiên (tên loại, đếm ngược boss gần nhất) và đếm ngược Tự Sát lên màn hình Eco Mode (căn giữa).
+- **Chi tiết giải pháp:**
+  - Tạo `ModInit.java` với `initAll()` tải ngay `AutoBossEvent`, `AutoSuicide`, `TsBoost`, `BossLog`, `AutoBossNotice`, `ExploitConfig` từ RMS và kích hoạt background worker thread ngay từ frame đầu tiên của game (`MotherCanvas.paint` & `ThongKe.draaw`).
+- **Files tạo & thay đổi:** `src/ModInit.java`, `src/AutoSuicide.java`, `src/EcoMode.java`, `src/ThongKe.java`, `Aeharuna.jar`
+
+## 2026-08-29 (Session 7): Chế Độ Tiết Kiệm Pin & Giảm Tải Treo Máy Đêm (EcoMode)
+- **Yêu cầu:** Triển khai chế độ Tiết Kiệm Pin và Giảm Tải CPU khi treo máy qua đêm hoặc treo nhiều tab J2ME:
+  1. Hook trực tiếp tại `MotherCanvas.paint()` (`scripts/patch_mothercanvas_eco.py`): Triệt tiêu 100% việc vẽ cảnh, quái, hiệu ứng, nút cảm ứng D-pad, hộp thoại, màn hình load chuyển khu. 0% nhấp nháy, 100% màn hình đen True Black `#000000`.
+  2. Hook tại `MotherCanvas.pointerPressed()`: Chạm vào màn hình sẽ đánh thức/thoát EcoMode ngay lập tức mà không ấn nhầm nút trong game.
+  3. Căn giữa màn hình (Centered Minimal Eco HUD): Tên NV, Level, % HP/MP, Thời gian treo, Map, Khu, Tọa độ, Yên/Xu tăng, Số quái & Boss đã hạ, Trạng thái Auto, TS Boss Ưu Tiên + đếm ngược boss sắp tới, và đếm ngược Tự Sát.
+  4. Bật/tắt dễ dàng qua lệnh chat: `eco`, `sleep`, `tkp`, `pin` hoặc chạm màn hình.
+- **Files tạo & thay đổi:** `src/EcoMode.java`, `scripts/patch_mothercanvas_eco.py`, `src/ThongKe.java`, `src/ChatRouter.java`, `do_build.py`, `Aeharuna.jar`
+
+## 2026-08-29 (Session 6): Bộ Đếm Boss Đã Ăn & Nhật Ký Nhặt Đồ VIP (BossLog)
+- **Yêu cầu:** Triển khai hệ thống thống kê và nhật ký săn boss toàn diện:
+  1. Đếm số lượng boss đã hạ gục theo từng loại (Map Ngoài, VDMQ, Làng Cổ, Map VIP 1, Map VIP 2, Thế Giới) và tổng số.
+  2. Tự động quét và ghi nhận các vật phẩm rơi khi boss chết (Đá, trang bị, vật phẩm hiếm, ...).
+  3. Ghi nhận thời gian (HH:mm:ss), map, khu, số lần bị boss đánh chết (HS count).
+  4. Hiển thị tổng số boss đã hạ trực tiếp trên Bảng Thống Kê HUD (`ThongKe.java`).
+  5. Mở bảng Form xem chi tiết nhật ký qua lệnh chat `lb` / `logboss` / `tkb`, và reset đếm qua `rsb` / `resetboss`.
+  6. Lưu bộ đếm vào RMS (`boss_log_stats`) để không bị mất khi thoát game.
+- **Files tạo & thay đổi:** `src/BossLog.java`, `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/ThongKe.java`, `Aeharuna.jar`
+
+
+## 2026-08-29 (Session 5): Bổ Sung Thông Tin Map, TS Boss Ưu Tiên & Đếm Ngược Tự Sát Lên Bảng Thống Kê HUD
+- **Yêu cầu:** Mở rộng bảng thông tin thống kê (`ThongKe` / HUD trên màn hình khi bật Hiện Exp/Yên khi Up) hiển thị đầy đủ:
+  1. Trạng thái TS Boss Ưu Tiên (Bật/Tắt, tên loại boss đang săn, thời gian đếm ngược còn lại đến giờ boss spawn tiếp theo).
+  2. ID Map hiện tại, Khu hiện tại, Tọa độ X, Y hiện tại, và số quái sống trong map.
+  3. Thời gian đếm ngược Tự Sát nếu nhân vật đứng im quá lâu tại một vị trí (khi bật Auto Tự Sát trong Cài đặt tàn sát `TsConfig`).
+- **Chi tiết triển khai:**
+  - **Dòng 1:** `M<MapID> K<ZoneID> (<X>,<Y>) | <Số quái> quái` (Ví dụ: `M14 K29 (1250,480) | 18 quái`).
+  - **Dòng 2:** `T: <Thời gian> | Yên: +<Số yên> | Xu: +<Số xu> | Lượng: +<Số lượng>`.
+  - **Dòng 3:** `Exp: +<Tỉ lệ exp>% | Diệt: <Số quái diệt>`.
+  - **Dòng 4 (TS Boss):**
+    - Nếu bật TS Boss:
+      - Đang trong sự kiện săn: `TS Boss: Đang săn [<Tên>] (M<Map> K<Khu>)`
+      - Chuẩn bị (<30s): `TS Boss: Chuẩn bị [<Tên>] (còn <X>s)`
+      - Đếm ngược: `TS Boss: Bật [<Tên>] (Boss tới: <M>p<S>s)`
+    - Nếu tắt: `TS Boss: Tắt`.
+  - **Dòng 5 (Tự Sát):**
+    - Khi bật Auto Tự Sát: `Tự sát: còn <Còn lại>s (<Đã đứng>/<Timeout>s)` (hoặc `Tự sát: <Timeout>s (Đang di chuyển)` khi đổi tọa độ) — đã bỏ phần Khu và tọa độ ở dòng này vì đã có ở Dòng 1.
+  - Vị trí hiển thị: Đặt cố định ở bên trái `(x = 2, y = 150)` ngay phía trên nút di chuyển / D-pad, hiển thị đầy đủ và rõ ràng nhãn `Map: <ID> | Khu: <Zone>`.
+- **Files thay đổi:** `src/ThongKe.java`, `src/AutoBossEvent.java`, `src/AutoSuicide.java`, `Aeharuna.jar`
+
+
+## 2026-08-29 (Session 4): Thêm Tùy Chọn Bật/Tắt Săn Ngược Thứ Tự Map Cho Boss Map Ngoài & VDMQ
+- **Yêu cầu:** Thêm tính năng "Săn ngược map" trong Form Cài đặt Săn Boss (`BossConfig`). Khi bật, thay vì quét xuôi theo thứ tự map thông thường, bot sẽ quét ngược từ map cuối về map đầu.
+- **Quy tắc & Giải pháp:**
+  - **Map Ngoài:**
+    - Thứ tự xuôi (mặc định): `14, 15, 16, 44, 67, 70, 24, 41, 45, 18, 36, 54`
+    - Thứ tự ngược: `54, 36, 18, 45, 41, 24, 70, 67, 44, 16, 15, 14`
+  - **Vùng Đất Ma Quỷ (VDMQ):**
+    - Thứ tự xuôi (mặc định): `141, 142, 143`
+    - Thứ tự ngược: `143, 142, 141`
+  - Thêm checkbox **"Săn ngược (VDMQ & MapNgoài)"** vào Form **Cài đặt Săn Boss** (`BossConfig`), lưu RMS `boss_rev_hunt` (`isReverseMapHunt`).
+  - Cập nhật cả `AutoSanBoss.getMapsForBoss()` và `AutoBossEvent.getFirstMapForPriority()` (để khi pre-spawn chạy ra map đầu tiên chờ boss cũng nhận diện đúng map đầu theo chiều ngược: M54 hoặc M143).
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `src/BossConfig.java`, `Aeharuna.jar`
+
+
+## 2026-08-29 (Session 3): Cài Đặt Số Lần Hồi Sinh Tối Đa Khi Đánh Boss (Mặc Định 100 Lần / 0 = Vô Hạn)
+- **Vấn đề:** Trước đây code giới hạn cứng 10 lần chết (`deathCount > 10`), khi nhân vật bị boss đánh chết quá 10 lần thì bot sẽ tự động bỏ con boss đó (`break` thoát khỏi vòng lặp đánh boss).
+- **Quyết định & Giải pháp:**
+  - Nâng giới hạn mặc định từ **10 lần lên 100 lần** (`maxDeathRevive = 100`).
+  - Thêm ô nhập **"Số lần HS tối đa (0=vô hạn)"** vào Form **Cài đặt Săn Boss** (`BossConfig`), lưu RMS `boss_max_death`.
+  - Nếu đặt `0`: Bot sẽ hồi sinh không giới hạn (vô hạn lần) cho đến khi boss chết hoặc hết giờ săn boss.
+  - Áp dụng trên toàn bộ 8 điểm săn boss (PK Boss và Treo Boss): Map Ngoài, VDMQ, Map Server, Thế Giới, Làng Cổ, Map VIP 1, Map VIP 2.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/BossConfig.java`, `Aeharuna.jar`
+
+
+## 2026-08-29 (Session 2): Đảo Ngược Thứ Tự Tìm Boss Quét Từ Khu 29 Về Khu 0 (29 -> 0)
+- **Quyết định:** Đổi chiều quét khu tìm boss trên tất cả các chế độ săn boss (PK Boss và Treo Boss):
+  - Thay vì quét từ `scanZoneStart` lên `scanZoneEnd` (0 -> 29), đổi thành quét ngược từ `scanZoneEnd` về `scanZoneStart` (mặc định **29 -> 0**).
+  - Áp dụng trên toàn bộ các map: Map Ngoài, VDMQ, Map Server (M63), Thế Giới (M65), Chúa (M20), Map VIP 1 (M195), Map VIP 2 (M196).
+  - Map **Làng Cổ (M135, M136)**: Đổi thứ tự quét đủ 3 khu thành **K2 -> K1 -> K0** (2 -> 0).
+  - Hàm `setZoneRangeFromStr`: Tự động nhận diện cả hai dạng nhập `0-29` hoặc `29-0`, tự lấy `min` và `max` làm dải quét.
+- **Lý do:** Giúp nhân vật quét các khu số lớn (29, 28, 27...) trước, tìm thấy boss nhanh hơn so với người chơi quét thông thường (từ 0 lên 29).
+- **Files thay đổi:** `src/AutoSanBoss.java`, `Aeharuna.jar`
+
+
 ## 2026-08-29: Fix Lỗi Lưu Vị Trí & Quay Lại Map VIP (M195/M196) / Tu Luyện (M192) Sau Khi Săn Boss Ưu Tiên (TS Boss)
 - **Vấn đề:** Khi bật "TS VIP Map" hoặc "TS Tu Luyện", sau khi phiên săn boss kết thúc, nhân vật không quay lại Map VIP (195/196) hoặc Map Tu Luyện (192) như cũ.
 - **Nguyên nhân:**
