@@ -1157,37 +1157,37 @@ public final class AutoBossEvent implements Runnable {
                             }
                         }
 
-                        // Doi khu cu neu da vao dung map
-                        if (TileMap.mapID == targetNpcMap && zone >= 0 && TileMap.zoneID != zone) {
-                            Auto.gameAA(zone);
-                            for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
-                        }
-                        // Di chuyen ve toa do (x, y) da luu
-                        if (TileMap.mapID == targetNpcMap && targetX > 0 && targetY > 0) {
-                            try {
-                                Char.gameAE(targetX, targetY);
-                                Char.getMyChar().cx = targetX;
-                                Char.getMyChar().cy = targetY;
-                                Service.gI().gameAC(targetX, targetY);
-                                sleep(200L);
-                            } catch (Exception ex) {}
-                        }
+                        // Kiem tra da dung map chua truoc khi bat TS
+                        if (TileMap.mapID == targetNpcMap) {
+                            // Doi khu cu neu da vao dung map
+                            if (zone >= 0 && TileMap.zoneID != zone) {
+                                Auto.gameAA(zone);
+                                for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
+                            }
+                            // Di chuyen ve toa do (x, y) da luu
+                            if (targetX > 0 && targetY > 0) {
+                                try {
+                                    Char.gameAE(targetX, targetY);
+                                    Char.getMyChar().cx = targetX;
+                                    Char.getMyChar().cy = targetY;
+                                    Service.gI().gameAC(targetX, targetY);
+                                    sleep(200L);
+                                } catch (Exception ex) {}
+                            }
 
-                        // Khoi phuc auto
-                        if (oldAuto != null) {
-                            Code.gameAW = savedZoneIndex;
-                            Code.gameAB = oldAuto;
+                            // Khoi phuc auto tai dung map
+                            if (oldAuto != null) {
+                                Code.gameAW = savedZoneIndex;
+                                Code.gameAB = oldAuto;
+                            } else {
+                                Code.gameAW = savedZoneIndex;
+                                Code.gameAA(-1, targetNpcMap);
+                            }
                             AutoPickup.start();
                             TsBoost.onTsStarted();
-                            GameScr.gameAC("TSBoss: V\u1ec1 M" + targetNpcMap + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - ti\u1ebfp t\u1ee5c TS");
+                            GameScr.gameAC("TSBoss: \u0110\u00e3 v\u1ec1 \u0111\u00fang M" + targetNpcMap + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " -> Ti\u1ebfp t\u1ee5c TS");
                         } else {
-                            try {
-                                Code.gameAW = savedZoneIndex;
-                                Code.gameAA(-1, (int)TileMap.mapID);
-                                AutoPickup.start();
-                                TsBoost.onTsStarted();
-                            } catch (Exception e) {}
-                            GameScr.gameAC("TSBoss: V\u1ec1 M" + targetNpcMap + " K" + (zone >= 0 ? zone : TileMap.zoneID) + " - ti\u1ebfp t\u1ee5c TS");
+                            GameScr.gameAC("TSBoss: Ch\u01b0a v\u00e0o \u0111\u01b0\u1ee3c M" + targetNpcMap + " (hi\u1ec7n \u1edf M" + TileMap.mapID + "), KH\u00d4NG b\u1eadt TS sai map!");
                         }
                         return;
                     }
@@ -1233,39 +1233,39 @@ public final class AutoBossEvent implements Runnable {
                         if (Code.gameAB == travelFinal) Code.gameAB = null;
                     }
 
-                    // Doi khu cu
-                    if (TileMap.mapID == map && zone >= 0 && TileMap.zoneID != zone) {
-                        Auto.gameAA(zone);
-                        for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
-                    }
-                    // Di chuyen ve toa do (x, y) da luu
-                    if (TileMap.mapID == map && targetX > 0 && targetY > 0) {
-                        try {
-                            Char.gameAE(targetX, targetY);
-                            Char.getMyChar().cx = targetX;
-                            Char.getMyChar().cy = targetY;
-                            Service.gI().gameAC(targetX, targetY);
-                            sleep(200L);
-                        } catch (Exception ex) {}
-                    }
-                } catch (Exception e) {}
-                // Khoi phuc auto: dung saved neu co, khong thi restart TS
-                if (oldAuto != null) {
-                    Code.gameAW = savedZoneIndex; // Khoi phuc vi tri khu tuan tu
-                    Code.gameAB = oldAuto;
-                    AutoPickup.start();
-                    TsBoost.onTsStarted();
-                    GameScr.gameAC("TSBoss: V\u1ec1 M" + map + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " - ti\u1ebfp t\u1ee5c TS");
-                } else {
-                    // Fallback: khong co auto cu -> restart TanSat tai map hien tai
-                    try {
-                        Code.gameAW = savedZoneIndex;
-                        Code.gameAA(-1, (int)TileMap.mapID);
+                    // KIEM TRA CHAT CHE: Chi khi da ve DUNG MAP GOC moi khoi phuc TS!
+                    if (TileMap.mapID == map) {
+                        // Doi khu cu
+                        if (zone >= 0 && TileMap.zoneID != zone) {
+                            Auto.gameAA(zone);
+                            for (int i = 0; i < 1000 && TileMap.zoneID != zone; i++) sleep(10L);
+                        }
+                        // Di chuyen ve toa do (x, y) da luu
+                        if (targetX > 0 && targetY > 0) {
+                            try {
+                                Char.gameAE(targetX, targetY);
+                                Char.getMyChar().cx = targetX;
+                                Char.getMyChar().cy = targetY;
+                                Service.gI().gameAC(targetX, targetY);
+                                sleep(200L);
+                            } catch (Exception ex) {}
+                        }
+
+                        // Khoi phuc auto: dung saved neu co, khong thi restart TS
+                        if (oldAuto != null) {
+                            Code.gameAW = savedZoneIndex; // Khoi phuc vi tri khu tuan tu
+                            Code.gameAB = oldAuto;
+                        } else {
+                            Code.gameAW = savedZoneIndex;
+                            Code.gameAA(-1, (int) map);
+                        }
                         AutoPickup.start();
                         TsBoost.onTsStarted();
-                    } catch (Exception e) {}
-                    GameScr.gameAC("TSBoss: V\u1ec1 M" + map + " K" + (zone >= 0 ? zone : TileMap.zoneID) + " - b\u1eadt l\u1ea1i TS m\u1edbi");
-                }
+                        GameScr.gameAC("TSBoss: \u0110\u00e3 v\u1ec1 \u0111\u00fang Map G\u1ed1c M" + map + " K" + (zone >= 0 ? zone : TileMap.zoneID) + (targetX > 0 ? " (" + targetX + "," + targetY + ")" : "") + " -> Kh\u00f4i ph\u1ee5c TS!");
+                    } else {
+                        GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u01b0\u1ee3c Map G\u1ed1c M" + map + " (hi\u1ec7n \u1edf M" + TileMap.mapID + "), KH\u00d4NG b\u1eadt TS sai map!");
+                    }
+                } catch (Exception e) {}
             }
         }).start();
     }
