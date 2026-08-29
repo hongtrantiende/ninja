@@ -1332,6 +1332,19 @@ public final class AutoBossEvent implements Runnable {
         } catch (Exception e) {}
     }
 
+    /** Reset hoan toan vi tri farm khi nguoi dung chu dong tat TS */
+    public static void resetSavedFarmState() {
+        savedMap = -1;
+        savedZone = -1;
+        savedX = -1;
+        savedY = -1;
+        savedZoneIndex = 0;
+        savedAuto = null;
+        clearSavedStateRMS();
+        AutoVipMap.isEnabled = false;
+        AutoTuLuyen.isEnabled = false;
+    }
+
     /** Luu isEnabled + eventPriority + extraRounds + preSpawnBreakSec vao RMS */
     public static void saveConfigToRMS() {
         try {

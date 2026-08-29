@@ -17,6 +17,9 @@ public class ChatRouter {
 
     /** Hook cho nut Tat Auto trong menu GameScr. */
     public static void stopCurrentAuto() {
+        if (!AutoBossEvent.inEvent) {
+            AutoBossEvent.resetSavedFarmState();
+        }
         AutoBossEvent.cancelAll();
         if (AutoLevel.isRunning) AutoLevel.stop();
         if (AutoSanBoss.isRunning) AutoSanBoss.stop();
@@ -365,6 +368,10 @@ public class ChatRouter {
                     AutoPickup.stop();
                     // Khoi phuc hieu ung skill
                     Code.timBG = false;
+                    // Reset map goc khi nguoi dung chu dong tat TS
+                    if (!AutoBossEvent.inEvent) {
+                        AutoBossEvent.resetSavedFarmState();
+                    }
                     GameScr.gameAC("TS OFF!");
                 } else {
                     AutoPickup.syncAfterAutoCommand();
