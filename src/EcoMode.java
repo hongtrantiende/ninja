@@ -110,6 +110,8 @@ public class EcoMode {
             if (gainYen < 0) gainYen = 0;
             int gainXu = myChar.xu - ThongKe.startXu;
             if (gainXu < 0) gainXu = 0;
+            int gainLuong = myChar.luong - ThongKe.startLuong;
+            if (gainLuong < 0) gainLuong = 0;
 
             int totalBoss = BossLog.getTotalKills();
 
@@ -173,7 +175,7 @@ public class EcoMode {
                 if (lastX != -1 && lastY != -1 && cx == lastX && cy == lastY) {
                     tuSatLine = "T\u1ef1 s\u00e1t: c\u00f2n " + remainSec + "s (" + idleSec + "/" + timeoutSec + "s)";
                 } else {
-                    tuSatLine = "T\u1ef1 s\u00e1t: " + timeoutSec + "s (\u0110ang di chuy\u1ec3n)";
+                    tuSatLine = "T\u1ef1 s\u00e1t: Ch\u1edd \u0111\u1ee9ng im (" + timeoutSec + "s)";
                 }
             }
 
@@ -214,8 +216,8 @@ public class EcoMode {
             mFont.tahoma_7_white.gameAA(ecoGraphics, myChar.cName + " (Lv." + myChar.clevel + ") | HP: " + hpPercent + "% | MP: " + mpPercent + "%", centerX, startY, 2);
             startY += lineH;
 
-            // Dong 3: Yen, Xu & Quai diet (Can giua, vang)
-            mFont.tahoma_7_yellow.gameAA(ecoGraphics, "Y\u00ean: +" + gainYen + " | Xu: +" + gainXu + " | Di\u1ec7t: " + ThongKe.kills + " qu\u00e1i", centerX, startY, 2);
+            // Dong 3: Yen, Xu, Luong & Quai diet (Can giua, vang)
+            mFont.tahoma_7_yellow.gameAA(ecoGraphics, "Y\u00ean: +" + gainYen + " | Xu: +" + gainXu + " | L\u01b0\u1ee3ng: +" + gainLuong + " | Di\u1ec7t: " + ThongKe.kills, centerX, startY, 2);
             startY += lineH;
 
             // Dong 4: Boss da ha & Trang thai (Can giua, vang)
