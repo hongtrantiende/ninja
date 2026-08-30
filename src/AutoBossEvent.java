@@ -606,12 +606,18 @@ public final class AutoBossEvent implements Runnable {
 
         // Goi NPC VIP (type 47, option 4) vao M195
         GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M195...");
-        for (int retry = 0; retry < 3 && isEnabled; retry++) {
+        for (int retry = 0; retry < 5 && isEnabled; retry++) {
             if (TileMap.mapID == 195) return;
             try {
-                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
+                GameCanvas.endDlg();
+                try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                sleep(50L);
+                // Goi NPC bang Service packet (khong bi block boi UI)
+                Service.gI().gameAH(47);
+                sleep(50L);
+                Service.gI().gameAC(47, AutoVipMap.menuOption, 0);
             } catch (Exception e) {
-                sleep(3000L);
+                sleep(2000L);
                 continue;
             }
             // Cho vao map (toi da 15s)
@@ -676,12 +682,18 @@ public final class AutoBossEvent implements Runnable {
 
         // Goi NPC VIP (type 47, option 5) vao M196
         GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M196...");
-        for (int retry = 0; retry < 3 && isEnabled; retry++) {
+        for (int retry = 0; retry < 5 && isEnabled; retry++) {
             if (TileMap.mapID == 196) return;
             try {
-                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption + 1, 0);
+                GameCanvas.endDlg();
+                try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                sleep(50L);
+                // Goi NPC bang Service packet (khong bi block boi UI)
+                Service.gI().gameAH(47);
+                sleep(50L);
+                Service.gI().gameAC(47, AutoVipMap.menuOption + 1, 0);
             } catch (Exception e) {
-                sleep(1000L);
+                sleep(2000L);
                 continue;
             }
             for (int w = 0; w < 150 && isEnabled; w++) {
@@ -691,7 +703,7 @@ public final class AutoBossEvent implements Runnable {
                     return;
                 }
             }
-            sleep(500L);
+            sleep(2000L);
         }
     }
 
@@ -1166,21 +1178,31 @@ public final class AutoBossEvent implements Runnable {
                                     sleep(150L);
                                 } catch (Exception ex) { break; }
                             }
-                            sleep(500L);
+                            sleep(800L);
 
                             // Goi NPC 47 de vao targetNpcMap
                             GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M" + targetNpcMap + "...");
                             for (int retry = 0; retry < 5 && TileMap.mapID != targetNpcMap; retry++) {
                                 try {
-                                    GameScr.gameAB(47, npcOption, 0);
+                                    // Dismiss moi dialog/NPC menu dang mo
+                                    GameCanvas.endDlg();
+                                    try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                                    sleep(50L);
+                                    // Goi NPC bang Service packet (khong bi block boi UI)
+                                    Service.gI().gameAH(47);
+                                    sleep(50L);
+                                    Service.gI().gameAC(47, npcOption, 0);
                                 } catch (Exception e) {
-                                    sleep(1000L);
+                                    sleep(2000L);
                                     continue;
                                 }
                                 for (int w = 0; w < 150 && TileMap.mapID != targetNpcMap; w++) {
                                     sleep(100L);
                                 }
-                                if (TileMap.mapID != targetNpcMap) sleep(1000L);
+                                if (TileMap.mapID != targetNpcMap) {
+                                    GameScr.gameAC("TSBoss: NPC VIP th\u1eed l\u1ea1i l\u1ea7n " + (retry + 2) + "...");
+                                    sleep(2000L);
+                                }
                             }
                         }
 

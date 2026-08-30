@@ -28,7 +28,8 @@ public final class ShortcutHandler {
             return;
         if (keycode == 96) {
             GameCanvas.gameBR = 0;
-            if (Code.gameAB instanceof TanSat) {
+            if (hasAnyAuto()) {
+                // Tat toan bo auto (TS, San Boss, TS Boss, Map VIP, Tu Luyen)
                 ChatRouter.stopCurrentAuto();
             } else {
                 Code.gameAA(-1, (int) TileMap.mapID);

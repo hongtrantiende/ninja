@@ -23,6 +23,13 @@ public class ChatRouter {
         AutoBossEvent.cancelAll();
         if (AutoLevel.isRunning) AutoLevel.stop();
         if (AutoSanBoss.isRunning) AutoSanBoss.stop();
+        // Tat auto re-enter Map VIP / Tu Luyen
+        AutoVipMap.isEnabled = false;
+        AutoTuLuyen.isEnabled = false;
+        // Dung AutoSuicide / AutoJump (chi dung thread, KHONG tat isEnabled
+        // de khi bat TS lai thi AutoSuicide tu dong chay lai)
+        AutoSuicide.stop();
+        AutoSuicide.stopJump();
         TsBoost.onTsStopped();
         AutoPickup.stop();
         // Khoi phuc hieu ung skill
@@ -446,5 +453,9 @@ public class ChatRouter {
 
         // 2. Luu map goc cho TS Boss Uu Tien & Reconnect
         AutoBossEvent.saveLocalState();
+
+        // 3. Khoi dong lai AutoSuicide/AutoJump neu da bat trong cai dat
+        AutoSuicide.start();
+        AutoSuicide.startJump();
     }
 }

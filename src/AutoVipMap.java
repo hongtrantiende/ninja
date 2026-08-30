@@ -126,7 +126,7 @@ public final class AutoVipMap {
         if (!isEnabled) return;
 
         // Cho nhan vat on dinh (vua respawn xong)
-        sleep(2000);
+        sleep(1000);
 
         // Neu da o map target roi thi khong can lam gi
         if (TileMap.mapID == targetMapID) return;
@@ -137,11 +137,18 @@ public final class AutoVipMap {
         for (int retry = 0; retry < 5 && isEnabled; retry++) {
             if (TileMap.mapID == targetMapID) break;
 
-            // Talk NPC VIP voi option "Map Up Luong" (o thu 5, index 4 cho M195; o thu 6, index 5 cho M196)
+            // Dismiss dialog/NPC menu dang mo
+            try { GameCanvas.endDlg(); } catch (Exception e2) {}
+            try { InfoDlg.gameAB(); } catch (Exception e3) {}
+            sleep(50);
+
+            // Goi NPC bang Service packet (khong bi block boi UI)
             try {
-                GameScr.gameAB(npcType, menuOption, 0);
+                Service.gI().gameAH(npcType);
+                sleep(50);
+                Service.gI().gameAC(npcType, menuOption, 0);
             } catch (Exception e) {
-                GameScr.gameAC("AutoVIP: Kh\u00f4ng t\u00ecm th\u1ea5y NPC VIP!");
+                GameScr.gameAC("AutoVIP: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC!");
                 sleep(3000);
                 continue;
             }
