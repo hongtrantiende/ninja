@@ -367,6 +367,43 @@ public class ChatRouter {
             }
             return true;
         }
+
+        // === ROLL TAQ: AC DUNG (auto accept GD, gui the roll, nhan VP) ===
+        if (text.equals("rolldung")) {
+            AutoRollTAQDung.isAuto = !AutoRollTAQDung.isAuto;
+            if (AutoRollTAQDung.isAuto) {
+                GameScr.gameAC("B\u1eadt \u1eb6c \u0110\u1ee9ng Roll TAQ! Ch\u1edd clone GD...");
+                new Thread(new AutoRollTAQDung()).start();
+            } else {
+                GameScr.gameAC("T\u1eaft \u1eb6c \u0110\u1ee9ng Roll TAQ!");
+            }
+            return true;
+        }
+
+        // === ROLL TAQ: AC CLONE (Nhap code -> Lay the roll -> Roll 5s -> Tra sach do -> Dung) ===
+        // Format: rollclone TenAcDung (hoặc chỉ vào ặc đứng rồi gõ rollclone)
+        if (text.startsWith("rollclone")) {
+            if (AutoRollTAQClone.isAuto) {
+                AutoRollTAQClone.isAuto = false;
+                GameScr.gameAC("T\u1eaft Roll Clone!");
+                return true;
+            }
+            String[] parts = text.split(" ");
+            if (parts.length >= 2) {
+                AutoRollTAQClone.tenAcDung = parts[1];
+            } else if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
+                AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
+            }
+            if (AutoRollTAQClone.tenAcDung == null || AutoRollTAQClone.tenAcDung.length() == 0) {
+                GameScr.gameAC("C\u00fa ph\u00e1p: rollclone TenAcDung");
+                GameScr.gameAC("Ho\u1eb7c ch\u1ec9 v\u00e0o \u1eb7c \u0111\u1ee9ng r\u1ed3i g\u00f5 rollclone");
+                return true;
+            }
+            AutoRollTAQClone.isAuto = true;
+            GameScr.gameAC("B\u1eadt Roll Clone! \u1eb6c \u0111\u1ee9ng nh\u1eadn \u0111\u1ed3: " + AutoRollTAQClone.tenAcDung);
+            new Thread(new AutoRollTAQClone()).start();
+            return true;
+        }
         
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {

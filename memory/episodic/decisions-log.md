@@ -1,5 +1,11 @@
 # Decisions Log
 
+## 2026-09-01 (Session 11): Tool Auto Roll Trái Ác Quỷ (TAQ) Cho Ặc Đứng & Clone
+- **Yêu cầu:** Xây dựng hệ thống tự động nhận code, lấy thẻ roll, roll TAQ và chuyển đồ:
+  1. `AutoRollTAQDung` (Lệnh chat `rolldung`): Ặc đứng tự động chấp nhận mọi lời mời giao dịch từ clone (tự bấm Có), tự phát hiện clone lấy thẻ (đưa 1 thẻ ID 905) hoặc clone trả đồ (nhận đồ), tự động khóa & đồng ý giao dịch, tự sắp xếp hành trang.
+  2. `AutoRollTAQClone` (Lệnh chat `rollclone [TenAcDung]`): Ặc clone tự động tới NPC 24 chọn ô 4 nhập code `aeharuna` ➔ Tới ặc đứng GD nhận thẻ Roll TAQ (ID 905) ➔ Bật Auto TAQ 5 giây ➔ Tới ặc đứng GD trả SẠCH TOÀN BỘ đồ trong hành trang ➔ Dừng auto.
+- **Files tạo & thay đổi:** `src/AutoRollTAQDung.java`, `src/AutoRollTAQClone.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`, `Aeharuna.jar`
+
 ## 2026-08-29 (Session 10): Giới Hạn Tối Đa 6 Phút Săn Boss (Auto-Abort Timeout) & Đếm Ngược Thời Gian Săn Trên Eco Mode
 - **Yêu cầu:**
   1. Khi đang ở trạng thái săn boss (cả `AutoBossEvent.inEvent` và `AutoSanBoss.isRunning`), nếu thời gian săn vượt quá 6 phút (360s), hệ thống phải tự động ngắt săn boss (`stop()` / `finishEvent()`) và tự động kích hoạt hành trình trở về đúng Map Gốc TS để tiếp tục farm, tránh bị kẹt treo săn boss mãi mãi khi boss đã bị người khác ăn mất hoặc lag không tìm thấy.
