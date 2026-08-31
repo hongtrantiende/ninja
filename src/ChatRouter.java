@@ -32,6 +32,7 @@ public class ChatRouter {
         AutoSuicide.stopJump();
         TsBoost.onTsStopped();
         AutoPickup.stop();
+        AutoTAQ.isAuto = false;
         // Khoi phuc hieu ung skill
         Code.timBG = false;
         Code.gameAF();
@@ -352,6 +353,18 @@ public class ChatRouter {
         // === TIET KIEM PIN & CPU (ECO MODE) ===
         if (text.equals("eco") || text.equals("sleep") || text.equals("tkp") || text.equals("pin")) {
             EcoMode.toggle();
+            return true;
+        }
+
+        // === AUTO TRAI AC QUY (SPAM NPC 51 + SAP XEP RUONG & HANH TRANG) ===
+        if (text.equals("taq") || text.equals("traiacquy")) {
+            AutoTAQ.isAuto = !AutoTAQ.isAuto;
+            if (AutoTAQ.isAuto) {
+                GameScr.gameAC("B\u1eadt Auto Tr\u00e1i \u00c1c Qu\u1ef7 (NPC 51)!");
+                new Thread(new AutoTAQ()).start();
+            } else {
+                GameScr.gameAC("T\u1eaft Auto Tr\u00e1i \u00c1c Qu\u1ef7!");
+            }
             return true;
         }
         

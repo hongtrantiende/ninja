@@ -1306,6 +1306,16 @@ implements Runnable {
             }
             return true;
         }
+        if (var31.equals("taq") || var31.equals("traiacquy")) {
+            AutoTAQ.isAuto = !AutoTAQ.isAuto;
+            if (AutoTAQ.isAuto) {
+                GameScr.gameAC("B\u1eadt Auto Tr\u00e1i \u00c1c Qu\u1ef7 (NPC 51)!");
+                new Thread(new AutoTAQ()).start();
+            } else {
+                GameScr.gameAC("T\u1eaft Auto Tr\u00e1i \u00c1c Qu\u1ef7!");
+            }
+            return true;
+        }
         if (var31.equals("check")) {
             AutoGoiVe.gameAC = true;
             new Thread(new AutoGoiVe(var1)).start();
