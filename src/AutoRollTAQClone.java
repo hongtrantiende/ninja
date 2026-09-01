@@ -49,12 +49,13 @@ public class AutoRollTAQClone implements Runnable {
                     String user = acc[0];
                     String pass = acc[1];
 
-                    GameScr.gameAC("[Clone] [" + (a + 1) + "/" + total + "] >>> \u0110ang \u0111\u0103ng nh\u1eadp: " + user + " <<<");
+                    String nextAcc = (a + 1 < total) ? ((String[]) accountList.elementAt(a + 1))[0] : "H\u1ebfT";
+                    GameScr.gameAC("[Clone] [" + (a + 1) + "/" + total + "] >>> \u0110ang ch\u1ea1y TK: " + user + " <<<");
 
                     // 1. Đăng nhập và tạo/chọn NV
                     boolean loginOk = AutoLogin.doLogin(user, pass);
                     if (!loginOk) {
-                        GameScr.gameAC("[Clone] \u0110\u0103ng nh\u1eadp " + user + " th\u1ea5t b\u1ea1i/timeout! B\u1ecf qua sang acc ti\u1ebfp theo.");
+                        GameScr.gameAC("[Clone] \u0110\u0103ng nh\u1eadp " + user + " th\u1ea5t b\u1ea1i/timeout! Chuy\u1ec3n sang: " + nextAcc);
                         Auto.Sleep(2000L);
                         continue;
                     }
@@ -65,7 +66,7 @@ public class AutoRollTAQClone implements Runnable {
                     // 2. Chạy quy trình 4 bước Roll TAQ
                     doSingleAccountRoll();
 
-                    GameScr.gameAC("[Clone] === XONG T\u00c0I KHO\u1ea2N " + user + " (" + (a + 1) + "/" + total + ")! ===");
+                    GameScr.gameAC("[Clone] === HO\u00c0N T\u1ea4T TK: " + user + " (" + (a + 1) + "/" + total + ")! Ti\u1ebfp theo: " + nextAcc + " ===");
                     Auto.Sleep(2000L);
                 }
 

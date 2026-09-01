@@ -51,6 +51,14 @@ public class AutoLogin implements Runnable {
             } catch (Exception e) {}
             Auto.Sleep(1000L);
 
+            // Đồng bộ tên tài khoản lên màn hình đăng nhập
+            try {
+                SelectServerScr.uname = user;
+                SelectServerScr.pass = pass;
+                RMS.gameAA("acc", user);
+                RMS.gameAA("pass", pass);
+            } catch (Exception e) {}
+
             // Chuyển màn hình về LoginScr
             try {
                 if (GameCanvas.loginScr != null) {
