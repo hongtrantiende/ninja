@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-09-01 (Session 13): Nâng Cấp Auto Roll TAQ Clone Chạy Liên Hoàn Danh Sách Tài Khoản
+- **Yêu cầu:** Nâng cấp lệnh `rollclone` cho phép tự động lặp qua danh sách tài khoản liên hoàn:
+  1. `AutoRollTAQClone.java`: Hỗ trợ `accountList` tự động chuyển tài khoản sau mỗi vòng roll:
+     - Đăng xuất ➔ Đăng nhập tài khoản mới (tự tạo NV sạch nếu chưa có) ➔ Nhập code NPC 24 ➔ Lấy thẻ Roll TAQ từ ặc đứng ➔ Bật Auto TAQ 5s ➔ Trả sạch đồ cho ặc đứng ➔ Đăng xuất chuyển sang tài khoản kế tiếp.
+  2. Các cú pháp hỗ trợ:
+     - `rollclone onjnvip1 cacao1` (chạy từ `cacao1` ➔ `cacao20`, pass `000000`)
+     - `rollclone onjnvip1 all` (chạy toàn bộ 9 nhóm tài khoản 180 acc: `cacao`, `caphe`, `matcha`, `sinhto`, `traxanh`, `trasua`, `nuocmia`, `suachua`, `tangluc`)
+     - `rollclone onjnvip1 121vaicalon` (chạy nhóm `121vaicalon` ➔ `320vaicalon`, pass `azoazo`)
+- **Files tạo & thay đổi:** `src/AutoRollTAQClone.java`, `src/AutoLogin.java`, `src/ChatRouter.java`, `Aeharuna.jar`
+
+
 ## 2026-09-01 (Session 12): Tool Auto Đăng Nhập / Đổi Tài Khoản & Tự Động Tạo Nhân Vật (AutoLogin)
 - **Yêu cầu:** Xây dựng hệ thống tự động đăng xuất, đăng nhập tài khoản mới và tự động tạo nhân vật nếu tài khoản chưa có nhân vật:
   1. `AutoLogin.java`: Tự ngắt kết nối socket, quay về màn hình `LoginScr`, kết nối lại server và gửi gói tin đăng nhập `Service.gI().gameAA(username, password, "1.8.8")`.

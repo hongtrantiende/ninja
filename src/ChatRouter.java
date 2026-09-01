@@ -407,26 +407,55 @@ public class ChatRouter {
         }
 
         // === ROLL TAQ: AC CLONE (Nhap code -> Lay the roll -> Roll 5s -> Tra sach do -> Dung) ===
-        // Format: rollclone TenAcDung (hoặc chỉ vào ặc đứng rồi gõ rollclone)
+        // Cú pháp 1: rollclone onjnvip1 cacao1 (chạy liên hoàn cacao1 -> cacao20)
+        // Cú pháp 2: rollclone onjnvip1 all (chạy toàn bộ 9 nhóm tài khoản)
+        // Cú pháp 3: rollclone onjnvip1 (chạy 1 lần trên tài khoản hiện tại)
         if (text.startsWith("rollclone")) {
             if (AutoRollTAQClone.isAuto) {
                 AutoRollTAQClone.isAuto = false;
+                AutoRollTAQClone.accountList.removeAllElements();
                 GameScr.gameAC("T\u1eaft Roll Clone!");
                 return true;
             }
             String[] parts = text.split(" ");
-            if (parts.length >= 2) {
+            AutoRollTAQClone.tenAcDung = null;
+            AutoRollTAQClone.accountList = new java.util.Vector();
+
+            if (parts.length >= 3) {
                 AutoRollTAQClone.tenAcDung = parts[1];
+                AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(parts[2]);
+            } else if (parts.length == 2) {
+                String param = parts[1];
+                // Kiểm tra xem param là "all" hoặc bắt đầu bằng tên nhóm (cacao, caphe, ...) không
+                if (param.equalsIgnoreCase("all") || param.startsWith("cacao") || param.startsWith("caphe") ||
+                    param.startsWith("matcha") || param.startsWith("sinhto") || param.startsWith("traxanh") ||
+                    param.startsWith("trasua") || param.startsWith("nuocmia") || param.startsWith("suachua") ||
+                    param.startsWith("tangluc") || param.endsWith("vaicalon")) {
+                    // Nếu đang focus ặc đứng thì lấy tên từ focus
+                    if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
+                        AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
+                    }
+                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(param);
+                } else {
+                    AutoRollTAQClone.tenAcDung = param;
+                }
             } else if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
                 AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
             }
+
             if (AutoRollTAQClone.tenAcDung == null || AutoRollTAQClone.tenAcDung.length() == 0) {
-                GameScr.gameAC("C\u00fa ph\u00e1p: rollclone TenAcDung");
-                GameScr.gameAC("Ho\u1eb7c ch\u1ec9 v\u00e0o \u1eb7c \u0111\u1ee9ng r\u1ed3i g\u00f5 rollclone");
+                GameScr.gameAC("C\u00fa ph\u00e1p: rollclone TenAcDung [TaiKhoan / all]");
+                GameScr.gameAC("V\u00ed d\u1ee5: rollclone onjnvip1 cacao1");
+                GameScr.gameAC("Ho\u1eb7c: rollclone onjnvip1 all");
                 return true;
             }
+
             AutoRollTAQClone.isAuto = true;
-            GameScr.gameAC("B\u1eadt Roll Clone! \u1eb6c \u0111\u1ee9ng nh\u1eadn \u0111\u1ed3: " + AutoRollTAQClone.tenAcDung);
+            if (!AutoRollTAQClone.accountList.isEmpty()) {
+                GameScr.gameAC("B\u1eadt Roll Clone li\u00ean ho\u00e0n: " + AutoRollTAQClone.accountList.size() + " acc -> \u1eb6c nh\u1eadn: " + AutoRollTAQClone.tenAcDung);
+            } else {
+                GameScr.gameAC("B\u1eadt Roll Clone (1 acc) -> \u1eb6c nh\u1eadn: " + AutoRollTAQClone.tenAcDung);
+            }
             new Thread(new AutoRollTAQClone()).start();
             return true;
         }

@@ -1,5 +1,16 @@
 # Lessons Learned
 
+## 2026-09-01: Phân Biệt InfoDlg.gameAB() (Hiển thị) vs InfoDlg.gameAD() (Đóng dialog) & Bộ Lọc Từ Cấm Tạo Nhân Vật
+- **Nguyên nhân bug kẹt xoay xoay:** Trong mã nguồn obfuscated Ninja School:
+  - `InfoDlg.gameAB()` thực chất là hàm **HIỂN THỊ** bảng "Đang tải dữ liệu..." (với `gameAF = true` vẽ biểu tượng xoay xoay ở góc trên trong 5000 frame ~ 3 phút và khóa di chuyển).
+  - Hàm **ĐÓNG/HỦY DIALOG** thực sự là `InfoDlg.gameAD()`.
+  - Nếu gọi `InfoDlg.gameAB()` với ý định đóng dialog thì sẽ phản tác dụng, khiến màn hình bị kẹt xoay xoay và nhân vật không di chuyển được.
+- **Bộ lọc từ cấm khi tạo nhân vật:** Server chặn các chuỗi chứa `cac` (như trong `cacao`), `lon`, `vai` (như trong `vaicalon`). Cần dùng helper `getCleanCharName()` chuyển đổi sang `kacao`, `vcalon` để tạo nhân vật thành công 100%.
+- **Quy tắc vàng:**
+  1. Khi cần tắt bảng loading/xoay xoay, LUÔN gọi `InfoDlg.gameAD()` kết hợp `GameCanvas.isLoading = false`, `GameCanvas.endDlg()`, `LockGame.gameBK()`.
+  2. Mở khóa di chuyển: `Char.getMyChar().isLockMove = false`.
+
+
 ## 2026-08-29: Map VIP (195/196) & Tu Luyện (192) trong TS Boss Ưu Tiên
 - **Nguyên nhân bug:** Khi tối ưu TS Boss lưu vị trí farm vào RMS, `saveLocalState()` đã lọc bỏ Map VIP (195, 196) vì nhầm lẫn với map boss tạm thời (như Làng Cổ 135/136). Khi người dùng đang cắm farm tàn sát tại Map VIP hoặc Tu Luyện, `savedMap` bị gán `-1` dẫn tới `returnAndResume()` thoát sớm (`if (map < 0) return;`) và không tự động quay lại map.
 - **Quy tắc vàng:**

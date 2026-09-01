@@ -24,7 +24,24 @@ public class AutoLogin implements Runnable {
         }
         isRunning = true;
         try {
-            GameScr.gameAC("[AutoLogin] B\u1eaft \u0111\u1ea7u \u0111\u1ed5i sang TK: " + username + "...");
+            doLogin(username, password);
+        } catch (Exception e) {
+            GameScr.gameAC("[AutoLogin] L\u1ed7i: " + e.getMessage());
+        } finally {
+            isRunning = false;
+        }
+    }
+
+    /**
+     * Phương thức tĩnh thực hiện toàn bộ luồng đăng nhập & chọn/tạo nhân vật.
+     * @return true nếu vào game thành công, false nếu thất bại/timeout.
+     */
+    public static boolean doLogin(String user, String pass) {
+        if (user == null || user.length() == 0) return false;
+        if (pass == null || pass.length() == 0) pass = "000000";
+
+        try {
+            GameScr.gameAC("[AutoLogin] B\u1eaft \u0111\u1ea7u \u0111\u1ed5i sang TK: " + user + "...");
 
             // 1. Đăng xuất nếu đang trong game
             try {
@@ -57,7 +74,7 @@ public class AutoLogin implements Runnable {
             Auto.Sleep(1000L);
 
             // Gửi gói tin đăng nhập
-            Service.gI().gameAA(username, password, "1.8.8");
+            Service.gI().gameAA(user, pass, "1.8.8");
             LoginScr.isLoggingIn = true;
             GameScr.gameAC("[AutoLogin] \u0110\u00e3 g\u1eedi th\u00f4ng tin \u0111\u0103ng nh\u1eadp...");
 
@@ -65,7 +82,7 @@ public class AutoLogin implements Runnable {
             long start = System.currentTimeMillis();
             int createAttempts = 0;
 
-            while (isRunning && System.currentTimeMillis() - start < 35000) {
+            while (System.currentTimeMillis() - start < 35000) {
                 Auto.Sleep(300L);
 
                 // TRƯỜNG HỢP A: Đã vào game thành công (GameScr)
@@ -74,17 +91,17 @@ public class AutoLogin implements Runnable {
                     if (myChar != null && myChar.cName != null && myChar.cName.length() > 0) {
                         GameCanvas.isLoading = false;
                         GameCanvas.endDlg();
-                        InfoDlg.gameAD(); // Tắt hoàn toàn biểu tượng loading xoay xoay
-                        LockGame.gameBK(); // Mở khóa di chuyển và thao tác
+                        InfoDlg.gameAD();
+                        LockGame.gameBK();
                         try {
                             myChar.isLockMove = false;
                             myChar.isLockAttack = false;
                         } catch (Exception e) {}
 
                         GameScr.gameAC("[AutoLogin] === \u0110\u0102NG NH\u1eacP TH\u00c0NH C\u00d4NG! ===");
-                        GameScr.gameAC("[AutoLogin] T\u00e0i kho\u1ea3n: " + username + " (NV: " + myChar.cName + ")");
-                        InfoMe.gameAA("\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng: " + username);
-                        break;
+                        GameScr.gameAC("[AutoLogin] T\u00e0i kho\u1ea3n: " + user + " (NV: " + myChar.cName + ")");
+                        InfoMe.gameAA("\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng: " + user);
+                        return true;
                     }
                 }
 
@@ -109,7 +126,7 @@ public class AutoLogin implements Runnable {
                         Auto.Sleep(2000L);
                     } else {
                         // Chưa có nhân vật -> Tạo nhân vật mới với tên sạch (tránh lọc từ tục)
-                        String charName = getCleanCharName(username, createAttempts++);
+                        String charName = getCleanCharName(user, createAttempts++);
                         GameScr.gameAC("[AutoLogin] T\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
                         Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
                         Auto.Sleep(2500L);
@@ -119,7 +136,7 @@ public class AutoLogin implements Runnable {
 
                 // TRƯỜNG HỢP C: Màn hình tạo nhân vật (CreateCharScr)
                 if (GameCanvas.currentScreen == CreateCharScr.gameAA()) {
-                    String charName = getCleanCharName(username, createAttempts++);
+                    String charName = getCleanCharName(user, createAttempts++);
                     GameScr.gameAC("[AutoLogin] \u0110ang t\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
                     Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
                     Auto.Sleep(2500L);
@@ -133,8 +150,8 @@ public class AutoLogin implements Runnable {
             GameCanvas.isLoading = false;
             InfoDlg.gameAD();
             LockGame.gameBK();
-            isRunning = false;
         }
+        return false;
     }
 
     /**

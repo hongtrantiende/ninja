@@ -1,21 +1,29 @@
+import java.util.Vector;
+
 /**
  * AutoRollTAQClone — Bên ẶC ROLL (Emulator 2).
  *
  * Chức năng:
- * - Bạn tự đăng nhập tài khoản clone vào game.
- * - Gõ chat: "rollclone [tên ặc đứng]" (hoặc chỉ cần click ặc đứng rồi gõ "rollclone").
- * - Bot sẽ tự động:
- *   1. Đến NPC 24 -> Ô 4 "Nhập code" -> điền "aeharuna" -> bấm Đồng ý.
- *   2. Đến ặc đứng -> GD nhận thẻ Roll TAQ (ID 905).
- *   3. Bật Auto TAQ (NPC 51) trong 5 giây -> Tắt Auto TAQ.
- *   4. Đến ặc đứng -> GD trả SẠCH TẤT CẢ vật phẩm trong hành trang (lặp lại đến khi hết sạch đồ).
- *   5. Thông báo hoàn thành và TỰ ĐỘNG DỪNG AUTO (KHÔNG đăng xuất).
+ * - Hỗ trợ chạy liên hoàn danh sách tài khoản:
+ *   + "rollclone onjnvip1 cacao1" -> Chạy từ cacao1 đến cacao20, xong tự đăng xuất qua acc kế tiếp.
+ *   + "rollclone onjnvip1 all" -> Chạy toàn bộ 9 nhóm tài khoản (cacao, caphe, matcha, sinhto, traxanh, trasua, nuocmia, suachua, tangluc).
+ *   + "rollclone onjnvip1" -> Chạy 1 lần trên ặc hiện tại không đăng xuất.
+ * - Quy trình mỗi tài khoản:
+ *   1. Đăng xuất & Đăng nhập vào game (tự tạo nhân vật sạch nếu chưa có NV).
+ *   2. Đến NPC 24 -> Ô 4 "Nhập code" -> điền "aeharuna" -> nhận quà.
+ *   3. Đến ặc đứng -> GD nhận thẻ Roll TAQ (ID 905).
+ *   4. Bật Auto TAQ (NPC 51) 5 giây -> Tắt Auto TAQ.
+ *   5. Đến ặc đứng -> GD trả SẠCH TẤT CẢ vật phẩm trong hành trang.
+ *   6. Hiện log hoàn thành và chuyển sang tài khoản kế tiếp.
  */
 public class AutoRollTAQClone implements Runnable {
     public static volatile boolean isAuto = false;
 
     /** Tên ặc đứng để giao dịch */
     public static String tenAcDung = null;
+
+    /** Danh sách tài khoản cần chạy {username, password} */
+    public static Vector accountList = new Vector();
 
     /** ID thẻ Roll TAQ */
     private static final int THE_ROLL_TAQ_ID = 905;
@@ -24,21 +32,73 @@ public class AutoRollTAQClone implements Runnable {
         try {
             if (tenAcDung == null || tenAcDung.length() == 0) {
                 GameScr.gameAC("[Clone] L\u1ed7i: Ch\u01b0a c\u00f3 t\u00ean \u1eb7c \u0111\u1ee9ng!");
-                GameScr.gameAC("[Clone] C\u00fa ph\u00e1p: rollclone TenAcDung");
+                GameScr.gameAC("[Clone] C\u00fa ph\u00e1p: rollclone TenAcDung [TaiKhoan / all]");
                 isAuto = false;
                 return;
             }
 
-            Char myChar = Char.getMyChar();
-            if (myChar == null || myChar.cName == null) {
-                GameScr.gameAC("[Clone] L\u1ed7i: B\u1ea1n ch\u01b0a \u0111\u0103ng nh\u1eadp v\u00e0o game!");
-                isAuto = false;
-                return;
+            // TRƯỜNG HỢP 1: Có danh sách tài khoản cần chạy liên hoàn
+            if (accountList != null && !accountList.isEmpty()) {
+                int total = accountList.size();
+                GameScr.gameAC("[Clone] === B\u1eaft \u0111\u1ea7u Roll Li\u00ean Ho\u00e0n: " + total + " t\u00e0i kho\u1ea3n ===");
+                GameScr.gameAC("[Clone] \u1eb6c \u0111\u1ee9ng nh\u1eadn \u0111\u1ed3: " + tenAcDung);
+
+                for (int a = 0; a < total && isAuto; a++) {
+                    String[] acc = (String[]) accountList.elementAt(a);
+                    String user = acc[0];
+                    String pass = acc[1];
+
+                    GameScr.gameAC("[Clone] [" + (a + 1) + "/" + total + "] >>> \u0110ang \u0111\u0103ng nh\u1eadp: " + user + " <<<");
+
+                    // 1. Đăng nhập và tạo/chọn NV
+                    boolean loginOk = AutoLogin.doLogin(user, pass);
+                    if (!loginOk) {
+                        GameScr.gameAC("[Clone] \u0110\u0103ng nh\u1eadp " + user + " th\u1ea5t b\u1ea1i/timeout! B\u1ecf qua sang acc ti\u1ebfp theo.");
+                        Auto.Sleep(2000L);
+                        continue;
+                    }
+
+                    Auto.Sleep(2000L);
+                    if (!isAuto) break;
+
+                    // 2. Chạy quy trình 4 bước Roll TAQ
+                    doSingleAccountRoll();
+
+                    GameScr.gameAC("[Clone] === XONG T\u00c0I KHO\u1ea2N " + user + " (" + (a + 1) + "/" + total + ")! ===");
+                    Auto.Sleep(2000L);
+                }
+
+                accountList.removeAllElements();
+                GameScr.gameAC("[Clone] === HO\u00c0N T\u1ea4T TO\u00c0N B\u1ed8 DANH S\u00c1CH T\u00c0I KHO\u1ea2N! D\u1eebng Auto. ===");
+            } else {
+                // TRƯỜNG HỢP 2: Chạy 1 lần trên tài khoản hiện tại
+                Char myChar = Char.getMyChar();
+                if (myChar == null || myChar.cName == null) {
+                    GameScr.gameAC("[Clone] L\u1ed7i: B\u1ea1n ch\u01b0a \u0111\u0103ng nh\u1eadp v\u00e0o game!");
+                    isAuto = false;
+                    return;
+                }
+
+                GameScr.gameAC("[Clone] === B\u1eaft \u0111\u1ea7u Auto Roll TAQ (1 Acc) ===");
+                GameScr.gameAC("[Clone] \u1eb6c \u0111\u1ee9ng nh\u1eadn \u0111\u1ed3: " + tenAcDung);
+
+                doSingleAccountRoll();
+
+                GameScr.gameAC("[Clone] === HO\u00c0N T\u1ea4T! D\u1eebng Auto. ===");
             }
 
-            GameScr.gameAC("[Clone] === B\u1eaft \u0111\u1ea7u Auto Roll TAQ ===");
-            GameScr.gameAC("[Clone] \u1eb6c \u0111\u1ee9ng nh\u1eadn \u0111\u1ed3: " + tenAcDung);
+        } catch (Exception e) {
+            GameScr.gameAC("[Clone] L\u1ed7i: " + e.getMessage());
+        } finally {
+            isAuto = false;
+        }
+    }
 
+    /**
+     * Thực hiện quy trình 4 bước Roll TAQ trên tài khoản đang đăng nhập
+     */
+    private void doSingleAccountRoll() {
+        try {
             // Kiểm tra xem ặc đứng có trên map không
             Char target = findCharByName(tenAcDung);
             if (target == null) {
@@ -48,23 +108,18 @@ public class AutoRollTAQClone implements Runnable {
                     target = findCharByName(tenAcDung);
                 }
                 if (target == null) {
-                    GameScr.gameAC("[Clone] Kh\u00f4ng th\u1ea5y " + tenAcDung + " tr\u00ean map! D\u1eebng auto.");
-                    isAuto = false;
+                    GameScr.gameAC("[Clone] Kh\u00f4ng th\u1ea5y " + tenAcDung + " tr\u00ean map!");
                     return;
                 }
             }
 
-            // ========================================================
-            // BƯỚC 1: NPC 24 → Ô 4 "Nhập code" → code "aeharuna"
-            // ========================================================
+            // BƯỚC 1: NPC 24 -> Ô 4 "Nhập code" -> code "aeharuna"
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 1: M\u1edf NPC 24 nh\u1eadp code aeharuna...");
             doNpcCode();
             Auto.Sleep(2000L);
             if (!isAuto) return;
 
-            // ========================================================
-            // BƯỚC 2: Giao dịch với ặc đứng → Lấy thẻ Roll TAQ (ID 905)
-            // ========================================================
+            // BƯỚC 2: Giao dịch với ặc đứng -> Lấy thẻ Roll TAQ (ID 905)
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 2: GD v\u1edbi " + tenAcDung + " l\u1ea5y th\u1ebb Roll...");
             boolean getCardSuccess = false;
             for (int tryTrade = 1; tryTrade <= 3 && !getCardSuccess && isAuto; tryTrade++) {
@@ -83,9 +138,7 @@ public class AutoRollTAQClone implements Runnable {
             int soThe = countItemInBag(THE_ROLL_TAQ_ID);
             GameScr.gameAC("[Clone] S\u1ed1 th\u1ebb Roll TAQ trong h\u00e0nh trang: " + soThe);
 
-            // ========================================================
-            // BƯỚC 3: Bật Auto TAQ (5 giây) → Tắt Auto TAQ
-            // ========================================================
+            // BƯỚC 3: Bật Auto TAQ (5 giây) -> Tắt Auto TAQ
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 3: B\u1eaft \u0111\u1ea7u Roll TAQ (5 gi\u00e2y)...");
             AutoTAQ.isAuto = true;
             new Thread(new AutoTAQ()).start();
@@ -97,9 +150,7 @@ public class AutoRollTAQClone implements Runnable {
             GameScr.gameAC("[Clone] Roll TAQ xong!");
             if (!isAuto) return;
 
-            // ========================================================
             // BƯỚC 4: GD trả SẠCH TẤT CẢ đồ cho ặc đứng
-            // ========================================================
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 4: GD tr\u1ea3 s\u1ea1ch \u0111\u1ed3 cho " + tenAcDung + "...");
             int gdCount = 0;
             while (hasItemsInBag() && isAuto && gdCount < 20) {
@@ -118,35 +169,89 @@ public class AutoRollTAQClone implements Runnable {
             } else {
                 GameScr.gameAC("[Clone] C\u00f2n m\u1ed9t s\u1ed1 \u0111\u1ed3 kh\u00f4ng GD \u0111\u01b0\u1ee3c (kh\u00f3a).");
             }
-
-            // ========================================================
-            // BƯỚC 5: HOÀN TẤT & DỪNG AUTO
-            // ========================================================
-            GameScr.gameAC("[Clone] === HO\u00c0N T\u1ea4T! D\u1eebng Auto. ===");
         } catch (Exception e) {
-            GameScr.gameAC("[Clone] L\u1ed7i: " + e.getMessage());
+            GameScr.gameAC("[Clone] L\u1ed7i Roll: " + e.getMessage());
         }
-        isAuto = false;
     }
 
     // ===================== HELPER METHODS =====================
 
+    /** Tạo danh sách tài khoản theo tham số lệnh chat */
+    public static Vector generateAccountList(String param) {
+        Vector list = new Vector();
+        if (param == null || param.length() == 0) return list;
+        String p = param.toLowerCase().trim();
+
+        // 9 nhóm tài khoản 1->20 mới (đã loại trừ vaicalon1-20 theo yêu cầu)
+        String[] groups = new String[] {
+            "cacao", "caphe", "matcha", "sinhto", "traxanh",
+            "trasua", "nuocmia", "suachua", "tangluc"
+        };
+
+        if (p.equals("all")) {
+            // Chạy TẤT CẢ 9 nhóm tài khoản (180 tài khoản)
+            for (int g = 0; g < groups.length; g++) {
+                for (int i = 1; i <= 20; i++) {
+                    list.addElement(new String[] { groups[g] + i, "000000" });
+                }
+            }
+            return list;
+        }
+
+        // Kiểm tra xem có bắt đầu bằng 1 trong 9 nhóm không (ví dụ: cacao1, cacao5, cacao)
+        for (int g = 0; g < groups.length; g++) {
+            String grp = groups[g];
+            if (p.startsWith(grp)) {
+                int startNum = 1;
+                String numStr = p.substring(grp.length()).trim();
+                if (numStr.length() > 0) {
+                    try {
+                        startNum = Integer.parseInt(numStr);
+                    } catch (Exception e) {
+                        startNum = 1;
+                    }
+                }
+                for (int i = startNum; i <= 20; i++) {
+                    list.addElement(new String[] { grp + i, "000000" });
+                }
+                return list;
+            }
+        }
+
+        // Kiểm tra nếu là nhóm vaicalon 121 -> 320
+        if (p.endsWith("vaicalon")) {
+            int startNum = 121;
+            String numStr = p.substring(0, p.length() - 8).trim();
+            if (numStr.length() > 0) {
+                try {
+                    startNum = Integer.parseInt(numStr);
+                } catch (Exception e) {
+                    startNum = 121;
+                }
+            }
+            for (int i = startNum; i <= 320; i++) {
+                list.addElement(new String[] { i + "vaicalon", "azoazo" });
+            }
+            return list;
+        }
+
+        // Tài khoản đơn lẻ tùy ý
+        list.addElement(new String[] { param, "000000" });
+        return list;
+    }
+
     /** NPC 24, chọn ô 4 "Nhập code" (index 3), nhập code "aeharuna" */
     private void doNpcCode() {
         try {
-            // Đóng dialog cũ nếu có
             GameCanvas.endDlg();
-            InfoDlg.gameAB();
+            InfoDlg.gameAD();
             Auto.Sleep(1000L);
 
-            // Mở NPC 24
             Service.gI().gameAH(24);
             Auto.Sleep(1500L);
 
-            // Chọn ô 4 "Nhập code" (index 3, 0-based)
             Service.gI().gameAC(24, 3, 0);
 
-            // Chờ InputDlg hiện lên từ server
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < 8000) {
                 try {
@@ -158,11 +263,9 @@ public class AutoRollTAQClone implements Runnable {
             }
             Auto.Sleep(500L);
 
-            // Điền code "aeharuna" vào ô nhập
             GameCanvas.inputDlg.tfInput.gameAA("aeharuna");
             Auto.Sleep(500L);
 
-            // Bấm nút "Đồng ý" (center button)
             String inputText = GameCanvas.inputDlg.tfInput.gameAD();
             try {
                 Short npcId = (Short) GameCanvas.inputDlg.center.p;
@@ -173,9 +276,8 @@ public class AutoRollTAQClone implements Runnable {
             GameCanvas.endDlg();
             Auto.Sleep(1500L);
 
-            // Đóng dialog kết quả
             GameCanvas.endDlg();
-            InfoDlg.gameAB();
+            InfoDlg.gameAD();
             Auto.Sleep(500L);
         } catch (Exception e) {
             GameScr.gameAC("[Clone] NPC L\u1ed7i: " + e.getMessage());
@@ -201,7 +303,6 @@ public class AutoRollTAQClone implements Runnable {
                 }
             }
 
-            // Di chuyển lại gần đối phương
             Char myChar = Char.getMyChar();
             for (int r = 0; r < 12; r++) {
                 if (Res.gameAA(myChar.cx, myChar.cy, target.cx, target.cy) < 50) break;
@@ -212,16 +313,13 @@ public class AutoRollTAQClone implements Runnable {
                 if (target == null) return false;
             }
 
-            // Gửi lời mời giao dịch
             Service.gI().gameAS(target.charID);
 
-            // Chờ màn hình giao dịch mở
             if (!waitForTradeScreen(15000)) {
                 GameScr.gameAC("[Clone] " + targetName + " ch\u01b0a ch\u1ea5p nh\u1eadn GD!");
                 return false;
             }
 
-            // Chuẩn bị items
             Item[] tradeItems = new Item[12];
             if (isSending) {
                 int count = 0;
@@ -239,13 +337,11 @@ public class AutoRollTAQClone implements Runnable {
                 }
             }
 
-            // Đặt items vào giao dịch
             GameScr.gI().gameEE = 0;
             GameScr.gameCW = tradeItems;
             Service.gI().gameAA(0, tradeItems);
             GameScr.gI().gameEC = 1; // Khóa giao dịch
 
-            // Chờ đối phương khóa giao dịch
             long start = System.currentTimeMillis();
             while (GameScr.gI().typeTradeOrder != 1 && GameScr.isPaintTrade) {
                 if (!isAuto || System.currentTimeMillis() - start >= 15000) {
@@ -255,11 +351,9 @@ public class AutoRollTAQClone implements Runnable {
                 Auto.Sleep(200L);
             }
 
-            // Bấm Đồng ý
             Auto.Sleep(1000L);
             Service.gI().gameAJ();
 
-            // Chờ hoàn thành giao dịch (hoặc đóng màn hình GD)
             start = System.currentTimeMillis();
             while (GameScr.isPaintTrade && GameScr.gI().typeTradeOrder != 2) {
                 if (!isAuto || System.currentTimeMillis() - start >= 4000) {
@@ -268,10 +362,8 @@ public class AutoRollTAQClone implements Runnable {
                 Auto.Sleep(200L);
             }
 
-            // Đồng bộ
             LockGame.LockAA(1500L);
 
-            // Xóa items khỏi local nếu gửi
             if (isSending) {
                 for (int k = 0; k < 12; k++) {
                     if (tradeItems[k] != null) {
@@ -296,7 +388,6 @@ public class AutoRollTAQClone implements Runnable {
         while (!GameScr.isPaintTrade) {
             if (!isAuto || System.currentTimeMillis() - start >= timeoutMs) return false;
 
-            // Tự động chấp nhận lời mời giao dịch khi popup xuất hiện
             try {
                 if (GameCanvas.currentDialog != null) {
                     if (GameCanvas.currentDialog.left != null && GameCanvas.currentDialog.left.idAction == 88810) {
