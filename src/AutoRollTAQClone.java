@@ -6,14 +6,15 @@ import java.util.Vector;
  * Chức năng:
  * - Hỗ trợ chạy liên hoàn danh sách tài khoản:
  *   + "rollclone onjnvip1 cacao1" -> Chạy từ cacao1 đến cacao20, xong tự đăng xuất qua acc kế tiếp.
- *   + "rollclone onjnvip1 all" -> Chạy toàn bộ 9 nhóm tài khoản (cacao, caphe, matcha, sinhto, traxanh, trasua, nuocmia, suachua, tangluc).
+ *   + "rollclone onjnvip1 all" -> Chạy toàn bộ 9 nhóm tài khoản (180 acc).
+ *   + "rollclone onjnvip1 all cacao6" -> Tiếp tục chạy từ cacao6 đến hết cacao20 và chạy tiếp tất cả các nhóm còn lại.
  *   + "rollclone onjnvip1" -> Chạy 1 lần trên ặc hiện tại không đăng xuất.
  * - Quy trình mỗi tài khoản:
  *   1. Đăng xuất & Đăng nhập vào game (tự tạo nhân vật sạch nếu chưa có NV).
  *   2. Đến NPC 24 -> Ô 4 "Nhập code" -> điền "aeharuna" -> nhận quà.
  *   3. Đến ặc đứng -> GD nhận thẻ Roll TAQ (ID 905).
  *   4. Bật Auto TAQ (NPC 51) 5 giây -> Tắt Auto TAQ.
- *   5. Đến ặc đứng -> GD trả SẠCH TẤT CẢ vật phẩm trong hành trang.
+ *   5. Đến ặc đứng -> GD trả SẠCH TẤT CẢ vật phẩm trong hành trang (kèm tự động sắp xếp sau mỗi lần GD).
  *   6. Hiện log hoàn thành và chuyển sang tài khoản kế tiếp.
  */
 public class AutoRollTAQClone implements Runnable {
@@ -32,7 +33,7 @@ public class AutoRollTAQClone implements Runnable {
         try {
             if (tenAcDung == null || tenAcDung.length() == 0) {
                 GameScr.gameAC("[Clone] L\u1ed7i: Ch\u01b0a c\u00f3 t\u00ean \u1eb7c \u0111\u1ee9ng!");
-                GameScr.gameAC("[Clone] C\u00fa ph\u00e1p: rollclone TenAcDung [TaiKhoan / all]");
+                GameScr.gameAC("[Clone] C\u00fa ph\u00e1p: rollclone TenAcDung [all / TaiKhoan] [TaiKhoanBatDau]");
                 isAuto = false;
                 return;
             }
@@ -189,11 +190,11 @@ public class AutoRollTAQClone implements Runnable {
 
     // ===================== HELPER METHODS =====================
 
-    /** Tạo danh sách tài khoản theo tham số lệnh chat */
-    public static Vector generateAccountList(String param) {
+    /** Tạo danh sách tài khoản theo tham số lệnh chat (hỗ trợ bắt đầu từ vị trí cụ thể) */
+    public static Vector generateAccountList(String param, String startFrom) {
         Vector list = new Vector();
-        if (param == null || param.length() == 0) return list;
-        String p = param.toLowerCase().trim();
+        String p = (param != null) ? param.toLowerCase().trim() : "";
+        String start = (startFrom != null) ? startFrom.toLowerCase().trim() : "";
 
         // 9 nhóm tài khoản 1->20 mới (đã loại trừ vaicalon1-20 theo yêu cầu)
         String[] groups = new String[] {
@@ -202,7 +203,42 @@ public class AutoRollTAQClone implements Runnable {
         };
 
         if (p.equals("all")) {
-            // Chạy TẤT CẢ 9 nhóm tài khoản (180 tài khoản)
+            // Nếu có chỉ định điểm bắt đầu (ví dụ: cacao6, caphe3, ...)
+            if (start.length() > 0) {
+                int startGroupIdx = -1;
+                int startNum = 1;
+
+                for (int g = 0; g < groups.length; g++) {
+                    if (start.startsWith(groups[g])) {
+                        startGroupIdx = g;
+                        String numStr = start.substring(groups[g].length()).trim();
+                        if (numStr.length() > 0) {
+                            try {
+                                startNum = Integer.parseInt(numStr);
+                            } catch (Exception e) {
+                                startNum = 1;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                if (startGroupIdx != -1) {
+                    // 1. Chạy nhóm bắt đầu từ startNum đến 20
+                    for (int i = startNum; i <= 20; i++) {
+                        list.addElement(new String[] { groups[startGroupIdx] + i, "000000" });
+                    }
+                    // 2. Chạy tất cả các nhóm tiếp theo từ 1 đến 20
+                    for (int g = startGroupIdx + 1; g < groups.length; g++) {
+                        for (int i = 1; i <= 20; i++) {
+                            list.addElement(new String[] { groups[g] + i, "000000" });
+                        }
+                    }
+                    return list;
+                }
+            }
+
+            // Chạy TẤT CẢ 9 nhóm tài khoản từ đầu (180 tài khoản)
             for (int g = 0; g < groups.length; g++) {
                 for (int i = 1; i <= 20; i++) {
                     list.addElement(new String[] { groups[g] + i, "000000" });
@@ -211,7 +247,7 @@ public class AutoRollTAQClone implements Runnable {
             return list;
         }
 
-        // Kiểm tra xem có bắt đầu bằng 1 trong 9 nhóm không (ví dụ: cacao1, cacao5, cacao)
+        // Kiểm tra xem có bắt đầu bằng 1 trong 9 nhóm không (ví dụ: cacao1, cacao6, cacao)
         for (int g = 0; g < groups.length; g++) {
             String grp = groups[g];
             if (p.startsWith(grp)) {

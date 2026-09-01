@@ -421,9 +421,22 @@ public class ChatRouter {
             AutoRollTAQClone.tenAcDung = null;
             AutoRollTAQClone.accountList = new java.util.Vector();
 
-            if (parts.length >= 3) {
+            if (parts.length >= 4) {
+                // rollclone onjnvip1 all cacao6
                 AutoRollTAQClone.tenAcDung = parts[1];
-                AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(parts[2]);
+                AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(parts[2], parts[3]);
+            } else if (parts.length == 3) {
+                if (parts[1].equalsIgnoreCase("all")) {
+                    // rollclone all cacao6 (với focus ặc đứng)
+                    if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
+                        AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
+                    }
+                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(parts[1], parts[2]);
+                } else {
+                    // rollclone onjnvip1 cacao6 hoặc rollclone onjnvip1 all
+                    AutoRollTAQClone.tenAcDung = parts[1];
+                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(parts[2], null);
+                }
             } else if (parts.length == 2) {
                 String param = parts[1];
                 // Kiểm tra xem param là "all" hoặc bắt đầu bằng tên nhóm (cacao, caphe, ...) không
@@ -435,7 +448,7 @@ public class ChatRouter {
                     if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
                         AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
                     }
-                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(param);
+                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(param, null);
                 } else {
                     AutoRollTAQClone.tenAcDung = param;
                 }
@@ -444,9 +457,9 @@ public class ChatRouter {
             }
 
             if (AutoRollTAQClone.tenAcDung == null || AutoRollTAQClone.tenAcDung.length() == 0) {
-                GameScr.gameAC("C\u00fa ph\u00e1p: rollclone TenAcDung [TaiKhoan / all]");
-                GameScr.gameAC("V\u00ed d\u1ee5: rollclone onjnvip1 cacao1");
-                GameScr.gameAC("Ho\u1eb7c: rollclone onjnvip1 all");
+                GameScr.gameAC("C\u00fa ph\u00e1p: rollclone TenAcDung [all / TaiKhoan] [TaiKhoanBatDau]");
+                GameScr.gameAC("V\u00ed d\u1ee5: rollclone onjnvip1 all cacao6");
+                GameScr.gameAC("Ho\u1eb7c: rollclone onjnvip1 cacao1");
                 return true;
             }
 
