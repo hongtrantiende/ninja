@@ -43,6 +43,15 @@ public class AutoLogin implements Runnable {
         try {
             GameScr.gameAC("[AutoLogin] B\u1eaft \u0111\u1ea7u \u0111\u1ed5i sang TK: " + user + "...");
 
+            // BẮT BUỘC: Reset dữ liệu nhân vật & màn hình cũ tránh bị nhận nhầm nhân vật của TK trước
+            try {
+                if (SelectCharScr.gameAA() != null) {
+                    SelectCharScr.gameAA().name = null;
+                    SelectCharScr.gameAA().isNullChar = true;
+                }
+                Char.gameAJ();
+            } catch (Exception e) {}
+
             // 1. Đăng xuất nếu đang trong game
             try {
                 if (Session_ME.gameAA() != null) {
@@ -79,12 +88,12 @@ public class AutoLogin implements Runnable {
             try {
                 GameCanvas.gameAC();
             } catch (Exception e) {}
-            Auto.Sleep(1000L);
+            Auto.Sleep(1200L);
 
-            // Gửi gói tin đăng nhập
+            // Gửi gói tin đăng nhập với user/pass được truyền vào
             Service.gI().gameAA(user, pass, "1.8.8");
             LoginScr.isLoggingIn = true;
-            GameScr.gameAC("[AutoLogin] \u0110\u00e3 g\u1eedi th\u00f4ng tin \u0111\u0103ng nh\u1eadp...");
+            GameScr.gameAC("[AutoLogin] \u0110\u00e3 g\u1eedi th\u00f4ng tin \u0111\u0103ng nh\u1eadp TK: " + user + "...");
 
             // 3. Vòng lặp chờ nhận danh sách NV / tạo NV / vào game
             long start = System.currentTimeMillis();
@@ -132,7 +141,7 @@ public class AutoLogin implements Runnable {
                         SelectCharScr.gameAK = existingChar;
                         Service.gI().gameAB(existingChar);
                         Auto.Sleep(2000L);
-                    } else {
+                    } else if (scs.isNullChar || scs.name == null) {
                         // Chưa có nhân vật -> Tạo nhân vật mới với tên sạch (tránh lọc từ tục)
                         String charName = getCleanCharName(user, createAttempts++);
                         GameScr.gameAC("[AutoLogin] T\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
