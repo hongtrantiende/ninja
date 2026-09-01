@@ -197,9 +197,9 @@ public class AutoRollTAQClone implements Runnable {
         String p = (param != null) ? param.toLowerCase().trim() : "";
         String start = (startFrom != null) ? startFrom.toLowerCase().trim() : "";
 
-        // 20 nhóm tài khoản còn lại (camvat1-10 đã xong)
+        // 17 nhóm còn lại (nemran1-5 đã xong)
         String[] groups = new String[] {
-            "xoaibo", "chebap", "nemran", "phomai", "suanon",
+            "phomai", "suanon",
             "chetha", "topmie", "kemtui", "compho", "haisan",
             "botkem", "kemcay", "misopa", "hotdog", "supkem",
             "cocmay", "trache", "daupha", "goikeo", "damsen"
@@ -210,14 +210,13 @@ public class AutoRollTAQClone implements Runnable {
                 int startGroupIdx = -1;
                 int startNum = 1;
 
-                // Check camvat special
-                if (start.startsWith("camvat")) {
-                    String numStr = start.substring("camvat".length()).trim();
+                if (start.startsWith("nemran")) {
+                    String numStr = start.substring("nemran".length()).trim();
                     if (numStr.length() > 0) {
-                        try { startNum = Integer.parseInt(numStr); } catch (Exception e) { startNum = 11; }
+                        try { startNum = Integer.parseInt(numStr); } catch (Exception e) { startNum = 6; }
                     }
                     for (int i = startNum; i <= 20; i++) {
-                        list.addElement(new String[] { "camvat" + i, "000000" });
+                        list.addElement(new String[] { "nemran" + i, "000000" });
                     }
                     for (int g = 0; g < groups.length; g++) {
                         for (int i = 1; i <= 20; i++) {
@@ -251,9 +250,9 @@ public class AutoRollTAQClone implements Runnable {
                 }
             }
 
-            // all: camvat11-20 + 20 nhom con lai (410 acc)
-            for (int i = 11; i <= 20; i++) {
-                list.addElement(new String[] { "camvat" + i, "000000" });
+            // all: nemran6-20 + 17 nhom (355 acc)
+            for (int i = 6; i <= 20; i++) {
+                list.addElement(new String[] { "nemran" + i, "000000" });
             }
             for (int g = 0; g < groups.length; g++) {
                 for (int i = 1; i <= 20; i++) {
