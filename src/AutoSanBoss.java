@@ -432,7 +432,12 @@ public class AutoSanBoss implements Runnable {
         if (TileMap.mapID == 138) {
             for (int retry = 0; retry < 3; retry++) {
                 try {
-                    GameScr.gameAB(7, 3, 0);
+                    GameCanvas.endDlg();
+                    try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                    sleep(50L);
+                    Service.gI().gameAH(7);
+                    sleep(50L);
+                    Service.gI().gameAC(7, 3, 0);
                 } catch (Exception e) {
                     sleep(1000L);
                     continue;
@@ -622,7 +627,12 @@ public class AutoSanBoss implements Runnable {
         if (item == null) {
             GameScr.gameAC("LC: Mua C\u1ed5 L\u1ec7nh...");
             try {
-                GameScr.gameAB(4, 0, 0);
+                GameCanvas.endDlg();
+                try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                sleep(50L);
+                Service.gI().gameAH(4);
+                sleep(50L);
+                Service.gI().gameAC(4, 0, 0);
                 Service.gI().gameAB(14, 29, 2);
                 LockGame.gameAG();
             } catch (Exception e) {}
@@ -637,7 +647,12 @@ public class AutoSanBoss implements Runnable {
             if (item == null) {
                 // Thu mua tu Tabemono NPC (9, 6, 1) neu Goshu ko co
                 try {
-                    GameScr.gameAB(4, 0, 0);
+                    GameCanvas.endDlg();
+                    try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                    sleep(50L);
+                    Service.gI().gameAH(4);
+                    sleep(50L);
+                    Service.gI().gameAC(4, 0, 0);
                     Service.gI().gameAB(9, 6, 1);
                     LockGame.gameAG();
                 } catch (Exception e) {}
@@ -2296,7 +2311,12 @@ public class AutoSanBoss implements Runnable {
             if (TileMap.mapID == 195) return true;
 
             try {
-                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
+                GameCanvas.endDlg();
+                try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                sleep(50L);
+                Service.gI().gameAH(AutoVipMap.npcType);
+                sleep(50L);
+                Service.gI().gameAC(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
             } catch (Exception e) {
                 GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP!");
                 sleep(1000);
@@ -2659,7 +2679,12 @@ public class AutoSanBoss implements Runnable {
             if (TileMap.mapID == 196) return true;
 
             try {
-                GameScr.gameAB(AutoVipMap.npcType, AutoVipMap.menuOption + 1, 0);
+                GameCanvas.endDlg();
+                try { InfoDlg.gameAB(); } catch (Exception ed) {}
+                sleep(50L);
+                Service.gI().gameAH(AutoVipMap.npcType);
+                sleep(50L);
+                Service.gI().gameAC(AutoVipMap.npcType, AutoVipMap.menuOption + 1, 0);
             } catch (Exception e) {
                 GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP2!");
                 sleep(1000);

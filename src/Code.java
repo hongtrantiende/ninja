@@ -770,7 +770,8 @@ implements Runnable {
                                         --var5;
                                         break;
                                     }
-                                    GameScr.gameAB(4, 0, 0);
+                                    Service.gI().gameAH(4);
+                                    Service.gI().gameAC(4, 0, 0);
                                     if (var19 == 50) {
                                         Service.gI().gameAB(9, 7, var5);
                                     } else {
