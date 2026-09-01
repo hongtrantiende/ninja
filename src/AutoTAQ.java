@@ -12,7 +12,7 @@ public class AutoTAQ implements Runnable {
 
                 // 1. Tự động đóng các Dialog / popup nếu có
                 GameCanvas.endDlg();
-                InfoDlg.gameAB();
+                InfoDlg.gameAD();
 
                 // 2. Tự động sắp xếp Hành trang và Rương đồ để tránh đầy rương
                 Service.gI().gameAG(); // Sắp xếp hành trang (Packet -106)
@@ -25,7 +25,7 @@ public class AutoTAQ implements Runnable {
 
                 // 4. Đóng thông báo kết quả
                 GameCanvas.endDlg();
-                InfoDlg.gameAB();
+                InfoDlg.gameAD();
 
                 // 5. Delay spam 10ms
                 Thread.sleep(10L);

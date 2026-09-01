@@ -152,6 +152,13 @@ public class AutoRollTAQClone implements Runnable {
 
             // BƯỚC 4: GD trả SẠCH TẤT CẢ đồ cho ặc đứng
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 4: GD tr\u1ea3 s\u1ea1ch \u0111\u1ed3 cho " + tenAcDung + "...");
+            // Sắp xếp hành trang trước khi bắt đầu GD
+            try {
+                Service.gI().gameAG();
+                Service.gI().gameAF();
+            } catch (Exception e) {}
+            Auto.Sleep(1000L);
+
             int gdCount = 0;
             while (hasItemsInBag() && isAuto && gdCount < 20) {
                 gdCount++;
@@ -161,6 +168,12 @@ public class AutoRollTAQClone implements Runnable {
                     Auto.Sleep(2500L);
                     continue;
                 }
+
+                // Sắp xếp lại hành trang và rương ngay sau khi GD xong để đồng bộ sạch sẽ
+                try {
+                    Service.gI().gameAG(); // Sắp xếp hành trang
+                    Service.gI().gameAF(); // Sắp xếp rương
+                } catch (Exception e) {}
                 Auto.Sleep(2000L);
             }
 
