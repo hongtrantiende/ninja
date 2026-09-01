@@ -2316,7 +2316,7 @@ public class AutoSanBoss implements Runnable {
                 sleep(50L);
                 Service.gI().gameAH(AutoVipMap.npcType);
                 sleep(50L);
-                Service.gI().gameAC(AutoVipMap.npcType, AutoVipMap.menuOption, 0);
+                Service.gI().gameAC(47, 4, 0);
             } catch (Exception e) {
                 GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP!");
                 sleep(1000);
@@ -2684,7 +2684,7 @@ public class AutoSanBoss implements Runnable {
                 sleep(50L);
                 Service.gI().gameAH(AutoVipMap.npcType);
                 sleep(50L);
-                Service.gI().gameAC(AutoVipMap.npcType, AutoVipMap.menuOption + 1, 0);
+                Service.gI().gameAC(47, 5, 0);
             } catch (Exception e) {
                 GameScr.gameAC("TSB: Kh\u00f4ng g\u1ecdi \u0111\u01b0\u1ee3c NPC VIP2!");
                 sleep(1000);

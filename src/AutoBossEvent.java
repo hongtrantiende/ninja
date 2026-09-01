@@ -615,7 +615,7 @@ public final class AutoBossEvent implements Runnable {
                 // Goi NPC bang Service packet (khong bi block boi UI)
                 Service.gI().gameAH(47);
                 sleep(50L);
-                Service.gI().gameAC(47, AutoVipMap.menuOption, 0);
+                Service.gI().gameAC(47, 4, 0);
             } catch (Exception e) {
                 sleep(2000L);
                 continue;
@@ -691,7 +691,7 @@ public final class AutoBossEvent implements Runnable {
                 // Goi NPC bang Service packet (khong bi block boi UI)
                 Service.gI().gameAH(47);
                 sleep(50L);
-                Service.gI().gameAC(47, AutoVipMap.menuOption + 1, 0);
+                Service.gI().gameAC(47, 5, 0);
             } catch (Exception e) {
                 sleep(2000L);
                 continue;
