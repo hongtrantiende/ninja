@@ -439,16 +439,14 @@ public class ChatRouter {
                 }
             } else if (parts.length == 2) {
                 String param = parts[1];
-                // Kiểm tra xem param là "all" hoặc bắt đầu bằng tên nhóm (cacao, caphe, ...) không
-                if (param.equalsIgnoreCase("all") || param.startsWith("cacao") || param.startsWith("caphe") ||
-                    param.startsWith("matcha") || param.startsWith("sinhto") || param.startsWith("traxanh") ||
-                    param.startsWith("trasua") || param.startsWith("nuocmia") || param.startsWith("suachua") ||
-                    param.startsWith("tangluc") || param.endsWith("vaicalon")) {
+                // Kiểm tra xem param là "all" hoặc là tên nhóm tài khoản
+                java.util.Vector testList = AutoRollTAQClone.generateAccountList(param, null);
+                if (param.equalsIgnoreCase("all") || (!testList.isEmpty() && testList.size() > 1) || param.endsWith("vaicalon")) {
                     // Nếu đang focus ặc đứng thì lấy tên từ focus
                     if (Char.getMyChar() != null && Char.getMyChar().charFocus != null && Char.getMyChar().charFocus.cName != null) {
                         AutoRollTAQClone.tenAcDung = Char.getMyChar().charFocus.cName;
                     }
-                    AutoRollTAQClone.accountList = AutoRollTAQClone.generateAccountList(param, null);
+                    AutoRollTAQClone.accountList = testList;
                 } else {
                     AutoRollTAQClone.tenAcDung = param;
                 }

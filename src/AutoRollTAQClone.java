@@ -56,18 +56,18 @@ public class AutoRollTAQClone implements Runnable {
                     boolean loginOk = AutoLogin.doLogin(user, pass);
                     if (!loginOk) {
                         GameScr.gameAC("[Clone] \u0110\u0103ng nh\u1eadp " + user + " th\u1ea5t b\u1ea1i/timeout! Chuy\u1ec3n sang: " + nextAcc);
-                        Auto.Sleep(2000L);
+                        Auto.Sleep(1000L);
                         continue;
                     }
 
-                    Auto.Sleep(2000L);
+                    Auto.Sleep(300L);
                     if (!isAuto) break;
 
                     // 2. Chạy quy trình 4 bước Roll TAQ
                     doSingleAccountRoll();
 
                     GameScr.gameAC("[Clone] === HO\u00c0N T\u1ea4T TK: " + user + " (" + (a + 1) + "/" + total + ")! Ti\u1ebfp theo: " + nextAcc + " ===");
-                    Auto.Sleep(2000L);
+                    Auto.Sleep(300L);
                 }
 
                 accountList.removeAllElements();
@@ -106,7 +106,7 @@ public class AutoRollTAQClone implements Runnable {
             if (target == null) {
                 GameScr.gameAC("[Clone] \u0110ang t\u00ecm " + tenAcDung + " tr\u00ean map...");
                 for (int t = 0; t < 10 && target == null && isAuto; t++) {
-                    Auto.Sleep(500L);
+                    Auto.Sleep(300L);
                     target = findCharByName(tenAcDung);
                 }
                 if (target == null) {
@@ -118,7 +118,7 @@ public class AutoRollTAQClone implements Runnable {
             // BƯỚC 1: NPC 24 -> Ô 4 "Nhập code" -> code "aeharuna"
             GameScr.gameAC("[Clone] B\u01b0\u1edbc 1: M\u1edf NPC 24 nh\u1eadp code aeharuna...");
             doNpcCode();
-            Auto.Sleep(2000L);
+            Auto.Sleep(300L);
             if (!isAuto) return;
 
             // BƯỚC 2: Giao dịch với ặc đứng -> Lấy thẻ Roll TAQ (ID 905)
@@ -129,11 +129,11 @@ public class AutoRollTAQClone implements Runnable {
                     getCardSuccess = true;
                 } else {
                     GameScr.gameAC("[Clone] GD th\u1eed l\u1ea1i l\u1ea7n " + (tryTrade + 1) + "...");
-                    Auto.Sleep(2000L);
+                    Auto.Sleep(1000L);
                 }
             }
 
-            Auto.Sleep(2000L);
+            Auto.Sleep(800L);
             if (!isAuto) return;
 
             // Kiểm tra thẻ roll trong hành trang
@@ -145,10 +145,10 @@ public class AutoRollTAQClone implements Runnable {
             AutoTAQ.isAuto = true;
             new Thread(new AutoTAQ()).start();
             GameScr.gameAC("B\u1eadt Auto Tr\u00e1i \u00c1c Qu\u1ef7 (NPC 51)!");
-            Auto.Sleep(5000L);
+            Auto.Sleep(4000L);
             AutoTAQ.isAuto = false;
             GameScr.gameAC("T\u1eaft Auto Tr\u00e1i \u00c1c Qu\u1ef7!");
-            Auto.Sleep(2000L);
+            Auto.Sleep(500L);
             GameScr.gameAC("[Clone] Roll TAQ xong!");
             if (!isAuto) return;
 
@@ -159,7 +159,7 @@ public class AutoRollTAQClone implements Runnable {
                 Service.gI().gameAG();
                 Service.gI().gameAF();
             } catch (Exception e) {}
-            Auto.Sleep(1000L);
+            Auto.Sleep(500L);
 
             int gdCount = 0;
             while (hasItemsInBag() && isAuto && gdCount < 20) {
@@ -167,7 +167,7 @@ public class AutoRollTAQClone implements Runnable {
                 GameScr.gameAC("[Clone] GD tr\u1ea3 \u0111\u1ed3 l\u1ea7n " + gdCount + "...");
                 if (!doTradeWithTarget(tenAcDung, true)) {
                     GameScr.gameAC("[Clone] GD l\u1ea7n " + gdCount + " ch\u01b0a xong, th\u1eed l\u1ea1i...");
-                    Auto.Sleep(2500L);
+                    Auto.Sleep(1000L);
                     continue;
                 }
 
@@ -176,7 +176,7 @@ public class AutoRollTAQClone implements Runnable {
                     Service.gI().gameAG(); // Sắp xếp hành trang
                     Service.gI().gameAF(); // Sắp xếp rương
                 } catch (Exception e) {}
-                Auto.Sleep(2000L);
+                Auto.Sleep(800L);
             }
 
             if (!hasItemsInBag()) {
@@ -197,39 +197,51 @@ public class AutoRollTAQClone implements Runnable {
         String p = (param != null) ? param.toLowerCase().trim() : "";
         String start = (startFrom != null) ? startFrom.toLowerCase().trim() : "";
 
-        // 9 nhóm tài khoản 1->20 mới (đã loại trừ vaicalon1-20 theo yêu cầu)
+        // 20 nhóm tài khoản còn lại (camvat1-10 đã xong)
         String[] groups = new String[] {
-            "cacao", "caphe", "matcha", "sinhto", "traxanh",
-            "trasua", "nuocmia", "suachua", "tangluc"
+            "xoaibo", "chebap", "nemran", "phomai", "suanon",
+            "chetha", "topmie", "kemtui", "compho", "haisan",
+            "botkem", "kemcay", "misopa", "hotdog", "supkem",
+            "cocmay", "trache", "daupha", "goikeo", "damsen"
         };
 
         if (p.equals("all")) {
-            // Nếu có chỉ định điểm bắt đầu (ví dụ: cacao6, caphe3, ...)
             if (start.length() > 0) {
                 int startGroupIdx = -1;
                 int startNum = 1;
+
+                // Check camvat special
+                if (start.startsWith("camvat")) {
+                    String numStr = start.substring("camvat".length()).trim();
+                    if (numStr.length() > 0) {
+                        try { startNum = Integer.parseInt(numStr); } catch (Exception e) { startNum = 11; }
+                    }
+                    for (int i = startNum; i <= 20; i++) {
+                        list.addElement(new String[] { "camvat" + i, "000000" });
+                    }
+                    for (int g = 0; g < groups.length; g++) {
+                        for (int i = 1; i <= 20; i++) {
+                            list.addElement(new String[] { groups[g] + i, "000000" });
+                        }
+                    }
+                    return list;
+                }
 
                 for (int g = 0; g < groups.length; g++) {
                     if (start.startsWith(groups[g])) {
                         startGroupIdx = g;
                         String numStr = start.substring(groups[g].length()).trim();
                         if (numStr.length() > 0) {
-                            try {
-                                startNum = Integer.parseInt(numStr);
-                            } catch (Exception e) {
-                                startNum = 1;
-                            }
+                            try { startNum = Integer.parseInt(numStr); } catch (Exception e) { startNum = 1; }
                         }
                         break;
                     }
                 }
 
                 if (startGroupIdx != -1) {
-                    // 1. Chạy nhóm bắt đầu từ startNum đến 20
                     for (int i = startNum; i <= 20; i++) {
                         list.addElement(new String[] { groups[startGroupIdx] + i, "000000" });
                     }
-                    // 2. Chạy tất cả các nhóm tiếp theo từ 1 đến 20
                     for (int g = startGroupIdx + 1; g < groups.length; g++) {
                         for (int i = 1; i <= 20; i++) {
                             list.addElement(new String[] { groups[g] + i, "000000" });
@@ -239,7 +251,10 @@ public class AutoRollTAQClone implements Runnable {
                 }
             }
 
-            // Chạy TẤT CẢ 9 nhóm tài khoản từ đầu (180 tài khoản)
+            // all: camvat11-20 + 20 nhom con lai (410 acc)
+            for (int i = 11; i <= 20; i++) {
+                list.addElement(new String[] { "camvat" + i, "000000" });
+            }
             for (int g = 0; g < groups.length; g++) {
                 for (int i = 1; i <= 20; i++) {
                     list.addElement(new String[] { groups[g] + i, "000000" });
@@ -295,10 +310,10 @@ public class AutoRollTAQClone implements Runnable {
         try {
             GameCanvas.endDlg();
             InfoDlg.gameAD();
-            Auto.Sleep(1000L);
+            Auto.Sleep(300L);
 
             Service.gI().gameAH(24);
-            Auto.Sleep(1500L);
+            Auto.Sleep(500L);
 
             Service.gI().gameAC(24, 3, 0);
 
@@ -311,10 +326,10 @@ public class AutoRollTAQClone implements Runnable {
                 } catch (Exception e) {}
                 Auto.Sleep(300L);
             }
-            Auto.Sleep(500L);
+            Auto.Sleep(200L);
 
             GameCanvas.inputDlg.tfInput.gameAA("aeharuna");
-            Auto.Sleep(500L);
+            Auto.Sleep(200L);
 
             String inputText = GameCanvas.inputDlg.tfInput.gameAD();
             try {
@@ -324,11 +339,11 @@ public class AutoRollTAQClone implements Runnable {
                 Service.gI().gameAA((short)24, inputText);
             }
             GameCanvas.endDlg();
-            Auto.Sleep(1500L);
+            Auto.Sleep(600L);
 
             GameCanvas.endDlg();
             InfoDlg.gameAD();
-            Auto.Sleep(500L);
+            Auto.Sleep(300L);
         } catch (Exception e) {
             GameScr.gameAC("[Clone] NPC L\u1ed7i: " + e.getMessage());
         }
@@ -357,7 +372,7 @@ public class AutoRollTAQClone implements Runnable {
             for (int r = 0; r < 12; r++) {
                 if (Res.gameAA(myChar.cx, myChar.cy, target.cx, target.cy) < 50) break;
                 Char.gameAC(target.cx, target.cy);
-                Auto.Sleep(800L);
+                Auto.Sleep(400L);
                 if (!isAuto) return false;
                 target = findCharByName(targetName);
                 if (target == null) return false;
@@ -401,7 +416,7 @@ public class AutoRollTAQClone implements Runnable {
                 Auto.Sleep(200L);
             }
 
-            Auto.Sleep(1000L);
+            Auto.Sleep(500L);
             Service.gI().gameAJ();
 
             start = System.currentTimeMillis();
@@ -412,7 +427,7 @@ public class AutoRollTAQClone implements Runnable {
                 Auto.Sleep(200L);
             }
 
-            LockGame.LockAA(1500L);
+            LockGame.LockAA(800L);
 
             if (isSending) {
                 for (int k = 0; k < 12; k++) {

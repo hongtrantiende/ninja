@@ -40,136 +40,168 @@ public class AutoLogin implements Runnable {
         if (user == null || user.length() == 0) return false;
         if (pass == null || pass.length() == 0) pass = "000000";
 
-        try {
-            GameScr.gameAC("[AutoLogin] B\u1eaft \u0111\u1ea7u \u0111\u1ed5i sang TK: " + user + "...");
-
-            // BẮT BUỘC: Reset dữ liệu nhân vật & màn hình cũ tránh bị nhận nhầm nhân vật của TK trước
+        int maxRetries = 3;
+        for (int retry = 0; retry <= maxRetries; retry++) {
             try {
-                if (SelectCharScr.gameAA() != null) {
-                    SelectCharScr.gameAA().name = null;
-                    SelectCharScr.gameAA().isNullChar = true;
+                if (retry > 0) {
+                    GameScr.gameAC("[AutoLogin] Retry " + retry + " TK: " + user);
+                    Auto.Sleep(2000L);
+                } else {
+                    GameScr.gameAC("[AutoLogin] Login TK: " + user + "...");
                 }
-                Char.gameAJ();
-            } catch (Exception e) {}
 
-            // 1. Đăng xuất nếu đang trong game
-            try {
-                if (Session_ME.gameAA() != null) {
-                    Session_ME.gameAA().gameAB(); // disconnect socket
-                }
-            } catch (Exception e) {}
-            Auto.Sleep(1000L);
-
-            // Đồng bộ tên tài khoản lên màn hình đăng nhập
-            try {
-                SelectServerScr.uname = user;
-                SelectServerScr.pass = pass;
-                RMS.gameAA("acc", user);
-                RMS.gameAA("pass", pass);
-            } catch (Exception e) {}
-
-            // Chuyển màn hình về LoginScr
-            try {
-                if (GameCanvas.loginScr != null) {
-                    GameCanvas.loginScr.gameAB();
-                }
-            } catch (Exception e) {}
-            Auto.Sleep(1200L);
-
-            // 2. Dọn dẹp dialog cũ và tắt loading (DÙNG InfoDlg.gameAD() để HỦY dialog)
-            try {
-                GameCanvas.isLoading = false;
-                GameCanvas.endDlg();
-                InfoDlg.gameAD();
-                LockGame.gameBK();
-            } catch (Exception e) {}
-
-            // Kết nối socket đến máy chủ game
-            try {
-                GameCanvas.gameAC();
-            } catch (Exception e) {}
-            Auto.Sleep(1200L);
-
-            // Gửi gói tin đăng nhập với user/pass được truyền vào
-            Service.gI().gameAA(user, pass, "1.8.8");
-            LoginScr.isLoggingIn = true;
-            GameScr.gameAC("[AutoLogin] \u0110\u00e3 g\u1eedi th\u00f4ng tin \u0111\u0103ng nh\u1eadp TK: " + user + "...");
-
-            // 3. Vòng lặp chờ nhận danh sách NV / tạo NV / vào game
-            long start = System.currentTimeMillis();
-            int createAttempts = 0;
-
-            while (System.currentTimeMillis() - start < 35000) {
-                Auto.Sleep(300L);
-
-                // TRƯỜNG HỢP A: Đã vào game thành công (GameScr)
-                if (GameCanvas.currentScreen instanceof GameScr) {
-                    Char myChar = Char.getMyChar();
-                    if (myChar != null && myChar.cName != null && myChar.cName.length() > 0) {
-                        GameCanvas.isLoading = false;
-                        GameCanvas.endDlg();
-                        InfoDlg.gameAD();
-                        LockGame.gameBK();
-                        try {
-                            myChar.isLockMove = false;
-                            myChar.isLockAttack = false;
-                        } catch (Exception e) {}
-
-                        GameScr.gameAC("[AutoLogin] === \u0110\u0102NG NH\u1eacP TH\u00c0NH C\u00d4NG! ===");
-                        GameScr.gameAC("[AutoLogin] T\u00e0i kho\u1ea3n: " + user + " (NV: " + myChar.cName + ")");
-                        InfoMe.gameAA("\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng: " + user);
-                        return true;
+                // Reset NV cu
+                try {
+                    if (SelectCharScr.gameAA() != null) {
+                        SelectCharScr.gameAA().name = null;
+                        SelectCharScr.gameAA().isNullChar = true;
                     }
-                }
+                    Char.gameAJ();
+                } catch (Exception e) {}
 
-                // TRƯỜNG HỢP B: Màn hình chọn nhân vật (SelectCharScr)
-                if (GameCanvas.currentScreen == SelectCharScr.gameAA()) {
-                    SelectCharScr scs = SelectCharScr.gameAA();
-                    String existingChar = null;
-                    if (scs.name != null) {
-                        for (int i = 0; i < scs.name.length; i++) {
-                            if (scs.name[i] != null && scs.name[i].length() > 0) {
-                                existingChar = scs.name[i];
-                                break;
-                            }
+                // Disconnect
+                try {
+                    if (Session_ME.gameAA() != null) {
+                        Session_ME.gameAA().gameAB();
+                    }
+                } catch (Exception e) {}
+                Auto.Sleep(800L);
+
+                // Set user/pass
+                try {
+                    SelectServerScr.uname = user;
+                    SelectServerScr.pass = pass;
+                    RMS.gameAA("acc", user);
+                    RMS.gameAA("pass", pass);
+                } catch (Exception e) {}
+
+                // Ve LoginScr
+                try {
+                    if (GameCanvas.loginScr != null) {
+                        GameCanvas.loginScr.gameAB();
+                    }
+                } catch (Exception e) {}
+                Auto.Sleep(800L);
+
+                // Don dep dialog cu
+                try {
+                    GameCanvas.isLoading = false;
+                    GameCanvas.endDlg();
+                    InfoDlg.gameAD();
+                    LockGame.gameBK();
+                } catch (Exception e) {}
+
+                // Connect socket
+                try {
+                    GameCanvas.gameAC();
+                } catch (Exception e) {}
+                Auto.Sleep(1200L);
+
+                // Gui login
+                Service.gI().gameAA(user, pass, "1.8.8");
+                LoginScr.isLoggingIn = true;
+                boolean sentLogin = true;
+
+                // Cho ket qua — timeout 40 giay
+                long start = System.currentTimeMillis();
+                int createAttempts = 0;
+                boolean needRetry = false;
+
+                while (System.currentTimeMillis() - start < 40000) {
+                    Auto.Sleep(300L);
+
+                    // A: Vao game thanh cong
+                    if (GameCanvas.currentScreen instanceof GameScr) {
+                        Char myChar = Char.getMyChar();
+                        if (myChar != null && myChar.cName != null && myChar.cName.length() > 0) {
+                            GameCanvas.isLoading = false;
+                            GameCanvas.endDlg();
+                            InfoDlg.gameAD();
+                            LockGame.gameBK();
+                            try {
+                                myChar.isLockMove = false;
+                                myChar.isLockAttack = false;
+                            } catch (Exception e) {}
+                            GameScr.gameAC("[AutoLogin] OK: " + user + " (" + myChar.cName + ")");
+                            return true;
                         }
                     }
 
-                    if (existingChar != null) {
-                        // Đã có nhân vật -> Chọn nhân vật vào game
-                        GameScr.gameAC("[AutoLogin] Ch\u1ecdn nh\u00e2n v\u1eadt: " + existingChar + "...");
-                        SelectCharScr.gameAK = existingChar;
-                        Service.gI().gameAB(existingChar);
-                        Auto.Sleep(2000L);
-                    } else if (scs.isNullChar || scs.name == null) {
-                        // Chưa có nhân vật -> Tạo nhân vật mới với tên sạch (tránh lọc từ tục)
-                        String charName = getCleanCharName(user, createAttempts++);
-                        GameScr.gameAC("[AutoLogin] T\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
-                        Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
-                        Auto.Sleep(2500L);
+                    // B: Chon nhan vat
+                    if (GameCanvas.currentScreen == SelectCharScr.gameAA()) {
+                        SelectCharScr scs = SelectCharScr.gameAA();
+                        String existingChar = null;
+                        if (scs.name != null) {
+                            for (int i = 0; i < scs.name.length; i++) {
+                                if (scs.name[i] != null && scs.name[i].length() > 0) {
+                                    existingChar = scs.name[i];
+                                    break;
+                                }
+                            }
+                        }
+                        if (existingChar != null) {
+                            SelectCharScr.gameAK = existingChar;
+                            Service.gI().gameAB(existingChar);
+                            Auto.Sleep(1500L);
+                        } else if (scs.isNullChar || scs.name == null) {
+                            String charName = getCleanCharName(user, createAttempts++);
+                            Service.gI().gameAA(charName, 1, 2);
+                            Auto.Sleep(2000L);
+                        }
+                        continue;
                     }
+
+                    // C: Tao nhan vat
+                    if (GameCanvas.currentScreen == CreateCharScr.gameAA()) {
+                        String charName = getCleanCharName(user, createAttempts++);
+                        Service.gI().gameAA(charName, 1, 2);
+                        Auto.Sleep(2000L);
+                        continue;
+                    }
+
+                    // D: Bi da ve LoginScr SAU KHI da gui login = qua tai / loi
+                    // Chi detect sau 5 giay (tranh nham luc dang ket noi)
+                    if (sentLogin && System.currentTimeMillis() - start > 5000) {
+                        if (GameCanvas.currentScreen instanceof LoginScr) {
+                            GameScr.gameAC("[AutoLogin] Bi da ve Login (qua tai?) - thu lai...");
+                            try {
+                                GameCanvas.endDlg();
+                                InfoDlg.gameAD();
+                                LockGame.gameBK();
+                                GameCanvas.isLoading = false;
+                            } catch (Exception e) {}
+                            needRetry = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (needRetry) continue;
+
+                // Timeout nhung chua vao game
+                if (retry < maxRetries) {
+                    GameScr.gameAC("[AutoLogin] Timeout 40s! Thu lai...");
+                    try {
+                        GameCanvas.endDlg();
+                        InfoDlg.gameAD();
+                        LockGame.gameBK();
+                        GameCanvas.isLoading = false;
+                    } catch (Exception e) {}
                     continue;
                 }
 
-                // TRƯỜNG HỢP C: Màn hình tạo nhân vật (CreateCharScr)
-                if (GameCanvas.currentScreen == CreateCharScr.gameAA()) {
-                    String charName = getCleanCharName(user, createAttempts++);
-                    GameScr.gameAC("[AutoLogin] \u0110ang t\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
-                    Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
-                    Auto.Sleep(2500L);
-                    continue;
-                }
+            } catch (Exception e) {
+                GameScr.gameAC("[AutoLogin] Loi: " + e.getMessage());
+            } finally {
+                GameCanvas.isLoading = false;
+                InfoDlg.gameAD();
+                LockGame.gameBK();
             }
-
-        } catch (Exception e) {
-            GameScr.gameAC("[AutoLogin] L\u1ed7i: " + e.getMessage());
-        } finally {
-            GameCanvas.isLoading = false;
-            InfoDlg.gameAD();
-            LockGame.gameBK();
         }
         return false;
     }
+
+
 
     /**
      * Tạo tên nhân vật sạch sẽ, không bị bộ lọc từ cấm của máy chủ chặn

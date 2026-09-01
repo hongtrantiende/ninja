@@ -32,7 +32,7 @@ public class AutoRollTAQDung implements Runnable {
                 }
 
                 GameScr.gameAC("[\u1eb6c \u0110\u1ee9ng] \u0110\u00e3 v\u00e0o giao d\u1ecbch! \u0110ang x\u1eed l\u00fd...");
-                Auto.Sleep(1000L);
+                Auto.Sleep(300L);
 
                 // 2. Kiểm tra xem clone có đặt đồ vào GD không (GameScr.gameCX)
                 boolean cloneHasItems = false;
@@ -85,7 +85,7 @@ public class AutoRollTAQDung implements Runnable {
                 }
 
                 // 5. Bấm Đồng ý
-                Auto.Sleep(1000L);
+                Auto.Sleep(300L);
                 Service.gI().gameAJ();
 
                 // 6. Chờ hoàn thành hoặc đóng màn hình GD
@@ -104,7 +104,7 @@ public class AutoRollTAQDung implements Runnable {
                     } catch (Exception e) {}
                 }
 
-                LockGame.LockAA(1500L);
+                LockGame.LockAA(500L);
                 GameScr.gameAC("[\u1eb6c \u0110\u1ee9ng] Giao d\u1ecbch th\u00e0nh c\u00f4ng!");
 
                 // Tự động sắp xếp rương / hành trang
@@ -112,7 +112,7 @@ public class AutoRollTAQDung implements Runnable {
                     Service.gI().gameAG(); // Sắp xếp hành trang
                 } catch (Exception e) {}
 
-                Auto.Sleep(2000L);
+                Auto.Sleep(500L);
             }
         } catch (Exception e) {
             GameScr.gameAC("[\u1eb6c \u0110\u1ee9ng] L\u1ed7i: " + e.getMessage());
