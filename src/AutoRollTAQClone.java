@@ -197,9 +197,8 @@ public class AutoRollTAQClone implements Runnable {
         String p = (param != null) ? param.toLowerCase().trim() : "";
         String start = (startFrom != null) ? startFrom.toLowerCase().trim() : "";
 
-        // 17 nhóm còn lại (nemran1-5 đã xong)
+        // 15 nhóm còn lại (suanon đã xong)
         String[] groups = new String[] {
-            "phomai", "suanon",
             "chetha", "topmie", "kemtui", "compho", "haisan",
             "botkem", "kemcay", "misopa", "hotdog", "supkem",
             "cocmay", "trache", "daupha", "goikeo", "damsen"
@@ -209,22 +208,6 @@ public class AutoRollTAQClone implements Runnable {
             if (start.length() > 0) {
                 int startGroupIdx = -1;
                 int startNum = 1;
-
-                if (start.startsWith("nemran")) {
-                    String numStr = start.substring("nemran".length()).trim();
-                    if (numStr.length() > 0) {
-                        try { startNum = Integer.parseInt(numStr); } catch (Exception e) { startNum = 6; }
-                    }
-                    for (int i = startNum; i <= 20; i++) {
-                        list.addElement(new String[] { "nemran" + i, "000000" });
-                    }
-                    for (int g = 0; g < groups.length; g++) {
-                        for (int i = 1; i <= 20; i++) {
-                            list.addElement(new String[] { groups[g] + i, "000000" });
-                        }
-                    }
-                    return list;
-                }
 
                 for (int g = 0; g < groups.length; g++) {
                     if (start.startsWith(groups[g])) {
@@ -250,10 +233,7 @@ public class AutoRollTAQClone implements Runnable {
                 }
             }
 
-            // all: nemran6-20 + 17 nhom (355 acc)
-            for (int i = 6; i <= 20; i++) {
-                list.addElement(new String[] { "nemran" + i, "000000" });
-            }
+            // all: 15 nhom x 20 = 300 acc
             for (int g = 0; g < groups.length; g++) {
                 for (int i = 1; i <= 20; i++) {
                     list.addElement(new String[] { groups[g] + i, "000000" });
