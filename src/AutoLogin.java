@@ -42,11 +42,12 @@ public class AutoLogin implements Runnable {
             } catch (Exception e) {}
             Auto.Sleep(1200L);
 
-            // 2. Dọn dẹp dialog cũ và xoay loading
+            // 2. Dọn dẹp dialog cũ và tắt loading (DÙNG InfoDlg.gameAD() để HỦY dialog)
             try {
                 GameCanvas.isLoading = false;
                 GameCanvas.endDlg();
-                InfoDlg.gameAB();
+                InfoDlg.gameAD();
+                LockGame.gameBK();
             } catch (Exception e) {}
 
             // Kết nối socket đến máy chủ game
@@ -73,7 +74,13 @@ public class AutoLogin implements Runnable {
                     if (myChar != null && myChar.cName != null && myChar.cName.length() > 0) {
                         GameCanvas.isLoading = false;
                         GameCanvas.endDlg();
-                        InfoDlg.gameAB();
+                        InfoDlg.gameAD(); // Tắt hoàn toàn biểu tượng loading xoay xoay
+                        LockGame.gameBK(); // Mở khóa di chuyển và thao tác
+                        try {
+                            myChar.isLockMove = false;
+                            myChar.isLockAttack = false;
+                        } catch (Exception e) {}
+
                         GameScr.gameAC("[AutoLogin] === \u0110\u0102NG NH\u1eacP TH\u00c0NH C\u00d4NG! ===");
                         GameScr.gameAC("[AutoLogin] T\u00e0i kho\u1ea3n: " + username + " (NV: " + myChar.cName + ")");
                         InfoMe.gameAA("\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng: " + username);
@@ -124,6 +131,8 @@ public class AutoLogin implements Runnable {
             GameScr.gameAC("[AutoLogin] L\u1ed7i: " + e.getMessage());
         } finally {
             GameCanvas.isLoading = false;
+            InfoDlg.gameAD();
+            LockGame.gameBK();
             isRunning = false;
         }
     }
