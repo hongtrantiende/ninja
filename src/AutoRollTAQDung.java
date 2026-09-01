@@ -107,9 +107,10 @@ public class AutoRollTAQDung implements Runnable {
                 LockGame.LockAA(500L);
                 GameScr.gameAC("[\u1eb6c \u0110\u1ee9ng] Giao d\u1ecbch th\u00e0nh c\u00f4ng!");
 
-                // Tự động sắp xếp rương / hành trang
+                // Tự động sắp xếp hành trang + rương
                 try {
                     Service.gI().gameAG(); // Sắp xếp hành trang
+                    Service.gI().gameAF(); // Sắp xếp rương
                 } catch (Exception e) {}
 
                 Auto.Sleep(500L);
