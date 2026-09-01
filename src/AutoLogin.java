@@ -42,8 +42,9 @@ public class AutoLogin implements Runnable {
             } catch (Exception e) {}
             Auto.Sleep(1200L);
 
-            // 2. Dọn dẹp dialog cũ và kết nối lại máy chủ
+            // 2. Dọn dẹp dialog cũ và xoay loading
             try {
+                GameCanvas.isLoading = false;
                 GameCanvas.endDlg();
                 InfoDlg.gameAB();
             } catch (Exception e) {}
@@ -70,6 +71,7 @@ public class AutoLogin implements Runnable {
                 if (GameCanvas.currentScreen instanceof GameScr) {
                     Char myChar = Char.getMyChar();
                     if (myChar != null && myChar.cName != null && myChar.cName.length() > 0) {
+                        GameCanvas.isLoading = false;
                         GameCanvas.endDlg();
                         InfoDlg.gameAB();
                         GameScr.gameAC("[AutoLogin] === \u0110\u0102NG NH\u1eacP TH\u00c0NH C\u00d4NG! ===");
@@ -97,8 +99,6 @@ public class AutoLogin implements Runnable {
                         GameScr.gameAC("[AutoLogin] Ch\u1ecdn nh\u00e2n v\u1eadt: " + existingChar + "...");
                         SelectCharScr.gameAK = existingChar;
                         Service.gI().gameAB(existingChar);
-                        GameCanvas.gameAB(mResources.gameBG);
-                        GameCanvas.isLoading = true;
                         Auto.Sleep(2000L);
                     } else {
                         // Chưa có nhân vật -> Tạo nhân vật mới với tên sạch (tránh lọc từ tục)
@@ -123,6 +123,7 @@ public class AutoLogin implements Runnable {
         } catch (Exception e) {
             GameScr.gameAC("[AutoLogin] L\u1ed7i: " + e.getMessage());
         } finally {
+            GameCanvas.isLoading = false;
             isRunning = false;
         }
     }
