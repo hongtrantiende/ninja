@@ -235,7 +235,7 @@ def main():
         'AutoTuLuyen', 'AutoVipMap', 'AutoVT55', 'InfoMe', 'mResources',
         'Skill', 'AutoFakePkb', 'BossConfig', 'ExploitConfig', 'TsConfig',
         'AutoSuicide', 'AutoBossNotice', 'AutoTAQ',
-        'AutoRollTAQDung', 'AutoRollTAQClone'
+        'AutoRollTAQDung', 'AutoRollTAQClone', 'AutoLogin'
     }
     
     patched = 0

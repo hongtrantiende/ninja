@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-09-01 (Session 12): Tool Auto Đăng Nhập / Đổi Tài Khoản & Tự Động Tạo Nhân Vật (AutoLogin)
+- **Yêu cầu:** Xây dựng hệ thống tự động đăng xuất, đăng nhập tài khoản mới và tự động tạo nhân vật nếu tài khoản chưa có nhân vật:
+  1. `AutoLogin.java`: Tự ngắt kết nối socket, quay về màn hình `LoginScr`, kết nối lại server và gửi gói tin đăng nhập `Service.gI().gameAA(username, password, "1.8.8")`.
+  2. Tự động nhận diện: Nếu tài khoản đã có NV (`SelectCharScr`) -> tự động chọn NV vào game. Nếu tài khoản chưa có NV (`CreateCharScr` hoặc `isNullChar`) -> tự động tạo NV mới lấy tên theo username (`Service.gI().gameAA(username, 1, 2)`).
+  3. Khi vào game thành công -> in thông báo log và popup `InfoMe.gameAA("Đăng nhập thành công: " + username)`.
+  4. Lệnh chat (`ChatRouter.java`):
+     - `dncacao` -> tự đổi sang `cacao1`, pass `000000`
+     - `dncacao2` -> đổi sang `cacao2`
+     - `dn vaicalon1` -> đổi sang `vaicalon1`
+     - `dn [user] [pass]` -> đổi sang bất kỳ tài khoản & mật khẩu nào
+- **Files tạo & thay đổi:** `src/AutoLogin.java`, `src/ChatRouter.java`, `scripts/patch_class_j2me.py`, `Aeharuna.jar`
+
+
 ## 2026-09-01 (Session 11): Tool Auto Roll Trái Ác Quỷ (TAQ) Cho Ặc Đứng & Clone
 - **Yêu cầu:** Xây dựng hệ thống tự động nhận code, lấy thẻ roll, roll TAQ và chuyển đồ:
   1. `AutoRollTAQDung` (Lệnh chat `rolldung`): Ặc đứng tự động chấp nhận mọi lời mời giao dịch từ clone (tự bấm Có), tự phát hiện clone lấy thẻ (đưa 1 thẻ ID 905) hoặc clone trả đồ (nhận đồ), tự động khóa & đồng ý giao dịch, tự sắp xếp hành trang.

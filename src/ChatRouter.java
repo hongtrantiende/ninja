@@ -380,6 +380,32 @@ public class ChatRouter {
             return true;
         }
 
+        // === AUTO LOGIN / DOI TAI KHOAN ===
+        // Ví dụ: dncacao -> cacao1 (pass 000000), dncacao2 -> cacao2, dn vaicalon1, dn [user] [pass]
+        if (text.startsWith("dn") && !text.startsWith("dna")) {
+            String raw = text.substring(2).trim();
+            if (raw.length() == 0) {
+                GameScr.gameAC("C\u00fa ph\u00e1p: dncacao ho\u1eb7c dn [t\u00ean_tk] [pass]");
+                return true;
+            }
+            String user = raw;
+            String pass = "000000";
+            if (raw.indexOf(' ') != -1) {
+                String[] parts = raw.split(" ");
+                user = parts[0];
+                if (parts.length > 1 && parts[1].length() > 0) pass = parts[1];
+            } else {
+                // Nếu user gõ dạng dncacao (chưa có số ở đuôi), tự động thêm '1' thành cacao1
+                char lastChar = user.charAt(user.length() - 1);
+                if (!Character.isDigit(lastChar)) {
+                    user = user + "1";
+                }
+            }
+            GameScr.gameAC("Chuy\u1ec3n t\u00e0i kho\u1ea3n: " + user + " | Pass: " + pass);
+            new Thread(new AutoLogin(user, pass)).start();
+            return true;
+        }
+
         // === ROLL TAQ: AC CLONE (Nhap code -> Lay the roll -> Roll 5s -> Tra sach do -> Dung) ===
         // Format: rollclone TenAcDung (hoặc chỉ vào ặc đứng rồi gõ rollclone)
         if (text.startsWith("rollclone")) {
