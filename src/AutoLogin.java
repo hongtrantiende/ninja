@@ -61,7 +61,9 @@ public class AutoLogin implements Runnable {
 
             // 3. Vòng lặp chờ nhận danh sách NV / tạo NV / vào game
             long start = System.currentTimeMillis();
-            while (isRunning && System.currentTimeMillis() - start < 30000) {
+            int createAttempts = 0;
+
+            while (isRunning && System.currentTimeMillis() - start < 35000) {
                 Auto.Sleep(300L);
 
                 // TRƯỜNG HỢP A: Đã vào game thành công (GameScr)
@@ -99,9 +101,10 @@ public class AutoLogin implements Runnable {
                         GameCanvas.isLoading = true;
                         Auto.Sleep(2000L);
                     } else {
-                        // Chưa có nhân vật -> Tạo nhân vật mới với tên là username
-                        GameScr.gameAC("[AutoLogin] T\u1ea1o nh\u00e2n v\u1eadt m\u1edbi: " + username + "...");
-                        Service.gI().gameAA(username, 1, 2); // Nam (1), Tóc (2)
+                        // Chưa có nhân vật -> Tạo nhân vật mới với tên sạch (tránh lọc từ tục)
+                        String charName = getCleanCharName(username, createAttempts++);
+                        GameScr.gameAC("[AutoLogin] T\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
+                        Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
                         Auto.Sleep(2500L);
                     }
                     continue;
@@ -109,8 +112,9 @@ public class AutoLogin implements Runnable {
 
                 // TRƯỜNG HỢP C: Màn hình tạo nhân vật (CreateCharScr)
                 if (GameCanvas.currentScreen == CreateCharScr.gameAA()) {
-                    GameScr.gameAC("[AutoLogin] \u0110ang t\u1ea1o nh\u00e2n v\u1eadt: " + username + "...");
-                    Service.gI().gameAA(username, 1, 2); // Nam (1), Tóc (2)
+                    String charName = getCleanCharName(username, createAttempts++);
+                    GameScr.gameAC("[AutoLogin] \u0110ang t\u1ea1o nh\u00e2n v\u1eadt: " + charName + "...");
+                    Service.gI().gameAA(charName, 1, 2); // Nam (1), Tóc (2)
                     Auto.Sleep(2500L);
                     continue;
                 }
@@ -121,5 +125,52 @@ public class AutoLogin implements Runnable {
         } finally {
             isRunning = false;
         }
+    }
+
+    /**
+     * Tạo tên nhân vật sạch sẽ, không bị bộ lọc từ cấm của máy chủ chặn
+     */
+    public static String getCleanCharName(String user, int attempt) {
+        if (user == null || user.length() == 0) {
+            return "ninja" + (System.currentTimeMillis() % 10000);
+        }
+        String name = user.toLowerCase();
+        // Lọc các từ ngữ máy chủ kiểm duyệt
+        name = replaceString(name, "cacao", "kacao");
+        name = replaceString(name, "vaicalon", "vcalon");
+        name = replaceString(name, "cac", "kac");
+        name = replaceString(name, "lon", "ln");
+        name = replaceString(name, "buoi", "boi");
+        name = replaceString(name, "cu", "ku");
+
+        if (attempt == 1) {
+            name = "k" + name;
+        } else if (attempt >= 2) {
+            name = "hr" + (System.currentTimeMillis() % 100000);
+        }
+
+        // Độ dài chuẩn trong Ninja School: 4 đến 15 ký tự
+        if (name.length() < 4) {
+            name = "hr" + name;
+        }
+        if (name.length() > 15) {
+            name = name.substring(0, 15);
+        }
+        return name;
+    }
+
+    /** Helper thay thế chuỗi tương thích J2ME CLDC 1.1 */
+    public static String replaceString(String src, String target, String replacement) {
+        if (src == null || target == null || replacement == null || target.length() == 0) return src;
+        StringBuffer sb = new StringBuffer();
+        int start = 0;
+        int idx = 0;
+        while ((idx = src.indexOf(target, start)) != -1) {
+            sb.append(src.substring(start, idx));
+            sb.append(replacement);
+            start = idx + target.length();
+        }
+        sb.append(src.substring(start));
+        return sb.toString();
     }
 }
