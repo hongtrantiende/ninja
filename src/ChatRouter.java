@@ -471,6 +471,47 @@ public class ChatRouter {
             return true;
         }
         
+        // === TAO NV: Auto login + tao nhan vat cho 9600 tk du phong ===
+        // taonv all | taonv all buncha5 | taonv buncha | taonv stop
+        if (text.startsWith("taonv")) {
+            if (text.equals("taonv stop") || text.equals("taonv off")) {
+                AutoCreateAllChars.isAuto = false;
+                AutoCreateAllChars.accountList.removeAllElements();
+                GameScr.gameAC("Dung TaoNV!");
+                return true;
+            }
+
+            if (AutoCreateAllChars.isAuto) {
+                AutoCreateAllChars.isAuto = false;
+                AutoCreateAllChars.accountList.removeAllElements();
+                GameScr.gameAC("Tat TaoNV!");
+                return true;
+            }
+
+            AutoCreateAllChars.accountList = new java.util.Vector();
+            String[] parts = text.split(" ");
+            if (parts.length >= 3) {
+                // taonv all buncha5
+                AutoCreateAllChars.accountList = AutoCreateAllChars.generateBackupAccounts(parts[1], parts[2]);
+            } else if (parts.length == 2) {
+                // taonv all | taonv buncha
+                AutoCreateAllChars.accountList = AutoCreateAllChars.generateBackupAccounts(parts[1], null);
+            } else {
+                GameScr.gameAC("Dung: taonv all | taonv all buncha5 | taonv buncha | taonv stop");
+                return true;
+            }
+
+            if (AutoCreateAllChars.accountList.isEmpty()) {
+                GameScr.gameAC("Khong tim thay nhom tai khoan!");
+                return true;
+            }
+
+            AutoCreateAllChars.isAuto = true;
+            GameScr.gameAC("Bat TaoNV: " + AutoCreateAllChars.accountList.size() + " tai khoan");
+            new Thread(new AutoCreateAllChars()).start();
+            return true;
+        }
+        
         // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
             boolean isAk = text.equals("ak");
