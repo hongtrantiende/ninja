@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-09-04 (Session 18): Đổi Watermark Màn Hình Khi Bật ID Map Thành "nammod" & Đổi Tên Game Thành "svjeny" Cho Bản Share
+- **Yêu cầu:** Trong bản share, khi bật "Hiện ID map" ở Cài đặt chung thì chữ "Aeharuna" hiện trên màn hình đổi thành "nammod". Đổi tên game thành "svjeny".
+- **Chi tiết triển khai:**
+  1. Trong `build_share.py`: Thêm hàm `patch_cp_utf8()` trực tiếp sửa Constant Pool UTF-8 entry của các file class J2ME.
+  2. `GameScr.class`: Đổi constant CP#6348 `b"Aeharuna"` -> `b"nammod"`. Khi bật "Hiện ID map" (`SetAuto.idmap`), game sẽ vẽ chữ `nammod` nhấp nháy cạnh đồng hồ và ID map.
+  3. `LoginScr.class`: Đổi hiển thị tên server và tiêu đề: `b"NSO Aeharuna"` -> `b"svjeny"`, `b"AEharuna "` -> `b"svjeny "`, `b"Aeharuna1 "` -> `b"svjeny1 "`. Giữ nguyên IP domain kết nối.
+  4. `META-INF/MANIFEST.MF`: Cập nhật `MIDlet-Name: svjeny`, `MIDlet-1: svjeny,/icon.png,GameMidlet`, `MIDlet-Vendor: svjeny`.
+  5. Xuất file kết quả: tạo cả [Aeharuna_share.jar](file:///root/ninja/Aeharuna_share.jar) và file đổi tên [svjeny.jar](file:///root/ninja/svjeny.jar) (1,353,552 bytes).
+  6. Tự động sao chép sang `/storage/emulated/0/Download/` cả 2 file `Aeharuna_share.jar` và `svjeny.jar`.
+- **Files thay đổi:** `build_share.py`, `.gitignore`, `memory/episodic/decisions-log.md`
+
 ## 2026-09-04 (Session 17): Loại Bỏ Hoàn Toàn Tính Năng Hút VP (AutoPickup) Khỏi Bản Share
 - **Yêu cầu:** Xóa bỏ hoàn toàn tính năng Hút VP khỏi bản share (`Aeharuna_share.jar`).
 - **Chi tiết triển khai:**
