@@ -510,6 +510,57 @@ public final class ExploitConfig implements CommandListener {
     with open(nammod_file, "w", encoding="utf-8") as f:
         f.write(nammod_share_content)
 
+    # 2c. Disable AutoPickup (Hut VP) completely in share build
+    autopickup_share_content = r"""public class AutoPickup implements Runnable {
+    public static boolean isRunning = false;
+    public static void toggle() {}
+    public static void start() {}
+    public static void syncAfterAutoCommand() {}
+    public static void stop() {}
+    public static void grabOnce() {}
+    public void run() {}
+}
+"""
+    autopickup_file = os.path.join(root, "src", "AutoPickup.java")
+    with open(autopickup_file, "w", encoding="utf-8") as f:
+        f.write(autopickup_share_content)
+
+    # 2d. Remove Hut VP button from SplitPatcher.java in share build
+    splitpatcher_file = os.path.join(root, "src", "SplitPatcher.java")
+    with open(splitpatcher_file, "r", encoding="utf-8") as f:
+        sp_code = f.read()
+
+    old_hutvp_hook = r"""                // Hook nut "Nhat Xa / Hut VP" goc (1100080) -> AutoPickup.toggle()
+                if (cmd.idAction == 1100080) {
+                    String label = AutoPickup.isRunning ? "H\u00fat VP: ON" : "H\u00fat VP: OFF";
+                    Command hutVp = new Command(label, new IActionListener() {
+                        public void perform(int id, Object p) {
+                            AutoPickup.toggle();
+                        }
+                    }, 1100080, null);
+                    var1.setElementAt(hutVp, i);
+                }"""
+    new_hutvp_hook = r"""                // Xoa bo nut Hut VP / Nhat Xa trong ban share
+                if (cmd.idAction == 1100080) {
+                    var1.removeElementAt(i);
+                    i--;
+                    continue;
+                }"""
+    if old_hutvp_hook in sp_code:
+        sp_code = sp_code.replace(old_hutvp_hook, new_hutvp_hook)
+    else:
+        print("[WARN] old_hutvp_hook not found in SplitPatcher.java!")
+    with open(splitpatcher_file, "w", encoding="utf-8") as f:
+        f.write(sp_code)
+
+    # 2e. Turn off default gameAQ in Code.java in share build
+    code_file = os.path.join(root, "src", "Code.java")
+    with open(code_file, "r", encoding="utf-8") as f:
+        c_code = f.read()
+    c_code = c_code.replace("gameAQ = true;", "gameAQ = false;")
+    with open(code_file, "w", encoding="utf-8") as f:
+        f.write(c_code)
+
     # 3. Modify AutoBossEvent.java: disable pre-spawn in share (set to 0s)
     autobosseven_file = os.path.join(root, "src", "AutoBossEvent.java")
     with open(autobosseven_file, "r", encoding="utf-8") as f:
@@ -686,6 +737,11 @@ public final class ExploitConfig implements CommandListener {
 
     with zipfile.ZipFile(base_jar_path, 'r') as z:
         z.extractall(unpacked_dir)
+
+    for f in glob.glob(os.path.join(unpacked_dir, "AutoPickup*.class")):
+        os.remove(f)
+    for f in glob.glob(os.path.join(unpacked_dir, "NamMod*.class")):
+        os.remove(f)
 
     print("=== [SHARE BUILD] 4. Compile Stubs & Src ===")
     stubs_files = glob.glob(os.path.join(root, "stubs", "**", "*.java"), recursive=True)

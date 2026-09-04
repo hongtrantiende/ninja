@@ -1,5 +1,15 @@
 # Decisions Log
 
+## 2026-09-04 (Session 17): Loại Bỏ Hoàn Toàn Tính Năng Hút VP (AutoPickup) Khỏi Bản Share
+- **Yêu cầu:** Xóa bỏ hoàn toàn tính năng Hút VP khỏi bản share (`Aeharuna_share.jar`).
+- **Chi tiết triển khai:**
+  1. Trong `SplitPatcher.java` (khi build bản share): Xóa bỏ hoàn toàn nút menu `1100080` ("Hút VP: ON/OFF" / "Nhặt Xa") khỏi menu ingame. Người dùng không còn nhìn thấy nút Hút VP trong menu nữa.
+  2. Trong `AutoPickup.java` (khi build bản share): Biến đổi thành stub rỗng (`isRunning = false`, `toggle()`, `start()`, `stop()`, `syncAfterAutoCommand()`, `grabOnce()` đều rỗng, không tạo thread ngầm, không hút đồ, không gửi chat thông báo).
+  3. Trong `Code.java` (khi build bản share): Đặt mặc định `gameAQ = false` để tắt tính năng tự động nhặt đồ.
+  4. Trong `build_share.py`: Tự động xóa các file class rác cũ như `AutoPickup*.class`, `NamMod*.class` trước khi biên dịch lại.
+  5. Biên dịch thành công `Aeharuna_share.jar` (1,353,582 bytes), copy sang `/storage/emulated/0/Download/Aeharuna_share.jar`.
+- **Files thay đổi:** `build_share.py`, `Aeharuna_share.jar`, `/storage/emulated/0/Download/Aeharuna_share.jar`
+
 ## 2026-09-04 (Session 16): Rút Gọn Tuyệt Đối Menu NamMod Cho Bản Share (Chỉ Còn Duy Nhất Spam NPC)
 - **Yêu cầu:** Xóa sạch toàn bộ các tính năng khác trong menu NamMod trên bản share (`Aeharuna_share.jar`), chỉ để lại duy nhất mục `Spam NPC ▸`. Bản chính (`Aeharuna.jar`) vẫn giữ nguyên toàn bộ tính năng gốc.
 - **Chi tiết triển khai:**
