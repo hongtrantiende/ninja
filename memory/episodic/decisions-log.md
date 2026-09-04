@@ -1,5 +1,15 @@
 # Decisions Log
 
+## 2026-09-04 (Session 16): Rút Gọn Tuyệt Đối Menu NamMod Cho Bản Share (Chỉ Còn Duy Nhất Spam NPC)
+- **Yêu cầu:** Xóa sạch toàn bộ các tính năng khác trong menu NamMod trên bản share (`Aeharuna_share.jar`), chỉ để lại duy nhất mục `Spam NPC ▸`. Bản chính (`Aeharuna.jar`) vẫn giữ nguyên toàn bộ tính năng gốc.
+- **Chi tiết triển khai:**
+  1. Trong `build_share.py`, tạo file `NamMod.java` độc quyền cho bản share chỉ với một lệnh menu duy nhất: `command("Spam NPC \u25b8", CFG_EXPLOIT_MENU)`.
+  2. Bỏ hoàn toàn các mục: Săn Boss, TS ưu tiên Boss, Cài đặt Săn Boss, Lịch Boss, Hút VP, Ẩn VP rơi, Auto Level, Cài đặt Tàn Sát, TS VIP Map 1/2, TS Tu Luyện, Mời nhóm.
+  3. Cập nhật tiêu đề form trong bản share thành "Cài đặt Spam NPC".
+  4. Biên dịch và kiểm tra: `python3 build_share.py` tạo `Aeharuna_share.jar` thành công (1,348,869 bytes). Tự động phục hồi `src/` gốc.
+  5. Đã copy sang `/storage/emulated/0/Download/Aeharuna_share.jar`.
+- **Files thay đổi:** `build_share.py`, `Aeharuna_share.jar`, `/storage/emulated/0/Download/Aeharuna_share.jar`
+
 ## 2026-09-04 (Session 15): Tích Hợp Menu Cài Đặt CN Test (Chỉ Giữ Spam NPC) Vào Bản Share (build_share.py & Aeharuna_share.jar)
 - **Yêu cầu:** Thêm menu "Cài đặt CN Test" vào bản share (`Aeharuna_share.jar`), nhưng chỉ cung cấp duy nhất tính năng Spam NPC (bao gồm cả toggle độc lập cho Ô 1, Ô 2 và tự động xác nhận hộp thoại Ô 3 Đồng ý/Có vừa làm), ẩn/loại bỏ hoàn toàn các chức năng nhạy cảm (Đánh Nhanh, Dupe Nhặt Xa, Đánh Nhiều Skill).
 - **Chi tiết triển khai:**

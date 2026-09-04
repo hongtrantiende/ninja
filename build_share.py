@@ -177,7 +177,7 @@ public final class ExploitConfig implements CommandListener {
     }
 
     private void buildForm() {
-        form = new Form("C\u00e0i \u0111\u1eb7t CN Test");
+        form = new Form("C\u00e0i \u0111\u1eb7t Spam NPC");
         form.addCommand(cmdLuu);
         form.addCommand(cmdHuy);
         form.addCommand(cmdReset);
@@ -480,6 +480,35 @@ public final class ExploitConfig implements CommandListener {
     exploitconfig_file = os.path.join(root, "src", "ExploitConfig.java")
     with open(exploitconfig_file, "w", encoding="utf-8") as f:
         f.write(exploitconfig_share_content)
+
+    # 2b. Write simplified NamMod.java (only Spam NPC in menu)
+    nammod_share_content = r"""public final class NamMod implements IActionListener {
+    private static final int CFG_EXPLOIT_MENU = 120150;
+    private static final NamMod INSTANCE = new NamMod();
+
+    private NamMod() {
+    }
+
+    public static void open() {
+        MyVector items = new MyVector();
+        items.addElement(command("Spam NPC \u25b8", CFG_EXPLOIT_MENU));
+        GameCanvas.menu.gameAA(items);
+    }
+
+    private static Command command(String caption, int id) {
+        return new Command(caption, INSTANCE, id, null);
+    }
+
+    public void perform(int id, Object parameter) {
+        if (id == CFG_EXPLOIT_MENU) {
+            ExploitConfig.select();
+        }
+    }
+}
+"""
+    nammod_file = os.path.join(root, "src", "NamMod.java")
+    with open(nammod_file, "w", encoding="utf-8") as f:
+        f.write(nammod_share_content)
 
     # 3. Modify AutoBossEvent.java: disable pre-spawn in share (set to 0s)
     autobosseven_file = os.path.join(root, "src", "AutoBossEvent.java")
