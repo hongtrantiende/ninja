@@ -73,7 +73,7 @@ public class SplitPatcher {
             }
         }
         if (isMainMenu && !alreadyAdded) {
-            Command namMod = new Command("Nam Mod", new IActionListener() {
+            Command namMod = new Command("NinjaNamod", new IActionListener() {
                 public void perform(int id, Object parameter) {
                     NamMod.open();
                 }

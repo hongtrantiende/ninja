@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-09-04 (Session 20): Đồng Bộ Tên Thương Hiệu "NinjaNamod" Toàn Diện Cho Cả Bản Chính & Bản Share
+- **Yêu cầu:** Đổi tất cả các định danh "Nam" / "nam" / "Nam Mod" / "nammod" thành `NinjaNamod` trên toàn bộ dự án (cả bản Aeharuna và bản share/SVJenny).
+- **Chi tiết triển khai:**
+  1. `src/SplitPatcher.java`: Đổi tên mục trong menu 3 gạch ingame từ `"Nam Mod"` thành `"NinjaNamod"`.
+  2. `src/NamMod.java`: Đổi thông báo ingame từ `"Nam Mod: ..."` thành `"NinjaNamod: ..."`.
+  3. `GameScr.class` (Watermark góc màn hình khi bật "Hiện ID map"): Đổi từ `Aeharuna`/`nammod` thành `NinjaNamod` trên cả bản chính và bản share.
+  4. `META-INF/MANIFEST.MF`:
+     - Bản chính (`Aeharuna.jar` & `NinjaNamod.jar`): `MIDlet-Name: NinjaNamod`, `MIDlet-Vendor: NinjaNamod`, `MIDlet-1: NinjaNamod,/icon.png,GameMidlet`.
+     - Bản share (`SVJenny.jar` & `Aeharuna_share.jar`): `MIDlet-Name: SVJenny`, `MIDlet-Vendor: NinjaNamod`, `MIDlet-1: SVJenny,/icon.png,GameMidlet`.
+  5. `do_build.py` & `build_share.py`: Tự động hóa patch watermark `NinjaNamod`, cập nhật MANIFEST.MF, sao chép file kết quả sang thư mục `/storage/emulated/0/Download/` (`Aeharuna.jar`, `NinjaNamod.jar`, `SVJenny.jar`, `Aeharuna_share.jar`).
+  6. `.gitignore`: Bổ sung `NinjaNamod.jar`.
+- **Files thay đổi:** `src/SplitPatcher.java`, `src/NamMod.java`, `do_build.py`, `build_share.py`, `.gitignore`, `Aeharuna.jar`, `NinjaNamod.jar`, `SVJenny.jar`, `Aeharuna_share.jar`, `memory/episodic/decisions-log.md`
+
 ## 2026-09-04 (Session 19): Đổi Tên Thành "SVJenny", Nhà Phát Triển "Nammod", Cấu Hình IP Server 160.250.130.241 & Port 15555
 - **Yêu cầu:** Sửa tên game thành đúng chuẩn viết hoa `SVJenny`, nhà phát triển khi cài JAR trên J2ME là `Nammod`. Cung cấp script đổi IP server thành `160.250.130.241` và port `15555`.
 - **Chi tiết triển khai:**

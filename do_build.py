@@ -4,6 +4,7 @@ import glob
 import shutil
 import zipfile
 import subprocess
+import struct
 
 root = os.path.abspath(os.path.dirname(__file__))
 build_dir = os.path.join(root, "build")
@@ -45,13 +46,76 @@ mothercanvas_class = os.path.join(unpacked_dir, "MotherCanvas.class")
 if os.path.exists(mothercanvas_class):
     subprocess.run(["python", "scripts/patch_mothercanvas_eco.py", mothercanvas_class], check=True)
 
+# 3d. Patch GameScr for watermark (Aeharuna -> NinjaNamod)
+def patch_cp_utf8(class_path, old_bytes, new_bytes):
+    data = bytearray(open(class_path, "rb").read())
+    cp_count = struct.unpack(">H", data[8:10])[0]
+    idx = 10
+    target_offset = -1
+    target_data_start = -1
+    old_len = len(old_bytes)
+    new_len = len(new_bytes)
+
+    i = 1
+    while i < cp_count:
+        tag = data[idx]
+        if tag == 1:
+            length = struct.unpack(">H", data[idx+1:idx+3])[0]
+            s = bytes(data[idx+3:idx+3+length])
+            if s == old_bytes:
+                target_offset = idx
+                target_data_start = idx + 3
+                break
+            idx += 3 + length
+        elif tag in (7, 8, 16, 19, 20): idx += 3
+        elif tag in (3, 4, 9, 10, 11, 12, 17, 18): idx += 5
+        elif tag in (5, 6): idx += 9; i += 1
+        elif tag == 15: idx += 4
+        else: raise ValueError(f"Unknown tag {tag} at offset {idx}")
+        i += 1
+
+    if target_offset < 0:
+        return False
+
+    struct.pack_into(">H", data, target_offset + 1, new_len)
+    new_data = data[:target_data_start] + new_bytes + data[target_data_start + old_len:]
+    open(class_path, "wb").write(new_data)
+    print(f"Patched {os.path.basename(class_path)}: {old_bytes} -> {new_bytes}")
+    return True
+
+gamescr_class = os.path.join(unpacked_dir, "GameScr.class")
+if not patch_cp_utf8(gamescr_class, b"Aeharuna", b"NinjaNamod"):
+    patch_cp_utf8(gamescr_class, b"nammod", b"NinjaNamod")
+
+# Update MANIFEST.MF: Rename to NinjaNamod
+manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")
+manifest_content = """Manifest-Version: 1.0
+MIDlet-1: NinjaNamod,/icon.png,GameMidlet
+MIDlet-Vendor: NinjaNamod
+MIDlet-Version: 1.4.8
+MIDlet-Name: NinjaNamod
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.1
+
+"""
+with open(manifest_file, "w", encoding="utf-8") as f:
+    f.write(manifest_content)
+
 print("=== 4. Pack Aeharuna.jar ===")
 for root_d, dirs_d, files_d in os.walk(unpacked_dir):
     for f in files_d:
         if f.endswith(".bak") or "bak_effects" in f:
             os.remove(os.path.join(root_d, f))
 
-manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")
 subprocess.run(["jar", "cfm", jar_path, manifest_file, "."], cwd=unpacked_dir, check=True)
-
 print(f"=== SUCCESS! Aeharuna.jar created: {os.path.getsize(jar_path)} bytes ===")
+
+ninjanamod_jar_path = os.path.join(root, "NinjaNamod.jar")
+shutil.copyfile(jar_path, ninjanamod_jar_path)
+print(f"=== Created copy: NinjaNamod.jar: {os.path.getsize(ninjanamod_jar_path)} bytes ===")
+
+download_dir = "/storage/emulated/0/Download"
+if os.path.exists(download_dir):
+    shutil.copyfile(jar_path, os.path.join(download_dir, "Aeharuna.jar"))
+    shutil.copyfile(jar_path, os.path.join(download_dir, "NinjaNamod.jar"))
+    print(f"=== Copied to {download_dir}/Aeharuna.jar and NinjaNamod.jar ===")

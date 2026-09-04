@@ -259,10 +259,10 @@ public final class NamMod implements IActionListener {
                     if (lv >= 10 && lv <= 99) {
                         AutoLevel.start(lv);
                     } else {
-                        GameScr.gameAC("Nam Mod: Level ph\u1ea3i t\u1eebr 10 \u0111\u1ebfn 99!");
+                        GameScr.gameAC("NinjaNamod: Level ph\u1ea3i t\u1eebr 10 \u0111\u1ebfn 99!");
                     }
                 } catch (Exception e) {
-                    GameScr.gameAC("Nam Mod: Level kh\u00f4ng h\u1ee3p l\u1ec7!");
+                    GameScr.gameAC("NinjaNamod: Level kh\u00f4ng h\u1ee3p l\u1ec7!");
                 }
                 GameCanvas.endDlg();
             }

@@ -807,7 +807,8 @@ public final class ExploitConfig implements CommandListener {
         return True
 
     gamescr_class = os.path.join(unpacked_dir, "GameScr.class")
-    patch_cp_utf8(gamescr_class, b"Aeharuna", b"nammod")
+    if not patch_cp_utf8(gamescr_class, b"Aeharuna", b"NinjaNamod"):
+        patch_cp_utf8(gamescr_class, b"nammod", b"NinjaNamod")
 
     loginscr_class = os.path.join(unpacked_dir, "LoginScr.class")
     patch_cp_utf8(loginscr_class, b"NSO Aeharuna", b"SVJenny")
@@ -819,11 +820,11 @@ public final class ExploitConfig implements CommandListener {
     import patch_server_ip
     patch_server_ip.patch_dir(unpacked_dir, "160.250.130.241", 15555)
 
-    # Update MANIFEST.MF: Rename game to SVJenny, vendor to Nammod
+    # Update MANIFEST.MF: Rename game to SVJenny, vendor to NinjaNamod
     manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")
     manifest_content = """Manifest-Version: 1.0
 MIDlet-1: SVJenny,/icon.png,GameMidlet
-MIDlet-Vendor: Nammod
+MIDlet-Vendor: NinjaNamod
 MIDlet-Version: 1.4.8
 MIDlet-Name: SVJenny
 MicroEdition-Configuration: CLDC-1.1
