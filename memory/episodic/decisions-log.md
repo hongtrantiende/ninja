@@ -1,5 +1,17 @@
 # Decisions Log
 
+## 2026-09-04 (Session 14): Nâng Cấp Menu Cài Đặt CN Test (ExploitConfig) - Toggle Ô 1/Ô 2 & Tự Động Xác Nhận Ô 3 (Đồng ý/Có)
+- **Yêu cầu:**
+  1. Thêm nút bật/tắt (ChoiceGroup toggle) độc lập cho Ô 1 (`isNpcOpt1Enable`) và Ô 2 (`isNpcOpt2Enable`). Nếu ô nào tắt thì không gửi/sử dụng ô đó khi Test NPC Spam.
+  2. Khắc phục lỗi Ô 3 ("Đồng ý/Có") không có tác dụng:
+     - Trước đây Ô 3 chỉ gửi mù quáng gói tin `gameAC(npcT, opt3, 0)`, trong khi hộp thoại xác nhận của server (Message 107 / opcode -70 / client dialog) hiển thị trên `GameCanvas.currentDialog` và chặn UI, khiến game không thực hiện đồng ý.
+     - Triển khai hàm `tryAcceptDialog()` tự động phát hiện hộp thoại xác nhận trên `GameCanvas.currentDialog` / `GameCanvas.msgdlg`, kích hoạt `cmd.gameAA()` (nút Trái "Có" / "Đồng ý") và gửi đúng gói tin xác nhận server (`Service.gI().gameAO(...)` cho Message 107, `Service.gI().gameBC()` cho Message -68), đồng thời đóng hộp thoại sạch sẽ.
+     - Nếu không có hộp thoại, tiếp tục gửi gói tin `opt3` dự phòng và kiểm tra lại hộp thoại lần 2.
+  3. Sửa lỗi mảng `int[] v = new int[16]` trong `loadConfigFromRMS()` khiến các trường cấu hình từ slot 16 trở đi (bao gồm Ô 3) không thể lưu/tải từ RMS.
+- **Files thay đổi:** `src/ExploitConfig.java`, `Aeharuna.jar`
+
+
+
 ## 2026-09-01 (Session 13): Nâng Cấp Auto Roll TAQ Clone Chạy Liên Hoàn Danh Sách Tài Khoản
 - **Yêu cầu:** Nâng cấp lệnh `rollclone` cho phép tự động lặp qua danh sách tài khoản liên hoàn:
   1. `AutoRollTAQClone.java`: Hỗ trợ `accountList` tự động chuyển tài khoản sau mỗi vòng roll:

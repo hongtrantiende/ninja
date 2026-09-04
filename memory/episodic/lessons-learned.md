@@ -1,5 +1,19 @@
 # Lessons Learned
 
+## 2026-09-04: Xử Lý Hộp Thoại Xác Nhận "Có" / "Đồng ý" (Dialog / MsgDlg) và Namespace Conflict lcdui.Command
+- **Nguyên nhân bug Ô 3 ("Đồng ý/Có") không hoạt động:**
+  - Hộp thoại xác nhận NPC ("Bạn có chắc chắn muốn...?", Yes/No) là các modal dialog hiển thị qua `GameCanvas.currentDialog` / `GameCanvas.msgdlg`.
+  - Nút "Có" / "Đồng ý" nằm ở `dlg.left` (hoặc `dlg.center` nếu là 1 nút).
+  - Gửi gói tin `Service.gI().gameAC(npcT, opt3, 0)` (Message 29) không tương đương với việc bấm "Có" trên hộp thoại, khiến hộp thoại modal vẫn hiện và chặn màn hình.
+  - Cần gọi `cmd.gameAA()` trên command của dialog, xử lý các gói tin phản hồi server tương ứng (Message 107 `Service.gI().gameAO` cho action `8890`, Message -68 `Service.gI().gameBC` cho action `88842`), và gọi `GameCanvas.endDlg()`.
+- **Tránh xung đột Namespace javax.microedition.lcdui.Command vs Command (game):**
+  - Khi một class nằm trong default package nhưng lại import `javax.microedition.lcdui.Command`, tên không định danh `Command` sẽ bị ép về class của LCDUI thay vì class `Command` của game.
+  - Khắc phục: Không import `javax.microedition.lcdui.Command`, dùng tên đầy đủ `javax.microedition.lcdui.Command` cho các field UI Form và để `Command` tự do tham chiếu tới class của game.
+- **Bug mảng RMS size:**
+  - Cần đảm bảo `int[] v = new int[...]` trong `loadConfigFromRMS()` có kích thước lớn hơn số phần tử được lưu trong chuỗi RMS data.
+
+
+
 ## 2026-09-01: Phân Biệt InfoDlg.gameAB() (Hiển thị) vs InfoDlg.gameAD() (Đóng dialog) & Bộ Lọc Từ Cấm Tạo Nhân Vật
 - **Nguyên nhân bug kẹt xoay xoay:** Trong mã nguồn obfuscated Ninja School:
   - `InfoDlg.gameAB()` thực chất là hàm **HIỂN THỊ** bảng "Đang tải dữ liệu..." (với `gameAF = true` vẽ biểu tượng xoay xoay ở góc trên trong 5000 frame ~ 3 phút và khóa di chuyển).
