@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-09-04 (Session 21): Chuyển Đổi Hoàn Toàn Sang "NinjaNamod", Loại Bỏ Triệt Để Mọi Dấu Vết "Aeharuna"
+- **Yêu cầu:** Cập nhật AGENTS.md sang NinjaNamod, xóa toàn bộ các từ liên quan đến Aeharuna. Dự án chính thức đổi sang NinjaNamod kết nối server mới (160.250.130.241:15555).
+- **Chi tiết triển khai:**
+  1. `.agents/AGENTS.md`: Chuyển toàn bộ tài liệu hướng dẫn, quy trình build, git checkout, unpack, repack và target JAR sang `NinjaNamod.jar`. Xóa bỏ hoàn toàn mọi từ ngữ liên quan đến `Aeharuna`.
+  2. `rules.md`: Cập nhật Default JAR Target thành `NinjaNamod.jar`.
+  3. `do_build.py`: Bổ sung patch `LoginScr.class` chuyển toàn bộ tên server/tiêu đề từ `NSO Aeharuna` -> `NinjaNamod` và cấu hình server IP `160.250.130.241`, port `15555`.
+  4. `build_share.py`: Tương thích với base `NinjaNamod`, xuất thêm bản copy `NinjaNamod_share.jar` sang thư mục Download.
+  5. `.gitignore`: Bổ sung `NinjaNamod_share.jar`.
+  6. Rebuild thành công toàn bộ JAR: `NinjaNamod.jar` (1,362,996 bytes), `SVJenny.jar` / `NinjaNamod_share.jar` (1,353,570 bytes). Đã copy sang `/storage/emulated/0/Download/`.
+- **Files thay đổi:** `.agents/AGENTS.md`, `rules.md`, `do_build.py`, `build_share.py`, `.gitignore`, `Aeharuna.jar`, `NinjaNamod.jar`, `SVJenny.jar`, `NinjaNamod_share.jar`, `memory/episodic/decisions-log.md`
+
 ## 2026-09-04 (Session 20): Đồng Bộ Tên Thương Hiệu "NinjaNamod" Toàn Diện Cho Cả Bản Chính & Bản Share
 - **Yêu cầu:** Đổi tất cả các định danh "Nam" / "nam" / "Nam Mod" / "nammod" thành `NinjaNamod` trên toàn bộ dự án (cả bản Aeharuna và bản share/SVJenny).
 - **Chi tiết triển khai:**

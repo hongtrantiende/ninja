@@ -87,6 +87,24 @@ gamescr_class = os.path.join(unpacked_dir, "GameScr.class")
 if not patch_cp_utf8(gamescr_class, b"Aeharuna", b"NinjaNamod"):
     patch_cp_utf8(gamescr_class, b"nammod", b"NinjaNamod")
 
+# 3e. Patch LoginScr (Aeharuna -> NinjaNamod)
+loginscr_class = os.path.join(unpacked_dir, "LoginScr.class")
+if os.path.exists(loginscr_class):
+    for old_s in [b"NSO Aeharuna", b"SVJenny", b"Aeharuna"]:
+        if patch_cp_utf8(loginscr_class, old_s, b"NinjaNamod"):
+            break
+    for old_s in [b"AEharuna ", b"SVJenny "]:
+        if patch_cp_utf8(loginscr_class, old_s, b"NinjaNamod "):
+            break
+    for old_s in [b"Aeharuna1 ", b"SVJenny1 "]:
+        if patch_cp_utf8(loginscr_class, old_s, b"NinjaNamod1 "):
+            break
+
+# 3f. Patch Server IP & Port (160.250.130.241:15555)
+sys.path.insert(0, os.path.join(root, "scripts"))
+import patch_server_ip
+patch_server_ip.patch_dir(unpacked_dir, "160.250.130.241", 15555)
+
 # Update MANIFEST.MF: Rename to NinjaNamod
 manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")
 manifest_content = """Manifest-Version: 1.0

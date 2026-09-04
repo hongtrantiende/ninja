@@ -811,9 +811,15 @@ public final class ExploitConfig implements CommandListener {
         patch_cp_utf8(gamescr_class, b"nammod", b"NinjaNamod")
 
     loginscr_class = os.path.join(unpacked_dir, "LoginScr.class")
-    patch_cp_utf8(loginscr_class, b"NSO Aeharuna", b"SVJenny")
-    patch_cp_utf8(loginscr_class, b"AEharuna ", b"SVJenny ")
-    patch_cp_utf8(loginscr_class, b"Aeharuna1 ", b"SVJenny1 ")
+    for old_s in [b"NSO Aeharuna", b"NinjaNamod", b"Aeharuna"]:
+        if patch_cp_utf8(loginscr_class, old_s, b"SVJenny"):
+            break
+    for old_s in [b"AEharuna ", b"NinjaNamod "]:
+        if patch_cp_utf8(loginscr_class, old_s, b"SVJenny "):
+            break
+    for old_s in [b"Aeharuna1 ", b"NinjaNamod1 "]:
+        if patch_cp_utf8(loginscr_class, old_s, b"SVJenny1 "):
+            break
 
     # Patch server IP and Port for SVJenny (160.250.130.241:15555)
     sys.path.insert(0, os.path.join(root, "scripts"))
@@ -847,16 +853,21 @@ MicroEdition-Profile: MIDP-2.1
     shutil.copyfile(share_jar_path, svjenny_jar_path)
     print(f"=== Created copy: SVJenny.jar: {os.path.getsize(svjenny_jar_path)} bytes ===")
 
+    ninjanamod_share_path = os.path.join(root, "NinjaNamod_share.jar")
+    shutil.copyfile(share_jar_path, ninjanamod_share_path)
+    print(f"=== Created copy: NinjaNamod_share.jar: {os.path.getsize(ninjanamod_share_path)} bytes ===")
+
     download_dir = "/storage/emulated/0/Download"
     if os.path.exists(download_dir):
         shutil.copyfile(share_jar_path, os.path.join(download_dir, "Aeharuna_share.jar"))
         shutil.copyfile(share_jar_path, os.path.join(download_dir, "SVJenny.jar"))
+        shutil.copyfile(share_jar_path, os.path.join(download_dir, "NinjaNamod_share.jar"))
         # Remove old lowercase svjeny.jar if exists
         old_jar = os.path.join(download_dir, "svjeny.jar")
         if os.path.exists(old_jar):
             try: os.remove(old_jar)
             except: pass
-        print(f"=== Copied to {download_dir}/Aeharuna_share.jar and SVJenny.jar ===")
+        print(f"=== Copied to {download_dir}/Aeharuna_share.jar, SVJenny.jar, NinjaNamod_share.jar ===")
 
 finally:
     print("=== [SHARE BUILD] 7. Restoring original src/ files from backup ===")

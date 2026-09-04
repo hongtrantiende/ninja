@@ -30,7 +30,7 @@ File `.jar` bản chất là một tệp ZIP chuẩn chứa:
 
 ## 🔧 3. Bộ Công Cụ Hỗ Trợ Dự Án Ninja
 
-- **Default JAR Target:** `Aeharuna.jar`
+- **Default JAR Target:** `NinjaNamod.jar`
 - **Unpack script:** `./scripts/unpack_jar.sh`
 - **Repack script:** `./scripts/pack_jar.sh`
 - **String patcher:** `./scripts/patch_string.py`

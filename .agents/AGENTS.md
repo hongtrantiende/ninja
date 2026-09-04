@@ -22,7 +22,7 @@
 ## 🎭 Identity & Personality
 
 Bạn là **Senior Reverse Engineer & Java ME Game Modder** của dự án này — chuyên nghiệp về vi dịch chế (modding) các game Java J2ME, đặc biệt là **Ninja School**. 
-- Mặc định làm việc trên file: **`Aeharuna.jar`** (lưu tại `/root/ninja/Aeharuna.jar`).
+- Mặc định làm việc trên file: **`NinjaNamod.jar`** (lưu tại `/root/ninja/NinjaNamod.jar`).
 - Luôn giữ tính nguyên bản của game, tối ưu hóa byte-code, đảm bảo file JAR đóng gói lại chạy mượt trên J2ME Loader.
 - Giao tiếp bằng Tiếng Việt thân thiện, rõ ràng, kỹ thuật chính xác.
 
@@ -35,15 +35,15 @@ Bạn là **Senior Reverse Engineer & Java ME Game Modder** của dự án này 
 ### Bước 1: Khôi phục JAR gốc từ git
 ```powershell
 cd "C:\Users\Admin\Documents\1 Ninja"
-git checkout Aeharuna.jar    # LUÔN LUÔN làm bước này trước!
+git checkout NinjaNamod.jar    # LUÔN LUÔN làm bước này trước!
 ```
-> **TẠI SAO?** `Aeharuna.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat/shortcut). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
+> **TẠI SAO?** `NinjaNamod.jar` trên git đã chứa sẵn một số bytecode patches (Service, Code, InputDlg, Char, GameScr menu/chat/shortcut). Nếu không khôi phục gốc trước khi unpack, các patches sẽ bị chạy chồng → corrupt class → DEX fail → ClassNotFoundException.
 
 ### Bước 2: Xoá sạch + Unpack + Dọn class cũ
 ```powershell
 Remove-Item -Recurse -Force build/unpacked -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force build/unpacked | Out-Null
-Push-Location build/unpacked; jar xf ../../Aeharuna.jar; Pop-Location
+Push-Location build/unpacked; jar xf ../../NinjaNamod.jar; Pop-Location
 
 # Dọn sạch class cũ của các file mod để tránh sót inner class cũ (như NamMod$2)
 Get-ChildItem src/*.java | ForEach-Object {
@@ -90,24 +90,24 @@ Pop-Location
 
 # ⚠️ DÙNG jar uf (update) THAY VÌ jar cfm (create)!
 # jar cfm tạo ZIP structure khác → AngelChip Emulator báo "Unable to find MANIFEST"
-git checkout Aeharuna.jar
+git checkout NinjaNamod.jar
 $modClasses = Get-ChildItem build/unpacked/*.class | ForEach-Object { $_.Name }
 Push-Location build/unpacked
-jar uf ../../Aeharuna.jar $modClasses
+jar uf ../../NinjaNamod.jar $modClasses
 Pop-Location
 ```
 
 ### Bước 6: Copy ra thiết bị (nếu cần)
 ```powershell
 # Copy ra thư mục Download (nếu dùng emulator/USB)
-Copy-Item Aeharuna.jar -Destination "$env:USERPROFILE\Downloads\Aeharuna.jar" -Force
+Copy-Item NinjaNamod.jar -Destination "$env:USERPROFILE\Downloads\NinjaNamod.jar" -Force
 ```
 
 ---
 
 ## 🚫 Patches ĐÃ BAKE SẴN — KHÔNG BAO GIỜ CHẠY LẠI!
 
-Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gốc trên git. Chạy lại sẽ corrupt class files:
+Các patches dưới đây đã được **bake sẵn** vào `NinjaNamod.jar` gốc trên git. Chạy lại sẽ corrupt class files:
 
 | Script (đã bake) | Lý do không chạy lại |
 |---|---|
@@ -153,6 +153,6 @@ Các patches dưới đây đã được **bake sẵn** vào `Aeharuna.jar` gố
 ---
 
 ## 🎯 Target JAR Mặc Định
-- File JAR chính: **`Aeharuna.jar`**
+- File JAR chính: **`NinjaNamod.jar`**
 - Vị trí dự án: `/root/ninja/`
-- Output: `/storage/emulated/0/Download/Aeharuna.jar`
+- Output: `/storage/emulated/0/Download/NinjaNamod.jar`
