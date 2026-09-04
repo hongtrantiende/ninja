@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-09-04 (Session 15): Tích Hợp Menu Cài Đặt CN Test (Chỉ Giữ Spam NPC) Vào Bản Share (build_share.py & Aeharuna_share.jar)
+- **Yêu cầu:** Thêm menu "Cài đặt CN Test" vào bản share (`Aeharuna_share.jar`), nhưng chỉ cung cấp duy nhất tính năng Spam NPC (bao gồm cả toggle độc lập cho Ô 1, Ô 2 và tự động xác nhận hộp thoại Ô 3 Đồng ý/Có vừa làm), ẩn/loại bỏ hoàn toàn các chức năng nhạy cảm (Đánh Nhanh, Dupe Nhặt Xa, Đánh Nhiều Skill).
+- **Chi tiết triển khai:**
+  1. Giữ nguyên mục menu `CFG_EXPLOIT_MENU` ("Cài đặt CN Test") trong `NamMod.java` khi build bản share (không xóa như trước).
+  2. Tạo template `ExploitConfig.java` tối giản dành riêng cho bản share trong `build_share.py`:
+     - Giao diện form chỉ hiển thị các cấu hình liên quan đến Spam NPC (Lặp lại, Số lần lặp, Loại NPC, Bật/Tắt Ô 1, Số ô 1, Delay 1, Bật/Tắt Ô 2, Số ô 2, Delay 2, Bật/Tắt Ô 3, Số ô 3, Delay 3, và nút "Test NPC").
+     - Loại bỏ toàn bộ các UI control và logic của Đánh Nhanh, Dupe Nhặt Đồ, Đánh Nhiều Skill khỏi giao diện form.
+     - Giữ lại các biến config static giả lập (stub: `isFastAttack = false`, `isDupePickup = false`, `isMultiSkillAttack = false`) để đảm bảo các class khác (`Auto.java`, `AutoPickup.java`, ...) biên dịch bình thường mà không bị ảnh hưởng.
+     - Tích hợp đầy đủ logic `tryAcceptDialog()` và format RMS đồng bộ với bản chính.
+  3. Chạy `python3 build_share.py` biên dịch thành công `Aeharuna_share.jar` và tự động khôi phục `src/` gốc.
+  4. Đã copy `Aeharuna_share.jar` sang thư mục `/storage/emulated/0/Download/Aeharuna_share.jar`.
+- **Files thay đổi:** `build_share.py`, `Aeharuna_share.jar`, `/storage/emulated/0/Download/Aeharuna_share.jar`
+
 ## 2026-09-04 (Session 14): Nâng Cấp Menu Cài Đặt CN Test (ExploitConfig) - Toggle Ô 1/Ô 2 & Tự Động Xác Nhận Ô 3 (Đồng ý/Có)
 - **Yêu cầu:**
   1. Thêm nút bật/tắt (ChoiceGroup toggle) độc lập cho Ô 1 (`isNpcOpt1Enable`) và Ô 2 (`isNpcOpt2Enable`). Nếu ô nào tắt thì không gửi/sử dụng ô đó khi Test NPC Spam.

@@ -100,17 +100,386 @@ public final class BossConfig implements CommandListener {
     with open(bossconfig_file, "w", encoding="utf-8") as f:
         f.write(bossconfig_content)
 
-    # 2. Modify NamMod.java: Hide ExploitConfig, keep BossConfig
-    nammod_file = os.path.join(root, "src", "NamMod.java")
-    with open(nammod_file, "r", encoding="utf-8") as f:
-        nammod_code = f.read()
+    # 2. Write simplified ExploitConfig.java (only Spam NPC, keep CN Test in NamMod)
+    exploitconfig_share_content = r"""import javax.microedition.lcdui.Form;
+import javax.microedition.lcdui.CommandListener;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Display;
+import javax.microedition.lcdui.TextField;
+import javax.microedition.lcdui.ChoiceGroup;
+import javax.microedition.lcdui.Choice;
 
-    old_exploit_cfg = """        // === Exploit / Test ===
-        items.addElement(command("C\\u00e0i \\u0111\\u1eb7t CN Test \\u25b8", CFG_EXPLOIT_MENU));"""
-    nammod_code = nammod_code.replace(old_exploit_cfg, "")
+/**
+ * ExploitConfig (Ban Share) — Chi gom chuc nang Spam NPC Test.
+ */
+public final class ExploitConfig implements CommandListener {
+    private static ExploitConfig instance;
 
-    with open(nammod_file, "w", encoding="utf-8") as f:
-        f.write(nammod_code)
+    private Form form;
+    private final javax.microedition.lcdui.Command cmdLuu;
+    private final javax.microedition.lcdui.Command cmdHuy;
+    private final javax.microedition.lcdui.Command cmdReset;
+    private final javax.microedition.lcdui.Command cmdTestNpc;
+
+    // === UI Fields (Spam NPC) ===
+    private ChoiceGroup cgNpcRepeat;
+    private TextField tfNpcRepeatCount;
+    private TextField tfNpcType;
+    private ChoiceGroup cgNpcOpt1Enable;
+    private TextField tfNpcOpt1;
+    private TextField tfNpcDelay1;
+    private ChoiceGroup cgNpcOpt2Enable;
+    private TextField tfNpcOpt2;
+    private TextField tfNpcDelay2;
+    private ChoiceGroup cgNpcOpt3Enable;
+    private TextField tfNpcOpt3;
+    private TextField tfNpcDelay3;
+
+    // === CONFIG FIELDS ===
+    public static boolean isNpcRepeat = false;
+    public static int NPC_REPEAT_COUNT = 5;
+    public static int NPC_TYPE = 47;
+    public static boolean isNpcOpt1Enable = true;
+    public static int NPC_OPT1 = 0;
+    public static int NPC_DELAY1 = 1000;
+    public static boolean isNpcOpt2Enable = true;
+    public static int NPC_OPT2 = 2;
+    public static int NPC_DELAY2 = 1000;
+    public static boolean isNpcOpt3Enable = false;
+    public static int NPC_OPT3 = 0;
+    public static int NPC_DELAY3 = 1000;
+
+    // Compatibility stubs for other classes
+    public static boolean isFastAttack = false;
+    public static int FAST_ATTACK_COUNT = 3;
+    public static boolean isDupePickup = false;
+    public static int DUPE_PICKUP_COUNT = 3;
+    public static boolean isMultiHit = false;
+    public static int MULTI_HIT_COUNT = 3;
+    public static int triggerMode = 0;
+    public static boolean isActive() { return false; }
+
+    private static final int DEF_NPC_REPEAT_COUNT = 5;
+    private static final int DEF_NPC_TYPE = 47;
+    private static final int DEF_NPC_OPT1 = 0;
+    private static final int DEF_NPC_OPT2 = 2;
+
+    static {
+        loadConfigFromRMS();
+    }
+
+    private ExploitConfig() {
+        cmdLuu = new javax.microedition.lcdui.Command("L\u01b0u", javax.microedition.lcdui.Command.OK, 1);
+        cmdHuy = new javax.microedition.lcdui.Command("H\u1ee7y", javax.microedition.lcdui.Command.BACK, 2);
+        cmdReset = new javax.microedition.lcdui.Command("Reset", javax.microedition.lcdui.Command.SCREEN, 3);
+        cmdTestNpc = new javax.microedition.lcdui.Command("Test NPC Spam", javax.microedition.lcdui.Command.SCREEN, 4);
+        buildForm();
+    }
+
+    private void buildForm() {
+        form = new Form("C\u00e0i \u0111\u1eb7t CN Test");
+        form.addCommand(cmdLuu);
+        form.addCommand(cmdHuy);
+        form.addCommand(cmdReset);
+        form.addCommand(cmdTestNpc);
+        form.setCommandListener(this);
+
+        cgNpcRepeat = new ChoiceGroup("# Spam NPC", Choice.MULTIPLE);
+        cgNpcRepeat.append("B\u1eadt", null);
+        form.append(cgNpcRepeat);
+        tfNpcRepeatCount = new TextField("S\u1ed1 l\u1ea7n l\u1eb7p chu k\u1ef3", "", 5, TextField.NUMERIC);
+        form.append(tfNpcRepeatCount);
+        tfNpcType = new TextField("NPC Type (47=VIP)", "", 5, TextField.NUMERIC);
+        form.append(tfNpcType);
+
+        cgNpcOpt1Enable = new ChoiceGroup("\u00d4 1", Choice.MULTIPLE);
+        cgNpcOpt1Enable.append("B\u1eadt \u00f4 1", null);
+        form.append(cgNpcOpt1Enable);
+        tfNpcOpt1 = new TextField("Index \u00f4 1 (0=\u00f4 1)", "", 5, TextField.NUMERIC);
+        form.append(tfNpcOpt1);
+        tfNpcDelay1 = new TextField("Delay sau \u00f4 1 (ms)", "", 6, TextField.NUMERIC);
+        form.append(tfNpcDelay1);
+
+        cgNpcOpt2Enable = new ChoiceGroup("\u00d4 2", Choice.MULTIPLE);
+        cgNpcOpt2Enable.append("B\u1eadt \u00f4 2", null);
+        form.append(cgNpcOpt2Enable);
+        tfNpcOpt2 = new TextField("Index \u00f4 2 (0=\u00f4 1)", "", 5, TextField.NUMERIC);
+        form.append(tfNpcOpt2);
+        tfNpcDelay2 = new TextField("Delay sau \u00f4 2 (ms)", "", 6, TextField.NUMERIC);
+        form.append(tfNpcDelay2);
+
+        cgNpcOpt3Enable = new ChoiceGroup("\u00d4 3 (\u0110\u1ed3ng \u00fd/C\u00f3)", Choice.MULTIPLE);
+        cgNpcOpt3Enable.append("B\u1eadt \u00f4 3 (\u0110\u1ed3ng \u00fd/C\u00f3)", null);
+        form.append(cgNpcOpt3Enable);
+        tfNpcOpt3 = new TextField("Index \u00f4 3 (0=C\u00f3/Menu con)", "", 5, TextField.NUMERIC);
+        form.append(tfNpcOpt3);
+        tfNpcDelay3 = new TextField("Delay sau \u00f4 3 (ms)", "", 6, TextField.NUMERIC);
+        form.append(tfNpcDelay3);
+
+        form.append("\u1ea4n 'Test NPC Spam': Ch\u1ec9 th\u1ef1c hi\u1ec7n c\u00e1c \u00f4 \u0111\u01b0\u1ee3c B\u1eacT. \u00d4 3 s\u1ebd t\u1ef1 \u0111\u1ed9ng x\u00e1c nh\u1eadn 'C\u00f3'/'\u0110\u1ed3ng \u00fd' tr\u00ean b\u1ea3ng.");
+    }
+
+    private void loadCurrentState() {
+        cgNpcRepeat.setSelectedIndex(0, isNpcRepeat);
+        tfNpcRepeatCount.setString(String.valueOf(NPC_REPEAT_COUNT));
+        tfNpcType.setString(String.valueOf(NPC_TYPE));
+
+        cgNpcOpt1Enable.setSelectedIndex(0, isNpcOpt1Enable);
+        tfNpcOpt1.setString(String.valueOf(NPC_OPT1));
+        tfNpcDelay1.setString(String.valueOf(NPC_DELAY1));
+
+        cgNpcOpt2Enable.setSelectedIndex(0, isNpcOpt2Enable);
+        tfNpcOpt2.setString(String.valueOf(NPC_OPT2));
+        tfNpcDelay2.setString(String.valueOf(NPC_DELAY2));
+
+        cgNpcOpt3Enable.setSelectedIndex(0, isNpcOpt3Enable);
+        tfNpcOpt3.setString(String.valueOf(NPC_OPT3));
+        tfNpcDelay3.setString(String.valueOf(NPC_DELAY3));
+    }
+
+    public static void select() {
+        loadConfigFromRMS();
+        instance = new ExploitConfig();
+        instance.loadCurrentState();
+        Display.getDisplay(GameMidlet.instance).setCurrent(instance.form);
+    }
+
+    public void commandAction(javax.microedition.lcdui.Command c, Displayable d) {
+        if (c == cmdLuu) {
+            StringBuffer errors = new StringBuffer();
+
+            isNpcRepeat = cgNpcRepeat.isSelected(0);
+            try { int v = safeParseInt(tfNpcRepeatCount.getString(), -1);
+                if (v >= 1 && v <= 200) NPC_REPEAT_COUNT = v;
+                else errors.append("NpcCnt(").append(v).append("), ");
+            } catch (Exception e) { errors.append("NpcCnt, "); }
+            try { int v = safeParseInt(tfNpcType.getString(), -1);
+                if (v >= 0 && v <= 255) NPC_TYPE = v;
+                else errors.append("NpcT(").append(v).append("), ");
+            } catch (Exception e) { errors.append("NpcT, "); }
+
+            isNpcOpt1Enable = cgNpcOpt1Enable.isSelected(0);
+            try { int v = safeParseInt(tfNpcOpt1.getString(), -1);
+                if (v >= 0 && v <= 255) NPC_OPT1 = v;
+                else errors.append("Opt1(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Opt1, "); }
+            try { int v = safeParseInt(tfNpcDelay1.getString(), -1);
+                if (v >= 0 && v <= 10000) NPC_DELAY1 = v;
+                else errors.append("Dly1(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Dly1, "); }
+
+            isNpcOpt2Enable = cgNpcOpt2Enable.isSelected(0);
+            try { int v = safeParseInt(tfNpcOpt2.getString(), -1);
+                if (v >= 0 && v <= 255) NPC_OPT2 = v;
+                else errors.append("Opt2(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Opt2, "); }
+            try { int v = safeParseInt(tfNpcDelay2.getString(), -1);
+                if (v >= 0 && v <= 10000) NPC_DELAY2 = v;
+                else errors.append("Dly2(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Dly2, "); }
+
+            isNpcOpt3Enable = cgNpcOpt3Enable.isSelected(0);
+            try { int v = safeParseInt(tfNpcOpt3.getString(), -1);
+                if (v >= 0 && v <= 255) NPC_OPT3 = v;
+                else errors.append("Opt3(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Opt3, "); }
+            try { int v = safeParseInt(tfNpcDelay3.getString(), -1);
+                if (v >= 0 && v <= 10000) NPC_DELAY3 = v;
+                else errors.append("Dly3(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Dly3, "); }
+
+            saveConfigToRMS();
+
+            if (errors.length() == 0) {
+                GameScr.gameAC("CN Test: \u0110\u00e3 l\u01b0u!");
+            } else {
+                GameScr.gameAC("CN: L\u1ed7i: " + errors.toString());
+            }
+        } else if (c == cmdReset) {
+            resetConfig();
+            saveConfigToRMS();
+            loadCurrentState();
+            GameScr.gameAC("CN Test: \u0110\u00e3 reset");
+            return;
+        } else if (c == cmdTestNpc) {
+            isNpcRepeat = cgNpcRepeat.isSelected(0);
+            try { NPC_REPEAT_COUNT = Integer.parseInt(tfNpcRepeatCount.getString().trim()); } catch (Exception e) {}
+            try { NPC_TYPE = Integer.parseInt(tfNpcType.getString().trim()); } catch (Exception e) {}
+            isNpcOpt1Enable = cgNpcOpt1Enable.isSelected(0);
+            try { NPC_OPT1 = Integer.parseInt(tfNpcOpt1.getString().trim()); } catch (Exception e) {}
+            try { NPC_DELAY1 = Integer.parseInt(tfNpcDelay1.getString().trim()); } catch (Exception e) {}
+            isNpcOpt2Enable = cgNpcOpt2Enable.isSelected(0);
+            try { NPC_OPT2 = Integer.parseInt(tfNpcOpt2.getString().trim()); } catch (Exception e) {}
+            try { NPC_DELAY2 = Integer.parseInt(tfNpcDelay2.getString().trim()); } catch (Exception e) {}
+            isNpcOpt3Enable = cgNpcOpt3Enable.isSelected(0);
+            try { NPC_OPT3 = Integer.parseInt(tfNpcOpt3.getString().trim()); } catch (Exception e) {}
+            try { NPC_DELAY3 = Integer.parseInt(tfNpcDelay3.getString().trim()); } catch (Exception e) {}
+            saveConfigToRMS();
+            Display.getDisplay(GameMidlet.instance).setCurrent(MotherCanvas.gI());
+            startNpcSpam();
+            return;
+        }
+        Display.getDisplay(GameMidlet.instance).setCurrent(MotherCanvas.gI());
+    }
+
+    public static void saveConfigToRMS() {
+        try {
+            String data = "0;0;0;0;0;0;"
+                + (isNpcRepeat?1:0) + ";" + NPC_REPEAT_COUNT + ";" + NPC_DELAY1 + ";"
+                + "0;0;0;"
+                + NPC_TYPE + ";" + NPC_OPT1 + ";" + NPC_OPT2 + ";"
+                + "0;"
+                + (isNpcOpt3Enable?1:0) + ";" + NPC_OPT3 + ";"
+                + NPC_DELAY2 + ";" + NPC_DELAY3 + ";"
+                + (isNpcOpt1Enable?1:0) + ";" + (isNpcOpt2Enable?1:0);
+            RMS.gameAA("exploit_cfg", data);
+        } catch (Exception e) {}
+    }
+
+    public static void loadConfigFromRMS() {
+        try {
+            String data = RMS.gameAC("exploit_cfg");
+            if (data != null && data.length() > 0) {
+                int[] v = new int[30];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 30; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        v[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 9) { isNpcRepeat = v[6]==1; NPC_REPEAT_COUNT = v[7]; NPC_DELAY1 = v[8]; }
+                if (idx >= 15) { NPC_TYPE = v[12]; NPC_OPT1 = v[13]; NPC_OPT2 = v[14]; }
+                if (idx >= 18) { isNpcOpt3Enable = v[16] == 1; NPC_OPT3 = v[17]; }
+                if (idx >= 20) { NPC_DELAY2 = v[18]; NPC_DELAY3 = v[19]; }
+                if (idx >= 22) { isNpcOpt1Enable = v[20] == 1; isNpcOpt2Enable = v[21] == 1; }
+            }
+        } catch (Exception e) {}
+    }
+
+    public static void resetConfig() {
+        isNpcRepeat = false; NPC_REPEAT_COUNT = DEF_NPC_REPEAT_COUNT; NPC_DELAY1 = 1000; NPC_DELAY2 = 1000; NPC_DELAY3 = 1000;
+        NPC_TYPE = DEF_NPC_TYPE; NPC_OPT1 = DEF_NPC_OPT1; NPC_OPT2 = DEF_NPC_OPT2;
+        isNpcOpt1Enable = true; isNpcOpt2Enable = true; isNpcOpt3Enable = false;
+    }
+
+    public static boolean tryAcceptDialog() {
+        try {
+            Dialog dlg = GameCanvas.currentDialog;
+            if (dlg == null) {
+                dlg = GameCanvas.msgdlg;
+            }
+            if (dlg != null) {
+                Command cmd = dlg.left;
+                if (cmd == null) {
+                    cmd = dlg.center;
+                }
+                if (cmd != null) {
+                    cmd.gameAA();
+                    if (cmd.idAction == 8890 && cmd.p instanceof Integer) {
+                        try {
+                            Service.gI().gameAO(((Integer) cmd.p).intValue());
+                        } catch (Exception ex) {}
+                    }
+                    if (cmd.idAction == 88842) {
+                        try {
+                            Service.gI().gameBC();
+                        } catch (Exception ex) {}
+                    }
+                    GameCanvas.endDlg();
+                    return true;
+                }
+            }
+        } catch (Exception e) {}
+        return false;
+    }
+
+    private static void startNpcSpam() {
+        final int npcT = NPC_TYPE;
+        final boolean opt1Enable = isNpcOpt1Enable;
+        final int opt1 = NPC_OPT1;
+        final int d1 = NPC_DELAY1 > 0 ? NPC_DELAY1 : 1000;
+        final boolean opt2Enable = isNpcOpt2Enable;
+        final int opt2 = NPC_OPT2;
+        final int d2 = NPC_DELAY2 > 0 ? NPC_DELAY2 : 1000;
+        final boolean opt3Enable = isNpcOpt3Enable;
+        final int opt3 = NPC_OPT3;
+        final int d3 = NPC_DELAY3 > 0 ? NPC_DELAY3 : 1000;
+        final int count = NPC_REPEAT_COUNT;
+
+        new Thread() {
+            public void run() {
+                try {
+                    GameScr.gameAC("NPC Spam: B\u1eaft \u0111\u1ea7u (" + count + " l\u1ea7n)");
+                    Thread.sleep(500);
+
+                    for (int i = 0; i < count; i++) {
+                        Service.gI().gameAH(npcT);
+                        Thread.sleep(150);
+
+                        if (opt1Enable) {
+                            Service.gI().gameAC(npcT, opt1, 0);
+                            Thread.sleep(d1);
+                        }
+
+                        if (opt2Enable) {
+                            Service.gI().gameAC(npcT, opt2, 0);
+                            Thread.sleep(d2);
+                        }
+
+                        if (opt3Enable) {
+                            boolean accepted = false;
+                            long waitStart = System.currentTimeMillis();
+                            long maxWait = d3 > 500 ? d3 : 1500;
+                            while (System.currentTimeMillis() - waitStart < maxWait) {
+                                if (tryAcceptDialog()) {
+                                    accepted = true;
+                                    break;
+                                }
+                                Thread.sleep(50L);
+                            }
+
+                            if (!accepted) {
+                                Service.gI().gameAC(npcT, opt3, 0);
+                                for (int t = 0; t < 10; t++) {
+                                    Thread.sleep(50L);
+                                    if (tryAcceptDialog()) {
+                                        accepted = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            Thread.sleep(d3);
+                        }
+                    }
+
+                    GameScr.gameAC("NPC Spam: Xong! (" + count + " l\u1ea7n)");
+                } catch (Exception e) {
+                    GameScr.gameAC("NPC Spam: L\u1ed7i - " + e.getMessage());
+                }
+            }
+        }.start();
+    }
+
+    private static int safeParseInt(String s, int fallback) {
+        if (s == null) return fallback;
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '0' && ch <= '9') sb.append(ch);
+        }
+        if (sb.length() == 0) return fallback;
+        try {
+            return Integer.parseInt(sb.toString());
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+}
+"""
+    exploitconfig_file = os.path.join(root, "src", "ExploitConfig.java")
+    with open(exploitconfig_file, "w", encoding="utf-8") as f:
+        f.write(exploitconfig_share_content)
 
     # 3. Modify AutoBossEvent.java: disable pre-spawn in share (set to 0s)
     autobosseven_file = os.path.join(root, "src", "AutoBossEvent.java")
