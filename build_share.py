@@ -810,17 +810,22 @@ public final class ExploitConfig implements CommandListener {
     patch_cp_utf8(gamescr_class, b"Aeharuna", b"nammod")
 
     loginscr_class = os.path.join(unpacked_dir, "LoginScr.class")
-    patch_cp_utf8(loginscr_class, b"NSO Aeharuna", b"svjeny")
-    patch_cp_utf8(loginscr_class, b"AEharuna ", b"svjeny ")
-    patch_cp_utf8(loginscr_class, b"Aeharuna1 ", b"svjeny1 ")
+    patch_cp_utf8(loginscr_class, b"NSO Aeharuna", b"SVJenny")
+    patch_cp_utf8(loginscr_class, b"AEharuna ", b"SVJenny ")
+    patch_cp_utf8(loginscr_class, b"Aeharuna1 ", b"SVJenny1 ")
 
-    # Update MANIFEST.MF: Rename game to svjeny
+    # Patch server IP and Port for SVJenny (160.250.130.241:15555)
+    sys.path.insert(0, os.path.join(root, "scripts"))
+    import patch_server_ip
+    patch_server_ip.patch_dir(unpacked_dir, "160.250.130.241", 15555)
+
+    # Update MANIFEST.MF: Rename game to SVJenny, vendor to Nammod
     manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")
     manifest_content = """Manifest-Version: 1.0
-MIDlet-1: svjeny,/icon.png,GameMidlet
-MIDlet-Vendor: svjeny
+MIDlet-1: SVJenny,/icon.png,GameMidlet
+MIDlet-Vendor: Nammod
 MIDlet-Version: 1.4.8
-MIDlet-Name: svjeny
+MIDlet-Name: SVJenny
 MicroEdition-Configuration: CLDC-1.1
 MicroEdition-Profile: MIDP-2.1
 
@@ -837,15 +842,20 @@ MicroEdition-Profile: MIDP-2.1
     subprocess.run(["jar", "cfm", share_jar_path, manifest_file, "."], cwd=unpacked_dir, check=True)
     print(f"=== SUCCESS! Aeharuna_share.jar created: {os.path.getsize(share_jar_path)} bytes ===")
 
-    svjeny_jar_path = os.path.join(root, "svjeny.jar")
-    shutil.copyfile(share_jar_path, svjeny_jar_path)
-    print(f"=== Created copy: svjeny.jar: {os.path.getsize(svjeny_jar_path)} bytes ===")
+    svjenny_jar_path = os.path.join(root, "SVJenny.jar")
+    shutil.copyfile(share_jar_path, svjenny_jar_path)
+    print(f"=== Created copy: SVJenny.jar: {os.path.getsize(svjenny_jar_path)} bytes ===")
 
     download_dir = "/storage/emulated/0/Download"
     if os.path.exists(download_dir):
         shutil.copyfile(share_jar_path, os.path.join(download_dir, "Aeharuna_share.jar"))
-        shutil.copyfile(share_jar_path, os.path.join(download_dir, "svjeny.jar"))
-        print(f"=== Copied to {download_dir}/Aeharuna_share.jar and svjeny.jar ===")
+        shutil.copyfile(share_jar_path, os.path.join(download_dir, "SVJenny.jar"))
+        # Remove old lowercase svjeny.jar if exists
+        old_jar = os.path.join(download_dir, "svjeny.jar")
+        if os.path.exists(old_jar):
+            try: os.remove(old_jar)
+            except: pass
+        print(f"=== Copied to {download_dir}/Aeharuna_share.jar and SVJenny.jar ===")
 
 finally:
     print("=== [SHARE BUILD] 7. Restoring original src/ files from backup ===")

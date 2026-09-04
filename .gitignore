@@ -1,7 +1,11 @@
 *.tmp
 *.log
+*.pyc
+__pycache__/
 build/
 stubs/
 
 Aeharuna_*.jar
 svjeny.jar
+SVJenny.jar
+

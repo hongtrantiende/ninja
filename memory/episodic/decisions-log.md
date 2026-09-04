@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-09-04 (Session 19): Đổi Tên Thành "SVJenny", Nhà Phát Triển "Nammod", Cấu Hình IP Server 160.250.130.241 & Port 15555
+- **Yêu cầu:** Sửa tên game thành đúng chuẩn viết hoa `SVJenny`, nhà phát triển khi cài JAR trên J2ME là `Nammod`. Cung cấp script đổi IP server thành `160.250.130.241` và port `15555`.
+- **Chi tiết triển khai:**
+  1. Cập nhật `scripts/patch_server_ip.py`: Hỗ trợ patch cả IP và Port (sipush trong bytecode `<clinit>` của `LoginScr.class` và `GameMidlet.class`), hỗ trợ patch trực tiếp file `.jar` hoặc thư mục unpacked.
+  2. Tích hợp trực tiếp vào `build_share.py`:
+     - Tên game: `SVJenny` (trong `MANIFEST.MF` và hiển thị màn hình đăng nhập).
+     - Nhà phát triển: `MIDlet-Vendor: Nammod` trong `MANIFEST.MF`.
+     - Server IP: `160.250.130.241` (CP#746 trong `LoginScr.class`).
+     - Server Port: `15555` (trong `mResources.listPort` và `GameMidlet.PORT`).
+  3. Xuất file kết quả: tạo [SVJenny.jar](file:///root/ninja/SVJenny.jar) và [Aeharuna_share.jar](file:///root/ninja/Aeharuna_share.jar) (1,353,562 bytes).
+  4. Đã sao chép sang `/storage/emulated/0/Download/SVJenny.jar` và `Aeharuna_share.jar`.
+- **Files thay đổi:** `scripts/patch_server_ip.py`, `build_share.py`, `.gitignore`, `memory/episodic/decisions-log.md`
+
 ## 2026-09-04 (Session 18): Đổi Watermark Màn Hình Khi Bật ID Map Thành "nammod" & Đổi Tên Game Thành "svjeny" Cho Bản Share
 - **Yêu cầu:** Trong bản share, khi bật "Hiện ID map" ở Cài đặt chung thì chữ "Aeharuna" hiện trên màn hình đổi thành "nammod". Đổi tên game thành "svjeny".
 - **Chi tiết triển khai:**
