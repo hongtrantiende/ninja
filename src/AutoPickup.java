@@ -13,15 +13,25 @@ public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 150;     // 150ms giua moi vong quet
+    // === CONFIG DEFAULTS ===
+    public static final int DEF_SCAN_INTERVAL_MS = 150;     // 150ms giua moi vong quet
+    public static final int DEF_GRAB_DELAY_MS = 0;          // 0ms delay moi item khi hut
+    public static final int DEF_GHOST_RANGE = 50;           // Item > 50px thi ghost move
+
+    // === CONFIG (co the chinh sua, luu RMS) ===
+    public static int SCAN_INTERVAL_MS = DEF_SCAN_INTERVAL_MS;
+    public static int GRAB_DELAY_MS = DEF_GRAB_DELAY_MS;
+    public static int GHOST_RANGE = DEF_GHOST_RANGE;
+
     private static final int BURST_ROUNDS = 3;           // 3 vong burst (grabOnce)
-    private static final int GHOST_RANGE = 50;           // Item > 50px thi ghost move
-    private static final int GRAB_DELAY_MS = 3;          // 3ms/item trong grabOnce
     private static final int ZONE_CHANGE_WAIT_MS = 1000; // Cho 1s khi chuyen khu
 
     // Theo doi chuyen khu
     private static int lastZoneID = -1;
+
+    static {
+        loadConfigFromRMS();
+    }
 
     /**
      * Toggle hut VP on/off.
@@ -188,11 +198,60 @@ public class AutoPickup implements Runnable {
                 // Hut VP — nhat ALL
                 MyVector items = getItemVector();
                 if (items != null && items.size() > 0) {
-                    blastPickupAll(0);
+                    blastPickupAll(GRAB_DELAY_MS);
                 }
             } catch (Exception e) {}
 
             try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
         }
+    }
+
+    // ===================== RMS =====================
+
+    /** Luu config vao RMS. Format: "scanInterval;grabDelay;ghostRange" */
+    public static void saveConfigToRMS() {
+        try {
+            String data = SCAN_INTERVAL_MS + ";" + GRAB_DELAY_MS + ";" + GHOST_RANGE;
+            RMS.gameAA("auto_pickup_cfg", data);
+        } catch (Exception e) {}
+    }
+
+    /** Load config tu RMS */
+    public static void loadConfigFromRMS() {
+        try {
+            String data = RMS.gameAC("auto_pickup_cfg");
+            if (data != null && data.length() > 0) {
+                int[] vals = new int[3];
+                int idx = 0, start = 0;
+                for (int i = 0; i <= data.length() && idx < 3; i++) {
+                    if (i == data.length() || data.charAt(i) == ';') {
+                        vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
+                        start = i + 1;
+                    }
+                }
+                if (idx >= 1) {
+                    SCAN_INTERVAL_MS = vals[0];
+                    if (SCAN_INTERVAL_MS < 10) SCAN_INTERVAL_MS = 10;
+                    if (SCAN_INTERVAL_MS > 5000) SCAN_INTERVAL_MS = 5000;
+                }
+                if (idx >= 2) {
+                    GRAB_DELAY_MS = vals[1];
+                    if (GRAB_DELAY_MS < 0) GRAB_DELAY_MS = 0;
+                    if (GRAB_DELAY_MS > 1000) GRAB_DELAY_MS = 1000;
+                }
+                if (idx >= 3) {
+                    GHOST_RANGE = vals[2];
+                    if (GHOST_RANGE < 0) GHOST_RANGE = 0;
+                    if (GHOST_RANGE > 9999) GHOST_RANGE = 9999;
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /** Reset config ve mac dinh */
+    public static void resetConfig() {
+        SCAN_INTERVAL_MS = DEF_SCAN_INTERVAL_MS;
+        GRAB_DELAY_MS = DEF_GRAB_DELAY_MS;
+        GHOST_RANGE = DEF_GHOST_RANGE;
     }
 }

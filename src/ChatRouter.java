@@ -268,6 +268,17 @@ public class ChatRouter {
             AutoPickup.toggle();
             return true;
         }
+        if (text.startsWith("nhat ")) {
+            try {
+                int speed = Integer.parseInt(text.substring(5).trim());
+                if (speed >= 10 && speed <= 5000) {
+                    AutoPickup.SCAN_INTERVAL_MS = speed;
+                    AutoPickup.saveConfigToRMS();
+                    GameScr.gameAC("Qu\u00e9t VP: " + speed + "ms");
+                    return true;
+                }
+            } catch (Exception e) {}
+        }
         if (text.equals("moinhom") || text.equals("mnb") || text.equals("mn")) {
             AutoSanBoss.autoInviteFriends();
             return true;

@@ -42,5 +42,9 @@ public class ModInit {
         try {
             AutoTuLuyen.loadConfigFromRMS();
         } catch (Exception e) {}
+
+        try {
+            AutoPickup.loadConfigFromRMS();
+        } catch (Exception e) {}
     }
 }

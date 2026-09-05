@@ -45,6 +45,12 @@ public final class TsConfig implements CommandListener {
     private ChoiceGroup cgGhostAttack;
     private TextField tfGhostRange;
 
+    // AutoPickup (Hut VP) fields
+    private ChoiceGroup cgAutoPickup;
+    private TextField tfPickupScanInterval;
+    private TextField tfPickupGrabDelay;
+    private TextField tfPickupGhostRange;
+
     private TsConfig() {
         cmdLuu = new Command("L\u01b0u", Command.OK, 1);
         cmdHuy = new Command("H\u1ee7y", Command.BACK, 2);
@@ -123,6 +129,20 @@ public final class TsConfig implements CommandListener {
 
         tfGhostRange = new TextField("T\u1ea7m ghost (px, 9999=full)", "", 5, TextField.NUMERIC);
         form.append(tfGhostRange);
+
+        // === Hut VP (Auto Pickup) ===
+        cgAutoPickup = new ChoiceGroup("H\u00fat VP (Nh\u1eb7t ALL to\u00e0n map)", Choice.MULTIPLE);
+        cgAutoPickup.append("B\u1eadt H\u00fat VP", null);
+        form.append(cgAutoPickup);
+
+        tfPickupScanInterval = new TextField("T\u1ed1c \u0111\u1ed9 qu\u00e9t VP (ms)", "", 10, TextField.NUMERIC);
+        form.append(tfPickupScanInterval);
+
+        tfPickupGrabDelay = new TextField("Delay nh\u1eb7t m\u1ed7i VP (ms)", "", 10, TextField.NUMERIC);
+        form.append(tfPickupGrabDelay);
+
+        tfPickupGhostRange = new TextField("T\u1ea7m ghost nh\u1eb7t (px, 0=all)", "", 5, TextField.NUMERIC);
+        form.append(tfPickupGhostRange);
     }
 
     private void loadCurrentState() {
@@ -154,12 +174,19 @@ public final class TsConfig implements CommandListener {
         // Ghost Attack
         cgGhostAttack.setSelectedIndex(0, TsBoost.isGhostAttack);
         tfGhostRange.setString(String.valueOf(TsBoost.GHOST_RANGE));
+
+        // AutoPickup
+        cgAutoPickup.setSelectedIndex(0, AutoPickup.isRunning);
+        tfPickupScanInterval.setString(String.valueOf(AutoPickup.SCAN_INTERVAL_MS));
+        tfPickupGrabDelay.setString(String.valueOf(AutoPickup.GRAB_DELAY_MS));
+        tfPickupGhostRange.setString(String.valueOf(AutoPickup.GHOST_RANGE));
     }
 
     /** Mo form cai dat — goi tu NamMod menu */
     public static void select() {
         TsBoost.loadConfigFromRMS();
         AutoSuicide.loadConfigFromRMS();
+        AutoPickup.loadConfigFromRMS();
         instance = new TsConfig();
         instance.loadCurrentState();
         Display.getDisplay(GameMidlet.instance).setCurrent(instance.form);
@@ -268,6 +295,36 @@ public final class TsConfig implements CommandListener {
 
             TsBoost.saveConfigToRMS();
 
+            // === AutoPickup ===
+            boolean wasPickup = AutoPickup.isRunning;
+            boolean pickupSelected = cgAutoPickup.isSelected(0);
+
+            try {
+                int v = safeParseInt(tfPickupScanInterval.getString(), -1);
+                if (v >= 10 && v <= 5000) AutoPickup.SCAN_INTERVAL_MS = v;
+                else errors.append("Qu\u00e9t VP(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Qu\u00e9t VP, "); }
+
+            try {
+                int v = safeParseInt(tfPickupGrabDelay.getString(), -1);
+                if (v >= 0 && v <= 1000) AutoPickup.GRAB_DELAY_MS = v;
+                else errors.append("Delay VP(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Delay VP, "); }
+
+            try {
+                int v = safeParseInt(tfPickupGhostRange.getString(), -1);
+                if (v >= 0 && v <= 9999) AutoPickup.GHOST_RANGE = v;
+                else errors.append("Ghost VP(").append(v).append("), ");
+            } catch (Exception e) { errors.append("Ghost VP, "); }
+
+            if (pickupSelected && !wasPickup) {
+                AutoPickup.start();
+            } else if (!pickupSelected && wasPickup) {
+                AutoPickup.stop();
+            }
+
+            AutoPickup.saveConfigToRMS();
+
             if (errors.length() == 0) {
                 GameScr.gameAC("TS Config: \u0110\u00e3 l\u01b0u!");
             } else {
@@ -278,6 +335,8 @@ public final class TsConfig implements CommandListener {
             TsBoost.saveConfigToRMS();
             AutoSuicide.resetConfig();
             AutoSuicide.saveConfigToRMS();
+            AutoPickup.resetConfig();
+            AutoPickup.saveConfigToRMS();
             loadCurrentState();
             GameScr.gameAC("TS Config: \u0110\u00e3 reset v\u1ec1 m\u1eb7c \u0111\u1ecbnh");
             return;
