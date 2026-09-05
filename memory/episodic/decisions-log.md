@@ -1,5 +1,28 @@
 # Decisions Log
 
+## 2026-09-05 (Session 27): Fix Auto Bán VP Quay Lại Map Tìm Boss Thay Vì Tiếp Tục Tàn Sát
+- **Vấn đề:** Khi Auto Bán VP (`AutoBanVP`) trong Nam Mod tự về làng bán vật phẩm xong và quay lại map cũ thì nhân vật lại chuyển khu tìm boss, quét boss và hiển thị "PK Boss" trên màn hình, thay vì tiếp tục Tàn Sát (TS) tại map và khu đã lưu.
+- **Nguyên nhân:**
+  1. Trong `AutoBanVP.restoreFarmState()`, code di chuyển quay lại map cũ từng dùng `PkBoss travel = new PkBoss(savedMap); Code.gameAB = travel;`. Lớp `PkBoss` chính là bot săn boss tự động: khi gán vào `Code.gameAB`, hàm `PkBoss.gameAK()` lập tức quét `Mob.isBoss`, tự động đổi khu (từ khu 29 lùi dần về 0) để tìm boss và gửi thông báo tìm boss.
+  2. Khi về đến map, code chỉ gán lại tham chiếu `Code.gameAB = savedAuto;` mà không khởi tạo lại trạng thái Tàn Sát (`gameCC.gameAA(...)`, `gameCC.gameAA = true`), khiến Tàn Sát không được khôi phục hoặc tiếp tục dính trạng thái của bot cũ.
+  3. Khi đang săn boss bằng `PkBoss`, `checkAndTriggerSell()` không kiểm tra `Code.gameAB instanceof PkBoss`, có thể khiến trạng thái auto săn boss bị lưu nhầm vào `savedAuto`.
+- **Giải pháp & Chi tiết triển khai:**
+  1. `src/AutoBanVP.java`:
+     - Xóa bỏ hoàn toàn việc tạo instance `PkBoss(savedMap)` trong quá trình quay lại map.
+     - Sử dụng `TileMap.GoMap(savedMap)` trực tiếp kết hợp vòng lặp kiểm tra chuyển map, hỗ trợ tự động hồi sinh nếu bị quái/người đánh chết trên đường di chuyển.
+     - Hỗ trợ vào trước Làng Cổ (`AutoSanBoss.ensureInLangCo()`) nếu map đích thuộc Làng Cổ (map 134-138).
+     - Bổ sung hàm `resumeFarmAuto(int mapId, int zoneId)`: Sau khi đã về đúng map và đổi đúng khu cũ (`savedZone`), di chuyển về tọa độ cũ (`savedX, savedY`), trích xuất chính xác `templateId` của quái đang đánh trước đó nếu là `TanSat`, rồi khởi động lại Tàn Sát chuẩn chỉ qua `Code.gameAA(mobId, mapId, targetZone)`. Nếu trước đó là `Stanima` (AK quái thường), khôi phục lại `Stanima`. Đồng thời bật `TsBoost.onTsStarted()` và `AutoPickup.start()`.
+     - Thêm kiểm tra `Code.gameAB instanceof PkBoss` trong `checkAndTriggerSell()` để không bao giờ kích hoạt bán đồ khi đang trong luồng săn boss, và lọc bỏ `PkBoss` khỏi `savedAuto`.
+  2. `src/Code.java`:
+     - Chuyển `TanSat gameCC` từ `private` thành `public static TanSat gameCC;`.
+     - Thêm overload `public static void gameAA(int var0, int var1, int var2)` cho phép kích hoạt Tàn Sát với đầy đủ thông số `templateId`, `mapId` và `zoneId`, đồng thời đảm bảo gán `gameCC.gameAA = true`.
+  3. Biên dịch & Đóng gói:
+     - Chạy `git checkout Aeharuna.jar && python3 do_build.py`.
+     - Biên dịch thành công `NinjaNamod.jar` (1,381,331 bytes).
+     - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar`.
+- **Files thay đổi:** `src/AutoBanVP.java`, `src/Code.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
+
 ## 2026-09-05 (Session 26): Fix Lỗi Tự Động Chọn Menu 2 Trong Tính Năng Bán Vật Phẩm (AutoBanVP)
 - **Vấn đề:** Khi AutoBanVP về làng mở NPC 46 bán vật phẩm, bot đã chọn được Menu 1 (ô 5 "Bán vật phẩm") nhưng khi hiện Menu 2 (danh sách vật phẩm: CTT, TTC, TTT, TTS, PTL) thì bot không tự động chọn ô 2. Người dùng phải bấm chọn hộ trên màn hình thì bot mới nhập số lượng và bán thành công.
 - **Nguyên nhân:**

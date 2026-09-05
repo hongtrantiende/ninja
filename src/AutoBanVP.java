@@ -106,7 +106,7 @@ public final class AutoBanVP implements Runnable {
         if (!isEnabled || isSelling) return;
 
         // Khong ban khi dang san boss de tranh pha hunt boss
-        if (AutoSanBoss.isRunning || AutoBossEvent.inEvent) return;
+        if (AutoSanBoss.isRunning || AutoBossEvent.inEvent || Code.gameAB instanceof PkBoss) return;
 
         // Nhan vat phai con song va ket noi
         Char myChar = Char.getMyChar();
@@ -176,7 +176,7 @@ public final class AutoBanVP implements Runnable {
         Char me = Char.getMyChar();
         savedX = (me != null) ? me.cx : -1;
         savedY = (me != null) ? me.cy : -1;
-        savedAuto = Code.gameAB;
+        savedAuto = (Code.gameAB instanceof PkBoss) ? null : Code.gameAB;
         savedZoneIndex = Code.gameAW;
         wasVipMap = AutoVipMap.isEnabled || (TileMap.mapID == AutoVipMap.targetMapID);
 
@@ -363,15 +363,7 @@ public final class AutoBanVP implements Runnable {
                     }
                     if (TileMap.mapID == AutoVipMap.targetMapID) {
                         sleep(500);
-                        if (savedAuto != null) {
-                            Code.gameAW = savedZoneIndex;
-                            Code.gameAB = savedAuto;
-                        } else {
-                            Code.gameAW = savedZoneIndex;
-                            Code.gameAA(-1, AutoVipMap.targetMapID);
-                        }
-                        TsBoost.onTsStarted();
-                        AutoPickup.start();
+                        resumeFarmAuto(AutoVipMap.targetMapID, savedZone);
                         GameScr.gameAC("B\u00e1n VP: \u0110\u00e3 v\u00e0o Map VIP -> Ti\u1ebfp t\u1ee5c farm!");
                     }
                 }
@@ -379,29 +371,40 @@ public final class AutoBanVP implements Runnable {
             return;
         }
 
-        // Case B: Truoc do o Map thuong -> Quay ve map cu
+        // Case B: Truoc do o Map thuong / khong phai Map VIP -> Quay ve map cu
         if (savedMap >= 0) {
             GameScr.gameAC("B\u00e1n VP: Quay l\u1ea1i M" + savedMap + " K" + savedZone + "...");
             ensureAlive();
 
             LockGame.gameBK();
-            if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
+            if (Code.gameAB != null) {
                 Code.gameAB = null;
             }
 
-            // Travel ve map cu (retry toi da 5 lan)
-            for (int retry = 0; retry < 5 && TileMap.mapID != savedMap; retry++) {
-                if (retry > 0) {
-                    sleep(1500);
-                    try { GameCanvas.endDlg(); } catch (Exception e) {}
-                    LockGame.gameBK();
+            // Neu map dich la Lang Co, dam bao vao Lang Co truoc
+            if (savedMap >= 134 && savedMap <= 138) {
+                try {
+                    AutoSanBoss.ensureInLangCo();
+                } catch (Exception e) {}
+            }
+
+            // Travel ve map cu truc tiep bang TileMap.GoMap (tuyet doi KHONG dung PkBoss de tranh quet boss / doi khu)
+            for (int attempt = 0; attempt < 30 && TileMap.mapID != savedMap; attempt++) {
+                ensureAlive();
+                if (TileMap.mapID == savedMap) break;
+
+                try {
+                    GameCanvas.endDlg();
+                    TileMap.GoMap(savedMap);
+                } catch (Exception e) {}
+
+                for (int w = 0; w < 30 && TileMap.mapID != savedMap; w++) {
+                    sleep(100);
+                    if (isDead()) {
+                        ensureAlive();
+                        break;
+                    }
                 }
-                PkBoss travel = new PkBoss(savedMap);
-                Code.gameAB = travel;
-                for (int t = 0; t < 9000 && TileMap.mapID != savedMap; t++) {
-                    sleep(10);
-                }
-                if (Code.gameAB == travel) Code.gameAB = null;
             }
 
             // Khi da ve dung map goc
@@ -423,21 +426,47 @@ public final class AutoBanVP implements Runnable {
                     } catch (Exception e) {}
                 }
 
-                // Khoi phuc lai auto farm
-                if (savedAuto != null) {
-                    Code.gameAW = savedZoneIndex;
-                    Code.gameAB = savedAuto;
-                } else {
-                    Code.gameAW = savedZoneIndex;
-                    Code.gameAA(-1, savedMap);
-                }
-                TsBoost.onTsStarted();
-                AutoPickup.start();
+                // Khoi phuc lai auto farm (Tan Sat / farm goc)
+                resumeFarmAuto(savedMap, savedZone);
                 GameScr.gameAC("B\u00e1n VP: \u0110\u00e3 v\u1ec1 M" + savedMap + " K" + (savedZone >= 0 ? savedZone : TileMap.zoneID) + " -> Ti\u1ebfp t\u1ee5c farm!");
             } else {
                 GameScr.gameAC("B\u00e1n VP: Ch\u01b0a v\u1ec1 \u0111\u01b0\u1ee3c M" + savedMap + "!");
             }
         }
+    }
+
+    /** Khoi phuc Tan Sat hoac auto farm goc sau khi tro ve map */
+    private static void resumeFarmAuto(int mapId, int zoneId) {
+        try {
+            int targetZone = (zoneId >= 0) ? zoneId : (int) TileMap.zoneID;
+            if (savedAuto instanceof Stanima) {
+                Code.gameAW = savedZoneIndex;
+                Code.gameAB = savedAuto;
+                Code.timBG = true;
+            } else {
+                int mobId = -1;
+                if (savedAuto instanceof TanSat) {
+                    mobId = ((TanSat) savedAuto).templateId;
+                }
+                LockGame.gameBK();
+                Code.gameAB = null;
+                Code.gameAW = savedZoneIndex;
+                Code.gameAA(mobId, mapId, targetZone);
+            }
+            TsBoost.onTsStarted();
+            AutoPickup.start();
+        } catch (Exception e) {
+            try {
+                Code.gameAA(-1, mapId);
+                TsBoost.onTsStarted();
+                AutoPickup.start();
+            } catch (Exception ex) {}
+        }
+    }
+
+    private static boolean isDead() {
+        Char me = Char.getMyChar();
+        return me != null && (me.statusMe == 14 || me.cHP <= 0);
     }
 
     private static void ensureAlive() {

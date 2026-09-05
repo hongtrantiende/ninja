@@ -17,7 +17,7 @@ implements Runnable {
     private static boolean gameCA;
     private static Thread gameCB;
     public static Auto gameAB;
-    private static TanSat gameCC;
+    public static TanSat gameCC;
     public static Stanima gameAC;
     public static AutoNvhn gameAD;
     public static TaThu gameAE;
@@ -345,6 +345,18 @@ implements Runnable {
             gameAB = null;
         }
         gameCC.gameAA(var0, var1, Char.TsMapTrong ? -1 : (int)TileMap.zoneID);
+        gameCC.gameAA = true;
+        Code.gameAA(gameCC);
+        timBG = true; // Tat hieu ung skill giam lag khi TS
+        TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
+    }
+
+    public static void gameAA(int var0, int var1, int var2) {
+        if (gameAB == gameCD) {
+            gameAB = null;
+        }
+        gameCC.gameAA(var0, var1, var2);
+        gameCC.gameAA = true;
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
