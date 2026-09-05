@@ -905,6 +905,21 @@ Boss tồn tại: 40 phút (2400 giây)
   4. Đã build và đóng gói lại `NinjaNamod.jar` thành công.
 - **Files:** `src/AutoSanBoss.java`, `scripts/patch_colenh_slot.py`, `do_build.py`, `NinjaNamod.jar`
 
+## 2026-09-05: Cập Nhật Làng Cổ: Thêm 2 Map (134, 137) & Nâng Số Khu Quét Lên 10 Khu (K0-K9)
+- **Yêu cầu người dùng:** Làng Cổ thêm 2 map là 134 và 137 (tổng 4 map: 134, 135, 136, 137); số khu quét từ 3 khu (K0-K2) tăng lên 10 khu (K0-K9).
+- **Quyết định & Sửa đổi:**
+  1. `src/AutoSanBoss.java`:
+     - Cập nhật danh sách map Làng Cổ thành `{134, 135, 136, 137}` trong `getAllMapsForType`, `BOSS_MAPS`, `huntBossType`.
+     - Nhận diện map type trong `getBossTypeFromMap(mapId)`: `mapId >= 134 && mapId <= 138 -> TYPE_LANGCO`.
+     - Thoát về hub M138: `mapId >= 134 && mapId <= 137`.
+     - Điều hướng & săn boss: `navigateToMap`, `pkBossOnMap`, `treoBossOnMap` nhận diện `mapId >= 134 && mapId <= 137`.
+     - Thuật toán quét cơ hội (`pkLangCoMap` & `treoLangCoMap`): Theo dõi và quét đầy đủ cả 4 map `134, 135, 136, 137`.
+     - Số khu quét (`scanLangCoZones` & `scanLangCoZonesForTreo`): Mở rộng từ 3 khu (K0-K2) lên 10 khu (`for (int zone = 9; zone >= 0; zone--)` -> quét K0..K9).
+  2. `src/ThongTinBoss.java`: Cập nhật mô tả hiển thị thành `"M134-137 (10K)"`.
+  3. `src/ChatRouter.java`: Party member nhận pkm Làng Cổ `auto.mapID >= 134 && auto.mapID <= 137` tự động kích hoạt `ensureInLangCo()`.
+  4. Đã build và đóng gói lại `NinjaNamod.jar` (1,361,938 bytes) tại `/storage/emulated/0/Download/NinjaNamod.jar`.
+- **Files:** `src/AutoSanBoss.java`, `src/ThongTinBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`, `NinjaNamod.jar`
+
 
 
 

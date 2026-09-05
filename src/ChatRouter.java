@@ -50,7 +50,7 @@ public class ChatRouter {
             AutoBossEvent.returnMemberState();
             return;
         }
-        if (auto != null && (auto.mapID == 135 || auto.mapID == 136)) {
+        if (auto != null && (auto.mapID >= 134 && auto.mapID <= 137)) {
             new Thread(new Runnable() {
                 public void run() {
                     AutoSanBoss.ensureInLangCo();

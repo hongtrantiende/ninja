@@ -53,7 +53,7 @@ public class ThongTinBoss {
     private static BossData[] bosses = new BossData[] {
         new BossData("VDMQ", "M141-143", new int[] {360, 840, 1140, 1260}, AutoSanBoss.TYPE_VDMQ),
         new BossData("MapNgoai", "14 map (Lv45-75)", new int[] {390, 930, 1290}, AutoSanBoss.TYPE_MAPNGOAI),
-        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {60, 720, 1200}, AutoSanBoss.TYPE_LANGCO)
+        new BossData("L\u00e0ng C\u1ed5", "M134-137 (10K)", new int[] {60, 720, 1200}, AutoSanBoss.TYPE_LANGCO)
     };
 
     public static void toggle() {
