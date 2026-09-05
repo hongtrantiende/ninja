@@ -108,7 +108,7 @@ patch_server_ip.patch_dir(unpacked_dir, "160.250.130.241", 15555)
 # 3g. Patch TileMap for Co Lenh slot (ensure slot 28 - Row 5 Col 5)
 tilemap_class = os.path.join(unpacked_dir, "TileMap.class")
 if os.path.exists(tilemap_class):
-    subprocess.run(["python3", os.path.join(root, "scripts", "patch_colenh_slot.py"), tilemap_class], check=True)
+    subprocess.run(["python", os.path.join(root, "scripts", "patch_colenh_slot.py"), tilemap_class], check=True)
 
 # Update MANIFEST.MF: Rename to NinjaNamod
 manifest_file = os.path.join(unpacked_dir, "META-INF", "MANIFEST.MF")

@@ -56,11 +56,20 @@ public class ChatRouter {
                     AutoSanBoss.ensureInLangCo();
                 }
             }).start();
+        } else if (auto != null && (auto.mapID >= 162 && auto.mapID <= 165)) {
+            new Thread(new Runnable() {
+                public void run() {
+                    AutoSanBoss.ensureInLangTT();
+                }
+            }).start();
         } else if (auto != null && auto.mapID > 0) {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
             if (TileMap.isLangCo(TileMap.mapID)) {
                 AutoSanBoss.finishLangCoAndExit();
+            }
+            if (AutoSanBoss.isLangTT(TileMap.mapID)) {
+                AutoSanBoss.finishLangTTAndExit();
             }
         }
         if (auto != null && auto.mapID == -5) {
@@ -86,11 +95,14 @@ public class ChatRouter {
             if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
                 AutoSanBoss.finishLangCoAndExit();
             }
+            if (AutoSanBoss.isLangTT(TileMap.mapID)) {
+                AutoSanBoss.finishLangTTAndExit();
+            }
             return;
         }
         if (auto != null && auto.mapID > 0) {
             int curMap = TileMap.mapID;
-            if (curMap != auto.mapID && (curMap == 192 || curMap == 195 || curMap == 196 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)) {
+            if (curMap != auto.mapID && (curMap == 192 || curMap == 195 || curMap == 196 || (AutoSanBoss.isLangTT(curMap) && !AutoSanBoss.isLangTT(auto.mapID)) || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)) {
                 try { Code.gameAN(); } catch (Exception e) {}
                 try { Thread.sleep(800L); } catch (InterruptedException e) {}
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {

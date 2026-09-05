@@ -80,6 +80,7 @@ public final class AutoBossEvent implements Runnable {
             case 5: return "V\u0110MQ";
             case 6: return "Map VIP";
             case 7: return "Map VIP2";
+            case 8: return "L\u00e0ng TT";
             default: return "T\u1ea5t c\u1ea3";
         }
     }
@@ -407,17 +408,21 @@ public final class AutoBossEvent implements Runnable {
     /** Check xem co boss nao dang active (trong 40P) phu hop voi eventPriority hien tai khong */
     private static boolean anyBossActiveForPriority() {
         switch (eventPriority) {
-            case 1: // VDMQ + Lang Co
+            case 1: // VDMQ + Lang Co + Lang TT
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ)
-                    || AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
+                    || AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO)
+                    || AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGTT);
             case 2: // MapNgoai
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_MAPNGOAI);
             case 4: // Lang Co only
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO);
             case 5: // VDMQ only
                 return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_VDMQ);
+            case 8: // Lang TT only
+                return AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGTT);
             default: // Mac dinh = tat ca
-                for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
+                for (int i = 0; i < AutoSanBoss.BOSS_NAMES.length; i++) {
+                    if (i == AutoSanBoss.TYPE_ALL || i == AutoSanBoss.TYPE_TEST_1MAP) continue;
                     if (AutoSanBoss.isBossActive(i)) return true;
                 }
                 return false;
@@ -467,10 +472,12 @@ public final class AutoBossEvent implements Runnable {
     public static int getSecondsTillNextForPriority() {
         int min = Integer.MAX_VALUE;
         switch (eventPriority) {
-            case 1: // VDMQ + Lang Co
+            case 1: // VDMQ + Lang Co + Lang TT
                 min = Math.min(
                     AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ),
-                    AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGCO));
+                    Math.min(
+                        AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGCO),
+                        AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGTT)));
                 break;
             case 2: // MapNgoai
                 min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_MAPNGOAI);
@@ -481,8 +488,12 @@ public final class AutoBossEvent implements Runnable {
             case 5: // VDMQ only
                 min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_VDMQ);
                 break;
+            case 8: // Lang TT only
+                min = AutoSanBoss.getSecondsTillNextBoss(AutoSanBoss.TYPE_LANGTT);
+                break;
             default: // Tat ca
-                for (int i = 0; i < AutoSanBoss.TYPE_ALL; i++) {
+                for (int i = 0; i < AutoSanBoss.BOSS_NAMES.length; i++) {
+                    if (i == AutoSanBoss.TYPE_ALL || i == AutoSanBoss.TYPE_TEST_1MAP) continue;
                     int s = AutoSanBoss.getSecondsTillNextBoss(i);
                     if (s < min) min = s;
                 }
@@ -495,6 +506,10 @@ public final class AutoBossEvent implements Runnable {
         if (TileMap.mapID == targetMap) return;
         if (targetMap == 138 || TileMap.isLangCo(targetMap)) {
             AutoSanBoss.ensureInLangCo();
+            return;
+        }
+        if (AutoSanBoss.isLangTT(targetMap) || targetMap == 162) {
+            AutoSanBoss.ensureInLangTT();
             return;
         }
         PkBoss travel = new PkBoss(targetMap);
@@ -670,7 +685,9 @@ public final class AutoBossEvent implements Runnable {
     /** Tra ve map dau tien cho 1 priority cu the. Tach ra de default goi lai theo boss gan nhat. */
     private static int getFirstMapForPriority(int priority) {
         switch (priority) {
-            case 1: // VDMQ + Lang Co
+            case 1: // VDMQ + Lang Co + Lang TT
+                if (AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGTT)) return 162;
+                if (AutoSanBoss.isBossActive(AutoSanBoss.TYPE_LANGCO)) return 138;
                 if (AutoSanBoss.isReverseMapHunt) {
                     if (AutoSanBoss.isMapEnabled(143)) return 143;
                     if (AutoSanBoss.isMapEnabled(142)) return 142;
@@ -680,7 +697,7 @@ public final class AutoBossEvent implements Runnable {
                     if (AutoSanBoss.isMapEnabled(142)) return 142;
                     if (AutoSanBoss.isMapEnabled(143)) return 143;
                 }
-                return 138;
+                return 162;
             case 2: // MapNgoai
                 int[] mnMaps = AutoSanBoss.getMapNgoaiMaps();
                 if (AutoSanBoss.isReverseMapHunt) {
@@ -714,6 +731,8 @@ public final class AutoBossEvent implements Runnable {
                 return -1;
             case 7: // Map VIP2 — vao qua NPC, khong can GoMap truoc
                 return -1;
+            case 8: // Lang TT
+                return 162;
             default: {
                 // Tat ca: dung HUNT_PRIORITY (VIP2 > VIP > LC > VDMQ > TG > MN)
                 // 1. Uu tien boss DANG ACTIVE theo thu tu priority
@@ -757,6 +776,8 @@ public final class AutoBossEvent implements Runnable {
             return getFirstMapForPriority(2);
         } else if (bossType == AutoSanBoss.TYPE_LANGCO) {
             return 138;
+        } else if (bossType == AutoSanBoss.TYPE_LANGTT) {
+            return 162;
         }
         return 14;
     }
@@ -905,6 +926,9 @@ public final class AutoBossEvent implements Runnable {
                     break;
                 case 7:
                     AutoSanBoss.startEventHuntMapVIP2();
+                    break;
+                case 8:
+                    AutoSanBoss.startEventHuntLTT();
                     break;
                 default:
                     AutoSanBoss.startEventHuntAll();

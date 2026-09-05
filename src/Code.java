@@ -406,6 +406,11 @@ implements Runnable {
         }
         gameAB = null;
         timBG = false; // Khoi phuc hieu ung skill khi tat auto
+        // Tat TsBoost + AutoSuicide de khoi phuc map goc
+        TsBoost.onTsStopped();
+        AutoSuicide.stop();
+        AutoSuicide.stopJump();
+        AutoTAQ.isAuto = false;
         // Tat hut VP khi tat auto — dong bo trang thai
         if (AutoPickup.isRunning) {
             AutoPickup.stop();
@@ -529,11 +534,11 @@ implements Runnable {
                     int var5;
                     Char var3 = Char.getMyChar();
                     int var4 = Char.gameBG();
+                    // Auto quay lai map VIP khi chet/disconnect (PHAI chay ca khi gameAB == null)
+                    AutoVipMap.checkAndReturn();
+                    // Auto quay lai map Tu Luyen khi chet/disconnect
+                    AutoTuLuyen.checkAndReturn();
                     if (gameAB != null) {
-                        // Auto quay lai map VIP khi chet/disconnect
-                        AutoVipMap.checkAndReturn();
-                        // Auto quay lai map Tu Luyen khi chet/disconnect
-                        AutoTuLuyen.checkAndReturn();
                         Item var18;
                         int var19;
                         if (!(gameAB instanceof AutoNhan) && !(gameAB instanceof AutoGuiDo) && AutoNhan.gameAE() && AutoNhan.nguoinhan != null && SetAuto.gomdo) {

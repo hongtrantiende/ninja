@@ -920,15 +920,23 @@ Boss tồn tại: 40 phút (2400 giây)
   4. Đã build và đóng gói lại `NinjaNamod.jar` (1,361,938 bytes) tại `/storage/emulated/0/Download/NinjaNamod.jar`.
 - **Files:** `src/AutoSanBoss.java`, `src/ThongTinBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`, `NinjaNamod.jar`
 
-
-
-
-
-
-
-
-
-
-
-
-
+## 2026-09-05: Khắc phục triệt để di chuyển thừa ở Làng Truyền Thuyết (M162-165)
+- **Hiện tượng:** Khi vào Làng TT (162), bot chạy ra 165 -> quay về -> ra 163 quét -> quay về -> chạy lại ra 165 -> quay về -> ra 164 quét -> ra 165 quét.
+- **Nguyên nhân cốt lõi:**
+  1. **Graph Map Sai (`restoreLangTTGraph`)**: `TileMap.gameBZ[162]` được gán sai là `{163, 164, 165}`. Nhưng thực tế trong game NSO:
+     - Waypoint 0 (neck 0) dẫn đến **M165**
+     - Waypoint 1 (neck 1) dẫn đến **M163**
+     - Waypoint 2 (neck 2) dẫn đến **M164**
+     Do gán sai nên mọi cơ chế pathfinding (như `GoMap`, `PkBoss`) muốn đi 163 thì chọn index 0 -> chạy nhầm vào M165 trước!
+  2. **Cache Neck Khởi Tạo `-1`**: `neckFor163, neckFor164, neckFor165` để mặc định `-1`, khiến mỗi phiên săn boss bot đều phải thử lần lượt từ `neck 0` (M165), dẫn đến hành vi chạy nhầm lặp lại ở mọi map.
+  3. **Lỗi Tự Sát Trong ChatRouter**: Thành viên đang ở trong Làng TT khi nhận `pkm 163` bị kích hoạt tự sát về làng do điều kiện `curMap != auto.mapID && AutoSanBoss.isLangTT(curMap)`.
+- **Giải pháp:**
+  1. `src/AutoSanBoss.java`:
+     - Cố định neck index chuẩn: `neckFor163 = 1`, `neckFor164 = 2`, `neckFor165 = 0`.
+     - `getCachedNeck` luôn trả về đúng index cố định ngay từ đầu (không bao giờ mò thử sai).
+     - Sửa `restoreLangTTGraph()`: `TileMap.gameBZ[162] = new short[] {165, 163, 164};` khớp chính xác 100% với waypoint index của map.
+     - Vòng lặp fallback bỏ qua các neck đã được gán cho map khác.
+     - Thêm `startEventHuntLTT()` cho chế độ chỉ săn Làng TT.
+  2. `src/ChatRouter.java`: Sửa điều kiện tự sát chỉ chạy khi `AutoSanBoss.isLangTT(curMap) && !AutoSanBoss.isLangTT(auto.mapID)`.
+  3. `src/AutoBossEvent.java` & `src/NamMod.java`: Thêm priority 8 ("Chỉ Làng TT") vào menu và event loop; thêm `TYPE_LANGTT` vào `startEventHuntVdmqLc()`.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `NinjaNamod.jar`
