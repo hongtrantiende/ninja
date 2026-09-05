@@ -1,5 +1,39 @@
 # Decisions Log
 
+## 2026-09-05 (Session 26): Fix Lỗi Tự Động Chọn Menu 2 Trong Tính Năng Bán Vật Phẩm (AutoBanVP)
+- **Vấn đề:** Khi AutoBanVP về làng mở NPC 46 bán vật phẩm, bot đã chọn được Menu 1 (ô 5 "Bán vật phẩm") nhưng khi hiện Menu 2 (danh sách vật phẩm: CTT, TTC, TTT, TTS, PTL) thì bot không tự động chọn ô 2. Người dùng phải bấm chọn hộ trên màn hình thì bot mới nhập số lượng và bán thành công.
+- **Nguyên nhân:**
+  1. Menu NPC 46 hoạt động theo cơ chế 2 roundtrips: Menu 1 mở -> bot gửi packet chọn option 5 -> server gửi về Menu 2 hiển thị trên `GameCanvas.menu`.
+  2. Trước đó code chỉ gửi duy nhất 1 packet `Service.gI().gameAC(46, 5, i)` rồi lập tức chờ `InputDlg`. Server xử lý 5 là Menu 1 và gửi sub-menu (Menu 2) về client, nhưng bot không gửi packet hay trigger phím chọn cho Menu 2 nên Menu 2 bị đứng treo trên màn hình chờ người dùng bấm tay.
+  3. `Char.getMyChar().npcFocus` chưa được gán vào NPC 46 trước khi tương tác.
+  4. Một số chỗ gọi nhầm `InfoDlg.gameAB()` (hàm hiển thị loading xoay xoay) thay vì `InfoDlg.gameAD()` (hàm đóng dialog).
+- **Giải pháp & Chi tiết triển khai:**
+  1. `src/AutoBanVP.java`:
+     - Tự động tìm và gán `Char.getMyChar().npcFocus` vào NPC 46 trong `GameScr.vNpc`.
+     - Sau khi chọn Menu 1 (ô 5), đợi Menu 2 hiển thị trên `GameCanvas.menu`.
+     - Tự động chọn Menu 2 ô `i`: Đặt `GameCanvas.menu.menuSelectedItem = i`, kích hoạt key pulse `GameCanvas.keyPressedz[5] = true` và `GameCanvas.keyPressedz[12] = true` trên UI, đồng thời gửi trực tiếp cả hai gói tin `Service.gI().gameAC(46, i, 0)` và `Service.gI().gameAC(46, 5, i)` tới server.
+     - Cơ chế retry: Nếu sau 500ms chưa thấy `InputDlg` mà Menu 2 vẫn đang mở, tự động retry chọn lại ô `i`.
+     - Thay thế toàn bộ `InfoDlg.gameAB()` thành `InfoDlg.gameAD()`.
+  2. Biên dịch & đóng gói:
+     - Chạy `python3 do_build.py` biên dịch thành công `NinjaNamod.jar` (1,377,985 bytes).
+     - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar`.
+- **Files thay đổi:** `src/AutoBanVP.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
+## 2026-09-05 (Session 25): Đọc AGENTS.md, Bổ Sung mod_classes & Build JAR NinjaNamod
+- **Yêu cầu:** Đọc `AGENTS.md` và thực hiện build file JAR cho dự án Ninja School.
+- **Chi tiết triển khai:**
+  1. Đọc và tải toàn bộ memory protocol: `.agents/AGENTS.md`, `.agents/behavior-rules.md`, `rules.md`, `decisions-log.md`, `lessons-learned.md`.
+  2. Phát hiện & khắc phục lỗi version bytecode:
+     - `BossLog`, `ModInit`, `EcoMode` chưa được khai báo trong `mod_classes` của `scripts/patch_class_j2me.py` khiến chúng bị giữ ở Java 8 (52.0) và còn StackMapTable. Đã bổ sung `BossLog`, `ModInit`, `EcoMode` vào `mod_classes`.
+     - Xác nhận `AutoBanVP` và `BanVPConfig` cũng đã được khai báo và hạ version 45.3 thành công.
+  3. Cập nhật `do_build.py`: Bổ sung bước xóa sạch thư mục `javax/` stubs trước khi đóng gói JAR để tránh lỗi Security / Package Override trên J2ME.
+  4. Biên dịch và đóng gói JAR:
+     - Biên dịch thành công 44 source files trong `src/` (bao gồm tính năng mới `AutoBanVP` và `BanVPConfig`).
+     - Áp dụng các patch J2ME (hạ 74 class files xuống version 45.3, gỡ StackMapTable), patch watermark NinjaNamod, Server IP/Port `160.250.130.241:15555`, và patch TileMap Cổ Lệnh slot 28.
+     - Đóng gói thành công `NinjaNamod.jar` (1,377,495 bytes).
+     - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar`.
+- **Files thay đổi:** `scripts/patch_class_j2me.py`, `do_build.py`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
 ## 2026-09-05 (Session 24): Xóa Bỏ Boss Thế Giới & Boss Map VIP, Kiểm Tra & Xác Nhận Hút VP (Nhặt ALL) Cho Bản NinjaNamod
 - **Yêu cầu:**
   1. Chỉ build bản NinjaNamod (không build bản share).
@@ -961,3 +995,37 @@ Boss tồn tại: 40 phút (2400 giây)
   3. Build thành công `NinjaNamod.jar` và `Aeharuna.jar`.
 - **Files:** `src/ThongKe.java`, `src/EcoMode.java`, `NinjaNamod.jar`, `Aeharuna.jar`
 
+## 2026-09-05: Sửa lỗi Trưởng nhóm không gọi Thành viên vào map đánh Boss (Làng Cổ và các Map khác)
+- **Hiện tượng:** Trong TS Boss Ưu Tiên / Auto Săn Boss, trưởng nhóm gặp boss ở Làng Cổ (M134-137) nhưng không thấy gọi thành viên nhóm vào map để cùng đánh; kiểm tra các map khác (VDMQ, Map Ngoài, Làng TT).
+- **Nguyên nhân cốt lõi:**
+  1. **Lệnh `pke` gửi sau 500ms làm hủy PkBoss trên toàn bộ các map (`AutoSanBoss.java`)**:
+     - Trong `notifyPartyBossFound(mapID, bossZone)`, code cũ gửi: `pkm -1` -> sleep 30ms -> `pkm <mapID>` -> sleep 50ms -> `pkk <bossZone>` -> sleep 500ms -> `pke`.
+     - `pke` ("PK End") được nhận bởi thành viên trong `Code.java` kích hoạt `ChatRouter.stopPartyBoss()` -> gọi `Code.gameAC()` dừng và pop ngay `PkBoss`!
+     - Kết quả: Trên **TẤT CẢ** các map (Làng Cổ, VDMQ, Map Ngoài, Làng TT), thành viên vừa nhận lệnh `pkm`/`pkk` được 0.5s thì `PkBoss` đã bị hủy diệt ngay lập tức trước khi kịp di chuyển.
+  2. **Gửi `pkm -1` gây xung đột và ép thành viên thoát khỏi Làng Cổ (`ChatRouter.java`)**:
+     - `ChatRouter.java` khi nhận `pkm -1` có logic: nếu đang ở trong Làng Cổ (M134-138) sẽ gọi `finishLangCoAndExit()`. Việc gửi `pkm -1` 30ms trước `pkm <mapID>` làm thành viên tự sát thoát khỏi Làng Cổ ngay khi vừa đến.
+  3. **Thành viên không thể tự vào sub-map Làng Cổ (M134-137) & Làng TT (M163-165)**:
+     - Trước đây `ChatRouter.startPartyBoss` chỉ gọi `ensureInLangCo()` / `ensureInLangTT()`, vốn chỉ đưa nhân vật đến Hub (M138 hoặc M162) chứ không vào sub-map chứa boss.
+     - Sau đó gọi ngay `Code.gameAA(pBoss)` gán `PkBoss` vào `gameAB`. Do `PkBoss` dùng `TileMap.GoMap(targetMap)` không thể đi qua cổng ngẫu nhiên M138 hay chọn neck M162, thành viên bị đứng kẹt tại hub hoặc xung đột pathfinding.
+  4. **Thành viên gọi `finishLangCoAndExit()` hoặc `finishLangTTAndExit()` phát lệnh `pkm -6` giả cho cả nhóm**:
+     - Trong cả 2 hàm thoát map, code cũ tự động gửi `pkm -6` mà không kiểm tra xem có phải là Trưởng nhóm hay không. Nếu thành viên bị chết hoặc thoát map, nó gửi `pkm -6` khiến cả nhóm hiểu lầm boss đã chết và tự thoát về map train!
+- **Giải pháp:**
+  1. `src/AutoSanBoss.java`:
+     - Sửa `notifyPartyBossFound(mapID, bossZone)`: Xóa bỏ `pkm -1` và `pke`. Chỉ gửi `pkm <mapID>`, sleep 400ms (tránh drop packet rate-limit), rồi gửi `pkk <bossZone>`.
+     - Thêm `isPartyLeader()` và `isPartyMember()` kiểm tra chính xác vai trò dựa trên `GameScr.vParty.firstElement().charId`.
+     - Cập nhật `sendPartyCommand`: chỉ cho phép Trưởng nhóm gửi lệnh chat party (`if (!isPartyLeader()) return;`).
+     - Cập nhật `finishLangCoAndExit()` & `finishLangTTAndExit()`: chỉ Trưởng nhóm mới được gửi `pkm -6` khi kết thúc.
+     - Bổ sung `handleMemberLangCo(int targetMap)` & `handleMemberLangTT(int targetMap)`: Thread chuyên biệt cho thành viên: kiểm tra thoát map gated cũ -> gọi `enterLangCoSpecificMap` / `enterLangTTSpecificMap` -> chuyển đúng `bossZone` -> sau đó mới khởi chạy `PkBoss(targetMap)` để đánh (hoặc đứng chờ nếu `treoMode`).
+     - Lưu `memberTargetMap` và `memberTargetZone` chuẩn. Trong vòng lặp `isMember` của `run()`, nếu thành viên bị chết hồi sinh về hub/làng, tự động re-enter vào đúng map/khu boss để tiếp tục chiến đấu.
+     - Mở quyền `public static` cho các hàm hỗ trợ di chuyển: `checkStillRunning`, `respawnFast`, `isDisconnected`, `waitForReconnect`, `returnToLangCoHub`, `enterLangCoSpecificMap`, `returnToLangTTHub`, `enterLangTTSpecificMap`, `tryNeck`, `suicideAndEnsureAlive`.
+     - Bổ sung kiểm tra Làng TT trong `navigateToMap(int mapID)`.
+  2. `src/ChatRouter.java`:
+     - Tái cấu trúc `startPartyBoss(Auto auto)`:
+       - Nếu `auto.mapID >= 134 && auto.mapID <= 137`: gọi `AutoSanBoss.handleMemberLangCo(auto.mapID)` và `return;` (không gán sớm `PkBoss`).
+       - Nếu `auto.mapID >= 162 && auto.mapID <= 165`: gọi `AutoSanBoss.handleMemberLangTT(auto.mapID)` và `return;`.
+       - Nếu là Map thường (VDMQ, Map Ngoài): thoát Làng Cổ/TT nếu đang đứng, thoát map VIP/Tu luyện nếu có, cập nhật `memberTargetMap`, rồi khởi chạy `Code.gameAA(auto)`.
+     - Trong `setPartyBossZone(int zone)`: luôn lưu `memberTargetZone = zone` và nếu nhân vật đã vào đúng targetMap thì `doChangeZone(zone)` ngay.
+  3. `src/AutoBossEvent.java`:
+     - Bổ sung kiểm tra thoát Làng TT trong `returnMemberState()`: nếu thành viên đang ở Làng TT thì gọi `finishLangTTAndExit()` và `ensureAlive()`.
+  4. Đã build và đóng gói thành công `NinjaNamod.jar` và `Aeharuna.jar` (1,381,107 bytes) tại `/storage/emulated/0/Download/`.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/AutoBossEvent.java`, `Aeharuna.jar`, `NinjaNamod.jar`

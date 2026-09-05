@@ -270,6 +270,10 @@ public final class AutoBossEvent implements Runnable {
             // Hoi sinh sau tu sat de tranh member bi ket trang thai chet
             ensureAlive();
         }
+        if (AutoSanBoss.isLangTT(TileMap.mapID)) {
+            AutoSanBoss.finishLangTTAndExit();
+            ensureAlive();
+        }
         // Hoi sinh neu dang chet (truong hop bi giet truoc khi nhan pkm -5)
         ensureAlive();
         if (savedMap < 0) {

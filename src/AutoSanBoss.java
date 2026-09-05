@@ -21,7 +21,30 @@ public class AutoSanBoss implements Runnable {
     public static final long MAX_HUNT_DURATION_MS = 360000L; // 6 phut
     private static Thread thread;
     private static Thread memberMoveThread;
-    private static int memberTargetZone = -1;
+    public static int memberTargetZone = -1;
+    public static int memberTargetMap = -1;
+
+    public static boolean isPartyLeader() {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar != null && GameScr.vParty != null && GameScr.vParty.size() > 0) {
+                Party first = (Party) GameScr.vParty.firstElement();
+                return first != null && first.charId == myChar.charID;
+            }
+        } catch (Exception e) {}
+        return false;
+    }
+
+    public static boolean isPartyMember() {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar != null && GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                Party first = (Party) GameScr.vParty.firstElement();
+                return first != null && first.charId != myChar.charID;
+            }
+        } catch (Exception e) {}
+        return false;
+    }
     private static boolean eventHuntMode;
     private static boolean eventRoundCompleted;
     /** Override thu tu uu tien boss cho TS event (null = dung HUNT_PRIORITY mac dinh) */
@@ -442,7 +465,7 @@ public class AutoSanBoss implements Runnable {
     /** Finishes Lang Co hunt, sends pkm -6 to party, and uses NPC 7 at M138 to return to village. */
     public static void finishLangCoAndExit() {
         try {
-            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+            if (isPartyLeader() && GameScr.vParty != null && GameScr.vParty.size() > 1) {
                 Service.gI().gameAK("pkm -6");
             }
         } catch (Exception e) {}
@@ -512,7 +535,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Tu sat roi hoi sinh ve lang.
      */
-    private static void suicideAndEnsureAlive() {
+    public static void suicideAndEnsureAlive() {
         try {
             if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
                 try { Code.gameAN(); } catch (Exception e) {}
@@ -1059,6 +1082,11 @@ public class AutoSanBoss implements Runnable {
         if (Code.gameAB instanceof PkBoss) {
             try { Code.gameAC(); } catch (Exception e) {}
         }
+        memberTargetMap = -1;
+        memberTargetZone = -1;
+        if (memberMoveThread != null && memberMoveThread.isAlive()) {
+            try { memberMoveThread.interrupt(); } catch (Exception e) {}
+        }
         stop();
     }
 
@@ -1073,16 +1101,18 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Thanh vien treo: PkBoss chi dua toi map. Khi toi map thi pop PkBoss,
-     * sau do tu doi khu bang Auto.gameAA de khong tele/khong danh boss.
+     * Thanh vien nhan pkk zone tu truong nhom.
      */
     public static void setPartyBossZone(final int zone) {
+        memberTargetZone = zone;
         if (!isRunning || !treoMode) {
             if (Code.gameAB != null) Code.gameAB.zoneID = zone;
+            if (memberTargetMap > 0 && TileMap.mapID == memberTargetMap && TileMap.zoneID != zone) {
+                doChangeZone(zone);
+            }
             return;
         }
 
-        memberTargetZone = zone;
         final Auto travelAuto = Code.gameAB;
         if (!(travelAuto instanceof PkBoss)) {
             doChangeZone(zone);
@@ -1110,6 +1140,120 @@ public class AutoSanBoss implements Runnable {
                     sleep(10);
                 }
                 GameScr.gameAC("TREO: Da toi M" + targetMap + " K" + targetZone + ", dung cho!");
+            }
+        });
+        memberMoveThread.start();
+    }
+
+    /**
+     * Thanh vien vao Lang Co theo lenh pkm tu truong nhom.
+     */
+    public static void handleMemberLangCo(final int targetMap) {
+        memberTargetMap = targetMap;
+        if (memberMoveThread != null && memberMoveThread.isAlive()) {
+            try { memberMoveThread.interrupt(); } catch (Exception e) {}
+        }
+        memberMoveThread = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    int curMap = TileMap.mapID;
+                    if (isLangTT(curMap)) {
+                        finishLangTTAndExit();
+                    }
+                    if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+                        suicideAndEnsureAlive();
+                    }
+
+                    GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng C\u1ed5 M" + targetMap + "...");
+                    if (!enterLangCoSpecificMap(targetMap)) {
+                        GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c L\u00e0ng C\u1ed5 M" + targetMap);
+                        return;
+                    }
+
+                    for (int w = 0; w < 10 && memberTargetZone < 0; w++) {
+                        sleep(100L);
+                    }
+                    int targetZone = memberTargetZone;
+                    if (targetZone >= 0 && TileMap.zoneID != targetZone) {
+                        doChangeZone(targetZone);
+                        for (int w = 0; w < 20 && TileMap.zoneID != targetZone; w++) {
+                            sleep(100L);
+                        }
+                    }
+
+                    if (treoMode) {
+                        restoreDummyAuto();
+                        GameScr.gameAC("TSB-TV: Treo t\u1ea1i LC M" + targetMap + " K" + TileMap.zoneID);
+                        return;
+                    }
+
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LC M" + targetMap + " K" + TileMap.zoneID);
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    PkBoss pk = new PkBoss(targetMap);
+                    if (targetZone >= 0) {
+                        pk.zoneID = targetZone;
+                    }
+                    Code.gameAA(pk);
+                } catch (Exception e) {}
+            }
+        });
+        memberMoveThread.start();
+    }
+
+    /**
+     * Thanh vien vao Lang TT theo lenh pkm tu truong nhom.
+     */
+    public static void handleMemberLangTT(final int targetMap) {
+        memberTargetMap = targetMap;
+        if (memberMoveThread != null && memberMoveThread.isAlive()) {
+            try { memberMoveThread.interrupt(); } catch (Exception e) {}
+        }
+        memberMoveThread = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    int curMap = TileMap.mapID;
+                    if (TileMap.isLangCo(curMap)) {
+                        finishLangCoAndExit();
+                    }
+                    if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+                        suicideAndEnsureAlive();
+                    }
+
+                    GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng TT M" + targetMap + "...");
+                    if (!enterLangTTSpecificMap(targetMap)) {
+                        GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c L\u00e0ng TT M" + targetMap);
+                        return;
+                    }
+
+                    for (int w = 0; w < 10 && memberTargetZone < 0; w++) {
+                        sleep(100L);
+                    }
+                    int targetZone = memberTargetZone;
+                    if (targetZone >= 0 && TileMap.zoneID != targetZone) {
+                        doChangeZone(targetZone);
+                        for (int w = 0; w < 20 && TileMap.zoneID != targetZone; w++) {
+                            sleep(100L);
+                        }
+                    }
+
+                    if (treoMode) {
+                        restoreDummyAuto();
+                        GameScr.gameAC("TSB-TV: Treo t\u1ea1i LTT M" + targetMap + " K" + TileMap.zoneID);
+                        return;
+                    }
+
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LTT M" + targetMap + " K" + TileMap.zoneID);
+                    if (isGhostAttack) {
+                        doBossGhostAttack();
+                    }
+                    PkBoss pk = new PkBoss(targetMap);
+                    if (targetZone >= 0) {
+                        pk.zoneID = targetZone;
+                    }
+                    Code.gameAA(pk);
+                } catch (Exception e) {}
             }
         });
         memberMoveThread.start();
@@ -1193,6 +1337,8 @@ public class AutoSanBoss implements Runnable {
             treoMode = false;
             forcedBossType = -1;
             eventHuntTypes = null;
+            memberTargetMap = -1;
+            memberTargetZone = -1;
             if (Code.gameAB == dummyAuto) {
                 Code.gameAB = null;
             }
@@ -1205,8 +1351,9 @@ public class AutoSanBoss implements Runnable {
      * Gui lenh party chat neu dang o che do nhom
      */
     private void sendPartyCommand(String cmd) {
-        if (!isPartyMode) return;
-        if (GameScr.vParty.size() <= 1) return;
+        if (!isPartyMode && !AutoBossEvent.inEvent) return;
+        if (GameScr.vParty == null || GameScr.vParty.size() <= 1) return;
+        if (!isPartyLeader()) return;
         try {
             Service.gI().gameAK(cmd);
         } catch (Exception e) {}
@@ -1217,7 +1364,7 @@ public class AutoSanBoss implements Runnable {
      * Detect ca truong hop user nhan "Tat Auto" tu menu (Code.gameAF() set gameAB = null).
      * Hoac qua 6 phut san boss -> tu ngat de tranh treo vo han.
      */
-    private boolean checkStillRunning() {
+    public static boolean checkStillRunning() {
         if (!isRunning) return false;
         if (huntStartTime > 0 && (System.currentTimeMillis() - huntStartTime > MAX_HUNT_DURATION_MS)) {
             GameScr.gameAC("SanBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 ng\u1eaft \u0111\u1ec3 v\u1ec1 map TS!");
@@ -1252,7 +1399,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Kiem tra mat ket noi: Char chua load hoac session chua san sang
      */
-    private boolean isDisconnected() {
+    public static boolean isDisconnected() {
         try {
             Char c = Char.getMyChar();
             if (c == null || c.cName == null) return true;
@@ -1266,7 +1413,7 @@ public class AutoSanBoss implements Runnable {
      * Cho game tu reconnect (Char.ReConnect xu ly).
      * Tra ve true neu reconnect thanh cong, false neu timeout.
      */
-    private boolean waitForReconnect(int maxWaitSec) {
+    public static boolean waitForReconnect(int maxWaitSec) {
         GameScr.gameAC("TSB: M\u1ea5t k\u1ebft n\u1ed1i! Ch\u1edd \u0111\u0103ng nh\u1eadp l\u1ea1i...");
         for (int i = 0; i < maxWaitSec && isRunning; i++) {
             sleep(1000);
@@ -1515,7 +1662,7 @@ public class AutoSanBoss implements Runnable {
      * - gameAL() = hoi sinh luong (tai cho) — UU TIEN khi san boss
      * - gameAK() = hoi sinh ve lang (fallback)
      */
-    private void respawnFast() {
+    public static void respawnFast() {
         for (int retry = 0; retry < 10 && isRunning; retry++) {
             if (isDisconnected()) return;
             try {
@@ -1547,7 +1694,7 @@ public class AutoSanBoss implements Runnable {
     /**
      * Di chuyen vao map cu the trong Lang Co (M135 hoac M136).
      */
-    private boolean enterLangCoSpecificMap(int targetMap) {
+    public static boolean enterLangCoSpecificMap(int targetMap) {
         if (!checkStillRunning()) return false;
         if (TileMap.mapID == targetMap && !isDead()) return true;
 
@@ -1589,7 +1736,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Dieu huong den map chi dinh (ho tro Map VIP 1, Map VIP 2, Lang Co, va Map thuong).
+     * Dieu huong den map chi dinh (ho tro Map VIP 1, Map VIP 2, Lang Co, Lang TT, va Map thuong).
      * Tu dong hoi sinh va di tiep neu bi quai / nguoi danh chet tren duong.
      */
     private boolean navigateToMap(int mapID) {
@@ -1598,6 +1745,9 @@ public class AutoSanBoss implements Runnable {
         // 1. Thoat cac map gated/dac thu neu map dich khong nam cung khu vuc
         if (TileMap.isLangCo(TileMap.mapID) && !TileMap.isLangCo(mapID)) {
             finishLangCoAndExit();
+        }
+        if (isLangTT(TileMap.mapID) && !isLangTT(mapID)) {
+            finishLangTTAndExit();
         }
         if ((TileMap.mapID == 195 || TileMap.mapID == 196) && mapID != 195 && mapID != 196) {
             suicideAndEnsureAlive();
@@ -1618,6 +1768,10 @@ public class AutoSanBoss implements Runnable {
             if (TileMap.mapID == mapID && !isDead()) return true;
             if (isDead()) respawnFast();
             return enterLangCoSpecificMap(mapID);
+        } else if (mapID >= 163 && mapID <= 165) {
+            if (TileMap.mapID == mapID && !isDead()) return true;
+            if (isDead()) respawnFast();
+            return enterLangTTSpecificMap(mapID);
         } else {
             // Map thuong (VDMQ, Map Ngoai, The Gioi...)
             if (TileMap.mapID == mapID && !isDead()) return true;
@@ -1883,13 +2037,9 @@ public class AutoSanBoss implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    sendPartyCommand("pkm -1");
-                    Thread.sleep(30L);
                     sendPartyCommand("pkm " + mapID);
-                    Thread.sleep(50L);
+                    Thread.sleep(400L);
                     sendPartyCommand("pkk " + bossZone);
-                    Thread.sleep(500L);
-                    sendPartyCommand("pke");
                 } catch (Exception e) {}
             }
         }).start();
@@ -2015,7 +2165,7 @@ public class AutoSanBoss implements Runnable {
         } catch (Exception e) {}
     }
 
-    private boolean returnToLangCoHub() {
+    public static boolean returnToLangCoHub() {
         if (TileMap.mapID == 138) return true;
         if (!TileMap.isLangCo(TileMap.mapID)) return false;
         try {
@@ -3508,10 +3658,22 @@ public class AutoSanBoss implements Runnable {
                 } catch (Exception e) {}
 
                 if (isMember) {
+                    if (memberTargetMap >= 134 && memberTargetMap <= 137 && TileMap.mapID != memberTargetMap) {
+                        if (memberMoveThread == null || !memberMoveThread.isAlive()) {
+                            enterLangCoSpecificMap(memberTargetMap);
+                            if (memberTargetZone >= 0 && TileMap.zoneID != memberTargetZone) {
+                                doChangeZone(memberTargetZone);
+                            }
+                        }
+                    } else if (memberTargetMap >= 163 && memberTargetMap <= 165 && TileMap.mapID != memberTargetMap) {
+                        if (memberMoveThread == null || !memberMoveThread.isAlive()) {
+                            enterLangTTSpecificMap(memberTargetMap);
+                            if (memberTargetZone >= 0 && TileMap.zoneID != memberTargetZone) {
+                                doChangeZone(memberTargetZone);
+                            }
+                        }
+                    }
                     // === TREO MODE cho thanh vien ===
-                    // Leader gui pkm -> pkk -> doi 3s -> pke
-                    // stopPartyBoss() se pop PkBoss nhung giu treo thread song
-                    // -> TV tu dong dung tai map/zone boss
                     if (treoMode && Code.gameAB instanceof PkBoss) {
                         GameScr.gameAC("TREO: \u0110ang di t\u1edbi map/khu boss...");
                     }
@@ -3729,7 +3891,7 @@ public class AutoSanBoss implements Runnable {
     /** Thoat Lang TT bang cach tu sat hoi sinh ve thon */
     public static void finishLangTTAndExit() {
         try {
-            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+            if (isPartyLeader() && GameScr.vParty != null && GameScr.vParty.size() > 1) {
                 Service.gI().gameAK("pkm -6");
             }
         } catch (Exception e) {}
@@ -3743,7 +3905,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /** Tim VP Lang TT (ID 833) trong hanh trang */
-    private static Item findLangTTItem() {
+    public static Item findLangTTItem() {
         Item item = null;
         try {
             item = Char.gameAF(833);
@@ -3787,15 +3949,11 @@ public class AutoSanBoss implements Runnable {
         // Dam bao graph Lang TT
         restoreLangTTGraph();
 
-        // Neu da o trong Lang TT -> OK
         if (isLangTT(TileMap.mapID)) return true;
 
-        // 1. Tim VP 833
         Item item = findLangTTItem();
-
-        // 2. Neu chua co -> Mua tu Shop 14, slot 39
         if (item == null) {
-            GameScr.gameAC("LTT: Mua VP 833 (Shop 14)...");
+            GameScr.gameAC("LTT: Mua VP L\u00e0ng TT (Shop 14)...");
             try {
                 GameCanvas.endDlg();
                 try { InfoDlg.gameAD(); } catch (Exception ed) {}
@@ -3809,62 +3967,42 @@ public class AutoSanBoss implements Runnable {
                 item = findLangTTItem();
                 if (item != null) break;
             }
-
-            if (item == null) {
-                try {
-                    GameCanvas.endDlg();
-                    try { InfoDlg.gameAD(); } catch (Exception ed) {}
-                    sleep(100L);
-                    Service.gI().gameAB(14, 39, 2);
-                    LockGame.gameAG();
-                } catch (Exception e) {}
-                for (int retry = 0; retry < 4; retry++) {
-                    sleep(500L);
-                    item = findLangTTItem();
-                    if (item != null) break;
-                }
-            }
         }
 
         if (item == null) {
-            GameScr.gameAC("LTT: Kh\u00f4ng t\u00ecm th\u1ea5y VP 833!");
+            GameScr.gameAC("LTT: Kh\u00f4ng c\u00f3 VP L\u00e0ng TT!");
             return false;
         }
 
-        // 3. Dung VP de vao Lang TT
-        GameScr.gameAC("LTT: D\u00f9ng VP 833 v\u00e0o L\u00e0ng TT...");
-        for (int attempt = 0; attempt < 3; attempt++) {
-            if (isLangTT(TileMap.mapID)) return true;
-
-            try { GameCanvas.endDlg(); } catch (Exception e) {}
-            sleep(200L);
-
-            item = findLangTTItem();
-            if (item == null) break;
-
-            try {
-                Service.gI().useItem(item.indexUI);
-                TileMap.gameAF();
-            } catch (Exception e) {}
-
-            for (int i = 0; i < 80; i++) {
-                sleep(100L);
-                if (isLangTT(TileMap.mapID)) {
-                    GameScr.gameAC("LTT: \u0110\u00e3 v\u00e0o L\u00e0ng TT! (M" + TileMap.mapID + ")");
-                    return true;
-                }
+        GameScr.gameAC("LTT: D\u00f9ng VP v\u00e0o L\u00e0ng TT...");
+        try {
+            GameCanvas.endDlg();
+            try { InfoDlg.gameAD(); } catch (Exception ed) {}
+            sleep(100L);
+            int bagIdx = getLangTTBagIndex();
+            if (bagIdx >= 0) {
+                Service.gI().gameAC((byte) bagIdx);
             }
-            GameScr.gameAC("LTT: Ch\u01b0a v\u00e0o \u0111\u01b0\u1ee3c, th\u1eed l\u1ea1i l\u1ea7n " + (attempt + 2) + "...");
+        } catch (Exception e) {}
+
+        for (int w = 0; w < 40 && !isLangTT(TileMap.mapID); w++) {
+            sleep(200L);
         }
 
-        return isLangTT(TileMap.mapID);
+        if (isLangTT(TileMap.mapID)) {
+            GameScr.gameAC("LTT: \u0110\u00e3 v\u00e0o L\u00e0ng TT (M" + TileMap.mapID + ")!");
+            return true;
+        }
+
+        GameScr.gameAC("LTT: V\u00e0o L\u00e0ng TT th\u1ea5t b\u1ea1i!");
+        return false;
     }
 
-    /** Restore graph M162 <-> M163/164/165 */
+    /** Khoi phuc waypoints graph cho Lang TT */
     public static void restoreLangTTGraph() {
         try {
-            if (TileMap.gameBZ != null) {
-                if (TileMap.gameBZ.length > 165) {
+            if (TileMap.gameBZ != null && TileMap.gameBZ.length > 165) {
+                if (TileMap.gameBZ[162] == null || TileMap.gameBZ[162].length < 3) {
                     // Waypoint 0 -> M165, Waypoint 1 -> M163, Waypoint 2 -> M164
                     TileMap.gameBZ[162] = new short[] {165, 163, 164};
                     for (int m = 163; m <= 165 && m < TileMap.gameBZ.length; m++) {
@@ -3876,7 +4014,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /** Ve hub M162 tu cac map boss 163/164/165 */
-    private boolean returnToLangTTHub() {
+    public static boolean returnToLangTTHub() {
         if (TileMap.mapID == 162) return true;
         if (!isLangTT(TileMap.mapID)) return false;
         try {
@@ -3899,7 +4037,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /** Vao dung 1 map cu the trong Lang TT (163/164/165) tu hub M162 */
-    private boolean enterLangTTSpecificMap(int targetMap) {
+    public static boolean enterLangTTSpecificMap(int targetMap) {
         for (int retry = 0; retry < 4 && checkStillRunning(); retry++) {
             if (TileMap.mapID == targetMap) return true;
 
@@ -3940,7 +4078,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     /** Thu 1 neck tu hub M162, cache ket qua. Return true neu vao dung targetMap. */
-    private boolean tryNeck(int neck, int targetMap) {
+    public static boolean tryNeck(int neck, int targetMap) {
         if (TileMap.mapID != 162) return false;
         try {
             TileMap.gameAJ(neck);

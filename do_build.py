@@ -130,6 +130,9 @@ for root_d, dirs_d, files_d in os.walk(unpacked_dir):
         if f.endswith(".bak") or "bak_effects" in f:
             os.remove(os.path.join(root_d, f))
 
+# Xoa javax stubs do javac tao ra neu co
+shutil.rmtree(os.path.join(unpacked_dir, "javax"), ignore_errors=True)
+
 subprocess.run(["jar", "cfm", jar_path, manifest_file, "."], cwd=unpacked_dir, check=True)
 print(f"=== SUCCESS! Aeharuna.jar created: {os.path.getsize(jar_path)} bytes ===")
 

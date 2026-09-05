@@ -78,8 +78,8 @@ public final class AutoVipMap {
      */
     public static void checkAndReturn() {
         if (!isEnabled || returning) return;
-        // Tam ngung khi TSBoss dang san boss (tranh conflict keo ve map VIP)
-        if (AutoBossEvent.inEvent || AutoSanBoss.isRunning) return;
+        // Tam ngung khi TSBoss dang san boss hoac AutoBanVP dang ve lang ban VP
+        if (AutoBossEvent.inEvent || AutoSanBoss.isRunning || AutoBanVP.isSelling) return;
         if (TileMap.mapID == targetMapID) return;
 
 

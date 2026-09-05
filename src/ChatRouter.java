@@ -33,36 +33,57 @@ public class ChatRouter {
         TsBoost.onTsStopped();
         AutoPickup.stop();
         AutoTAQ.isAuto = false;
+        AutoBanVP.stop();
         // Khoi phuc hieu ung skill
         Code.timBG = false;
         Code.gameAF();
         GameScr.gameAC("Da tat toan bo Auto!");
     }
 
-    /** Nhan pkm tu truong nhom; map -1 chi bat trang thai Auto San Boss. */
+    /** Nhan pkm tu truong nhom; xu ly chuyen map va danh boss cho thanh vien. */
     public static void startPartyBoss(Auto auto) {
-        if (auto != null && auto.mapID == -6) {
+        if (auto == null) return;
+
+        if (auto.mapID == -6 || auto.mapID == -5) {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
             AutoSanBoss.cleanKhaoDiLenh();
-            // returnMemberState() tu xu ly tu sat + hoi sinh + ve map cu
-            // KHONG goi gameAN() o day tranh tu sat 2 lan
             AutoBossEvent.returnMemberState();
             return;
         }
-        if (auto != null && (auto.mapID >= 134 && auto.mapID <= 137)) {
-            new Thread(new Runnable() {
-                public void run() {
-                    AutoSanBoss.ensureInLangCo();
-                }
-            }).start();
-        } else if (auto != null && (auto.mapID >= 162 && auto.mapID <= 165)) {
-            new Thread(new Runnable() {
-                public void run() {
-                    AutoSanBoss.ensureInLangTT();
-                }
-            }).start();
-        } else if (auto != null && auto.mapID > 0) {
+        if (auto.mapID == -4) {
+            AutoBossEvent.saveMemberState();
+            return;
+        }
+        if (auto.mapID == -3) {
+            AutoSanBoss.stopPartyMemberFully();
+            return;
+        }
+        if (auto.mapID == -2) {
+            AutoSanBoss.startPartyMemberTreo();
+            return;
+        }
+        if (auto.mapID == -1) {
+            AutoSanBoss.startPartyMemberNormal();
+            return;
+        }
+
+        // === Lang Co (134-137) ===
+        if (auto.mapID >= 134 && auto.mapID <= 137) {
+            AutoSanBoss.startPartyMember();
+            AutoSanBoss.handleMemberLangCo(auto.mapID);
+            return;
+        }
+
+        // === Lang TT (162-165) ===
+        if (auto.mapID >= 162 && auto.mapID <= 165) {
+            AutoSanBoss.startPartyMember();
+            AutoSanBoss.handleMemberLangTT(auto.mapID);
+            return;
+        }
+
+        // === Map thuong (VDMQ, Map Ngoai...) ===
+        if (auto.mapID > 0) {
             Char.MuaCoLenh = false;
             Char.DungCoLenh = false;
             if (TileMap.isLangCo(TileMap.mapID)) {
@@ -71,38 +92,9 @@ public class ChatRouter {
             if (AutoSanBoss.isLangTT(TileMap.mapID)) {
                 AutoSanBoss.finishLangTTAndExit();
             }
-        }
-        if (auto != null && auto.mapID == -5) {
-            AutoBossEvent.returnMemberState();
-            return;
-        }
-        if (auto != null && auto.mapID == -4) {
-            AutoBossEvent.saveMemberState();
-            return;
-        }
-        if (auto != null && auto.mapID == -3) {
-            AutoSanBoss.stopPartyMemberFully();
-            return;
-        }
-        if (auto != null && auto.mapID == -2) {
-            AutoSanBoss.startPartyMemberTreo();
-            // KHONG tat Co Lenh khi dang o Lang Co — pkm 135/136 se den ngay sau
-            // Neu tat o day, game auto-exit da nhan vat ra truoc khi pkm 135 den
-            return;
-        }
-        if (auto != null && auto.mapID == -1) {
-            AutoSanBoss.startPartyMemberNormal();
-            if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138 || TileMap.isLangCo(TileMap.mapID)) {
-                AutoSanBoss.finishLangCoAndExit();
-            }
-            if (AutoSanBoss.isLangTT(TileMap.mapID)) {
-                AutoSanBoss.finishLangTTAndExit();
-            }
-            return;
-        }
-        if (auto != null && auto.mapID > 0) {
+
             int curMap = TileMap.mapID;
-            if (curMap != auto.mapID && (curMap == 192 || curMap == 195 || curMap == 196 || (AutoSanBoss.isLangTT(curMap) && !AutoSanBoss.isLangTT(auto.mapID)) || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)) {
+            if (curMap != auto.mapID && (curMap == 192 || curMap == 195 || curMap == 196 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)) {
                 try { Code.gameAN(); } catch (Exception e) {}
                 try { Thread.sleep(800L); } catch (InterruptedException e) {}
                 if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
@@ -111,9 +103,9 @@ public class ChatRouter {
                 }
                 respawnQuick();
             }
-        }
-        AutoSanBoss.startPartyMember();
-        if (auto != null) {
+
+            AutoSanBoss.memberTargetMap = auto.mapID;
+            AutoSanBoss.startPartyMember();
             LockGame.gameBK();
             Code.gameAA(auto);
         }
@@ -346,6 +338,20 @@ public class ChatRouter {
             return true;
         }
         
+        // === AUTO BAN VP (NPC 46) ===
+        if (text.equals("banvp")) {
+            AutoBanVP.toggle();
+            return true;
+        }
+        if (text.equals("testban") || text.equals("banvptest")) {
+            AutoBanVP.startSellNow();
+            return true;
+        }
+        if (text.equals("cfgbanvp")) {
+            BanVPConfig.select();
+            return true;
+        }
+
         // === AUTO VT MAP 55 ===
         if (text.equals("avt55")) {
             AutoVT55.setup();

@@ -46,5 +46,9 @@ public class ModInit {
         try {
             AutoPickup.loadConfigFromRMS();
         } catch (Exception e) {}
+
+        try {
+            AutoBanVP.loadConfigFromRMS();
+        } catch (Exception e) {}
     }
 }

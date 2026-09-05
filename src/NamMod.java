@@ -39,6 +39,8 @@ public final class NamMod implements IActionListener {
     // Cai dat Tan Sat
     private static final int CFG_TS_MENU = 120160;
 
+    // Cai dat Ban VP
+    private static final int CFG_BAN_VP_MENU = 120180;
 
     private static final int AUTO_BOSS_NOTICE = 120170;
 
@@ -82,6 +84,12 @@ public final class NamMod implements IActionListener {
 
         // === Cài đặt Tàn Sát ===
         items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
+
+        // === Cài đặt Bán VP ===
+        String banVpStatus = AutoBanVP.isEnabled
+            ? "ON (SL>=" + AutoBanVP.threshold + (AutoBanVP.sellMode == AutoBanVP.MODE_ONE ? " - 1 c\u00e1i" : " - T\u1ea5t") + ")"
+            : "OFF";
+        items.addElement(command("C\u00e0i \u0111\u1eb7t B\u00e1n VP: " + banVpStatus + " \u25b8", CFG_BAN_VP_MENU));
 
         // === Tiện ích Khác ===
         items.addElement(command("MAP VIP SC: " + onOff(AutoVipMap.isEnabled && AutoVipMap.targetMapID == 190), TS_VIP_MAP));
@@ -237,6 +245,10 @@ public final class NamMod implements IActionListener {
 
             case CFG_EXPLOIT_MENU:
                 ExploitConfig.select();
+                return;
+
+            case CFG_BAN_VP_MENU:
+                BanVPConfig.select();
                 return;
 
             default:
