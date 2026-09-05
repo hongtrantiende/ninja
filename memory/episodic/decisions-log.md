@@ -17,17 +17,15 @@
      - `findFarMob`: Tìm con quái sống gần nhất ngoài phạm vi `NEARBY_RANGE` (120px).
      - Khi hết quái gần (`countNearbyMobs == 0`), tự động ghost move/teleport (`Char.gameAC`, `Service.gI().gameAC`) đến vị trí quái xa.
      - Khi hết sạch quái trên map, tự động quay về vị trí ban đầu (`homeX, homeY`) để chờ quái hồi sinh.
-  3. `src/Code.java`:
-     - Tự động gọi `AutoTsXa.start()` khi bắt đầu Tàn Sát trong `gameAA(Auto)` (khi `var0 instanceof TanSat`), `gameAA(int, int)` và `gameAA(int, int, int)`.
-     - Tự động gọi `AutoTsXa.stop()` khi tắt auto trong `gameAF()`.
-  4. `src/ChatRouter.java`:
-     - Tự động bật/tắt `AutoTsXa` đồng bộ khi người dùng chat `ts`, `tsn`, `ak`.
-     - Bổ sung lệnh chat `tsxa` để bật/tắt riêng chế độ Tàn Sát Xa.
-  5. `src/NamMod.java`:
+  3. `src/Code.java` & `src/ChatRouter.java`:
+     - Tách biệt hoàn toàn `ts` và `tsxa`: Khi người dùng bật `ts`, KHÔNG tự động bật `AutoTsXa` (để người chơi tự chủ động bật khi muốn tàn sát xa).
+     - Khi tắt auto hoặc tắt TS (`Code.gameAF`), tự động dừng `AutoTsXa.stop()`.
+     - Lệnh chat `tsxa`: Cho phép người dùng tự chủ động bật/tắt Tàn Sát Xa (`AutoTsXa.toggle()`). Nếu chưa bật TS thì tự động kích hoạt TS gốc.
+  4. `src/NamMod.java`:
      - Thêm mục "Tàn Sát Xa: ON/OFF" vào Menu NamMod (dưới mục Cài đặt Tàn Sát) với mã `TS_XA = 120185`.
-  6. Biên dịch & Đóng gói:
+  5. Biên dịch & Đóng gói:
      - Chạy `git checkout Aeharuna.jar && python3 do_build.py`.
-     - Biên dịch thành công `NinjaNamod.jar` (1,382,112 bytes).
+     - Biên dịch thành công `NinjaNamod.jar` (1,382,130 bytes).
      - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar` và `Aeharuna.jar`.
 - **Files thay đổi:** `src/Auto.java`, `src/AutoTsXa.java`, `src/Code.java`, `src/ChatRouter.java`, `src/NamMod.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
 

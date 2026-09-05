@@ -553,7 +553,6 @@ public class ChatRouter {
                     Code.timBG = true;
                     if (!isAk) {
                         TsBoost.onTsStarted();
-                        AutoTsXa.start();
                     }
                     onTsActivated();
                     GameScr.gameAC(!isAk && TsBoost.isRunning ? "TS + Ts Pro!" : "TS ON!");
@@ -572,7 +571,6 @@ public class ChatRouter {
                     AutoPickup.syncAfterAutoCommand();
                     if (!isAk) {
                         TsBoost.syncAfterTs();
-                        AutoTsXa.start();
                     }
                 }
             }

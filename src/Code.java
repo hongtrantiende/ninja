@@ -332,9 +332,6 @@ implements Runnable {
         gameAB = var0;
         AutoPickup.start();
         TsBoost.onTsStarted();
-        if (var0 instanceof TanSat) {
-            AutoTsXa.start();
-        }
     }
 
     public static void gameAC() {
@@ -352,7 +349,6 @@ implements Runnable {
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
-        AutoTsXa.start(); // Bat Tan Sat Xa tu tele quai toan map
     }
 
     public static void gameAA(int var0, int var1, int var2) {
@@ -364,7 +360,6 @@ implements Runnable {
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
-        AutoTsXa.start(); // Bat Tan Sat Xa tu tele quai toan map
     }
 
     private static void gameAC(int var0, int var1) {

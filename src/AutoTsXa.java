@@ -34,6 +34,10 @@ public class AutoTsXa implements Runnable {
             homeY = myChar.cy;
         }
 
+        if (Code.gameAB == null) {
+            Code.gameAA(-1, TileMap.mapID);
+        }
+
         isRunning = true;
         thread = new Thread(new AutoTsXa());
         thread.start();
