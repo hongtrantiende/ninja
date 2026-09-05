@@ -374,9 +374,11 @@ public abstract class Auto {
 
     protected final void gameAC(Mob var1) {
         if (var1 != null) {
+            Char var4 = Char.getMyChar();
+            if (var4 == null || var4.statusMe == 14 || var4.cHP <= 0) return;
+
             int var2 = var1.xFirst;
             int var3 = var1.yFirst;
-            Char var4 = Char.getMyChar();
             if (TileMap.mapID == 35) {
                 if (var1.xFirst == 1428 && var1.yFirst == 528) {
                     var2 = 1452;
@@ -403,7 +405,29 @@ public abstract class Auto {
                     var3 = 600;
                 }
             }
-            if (Char.gameAD(var2, var3)) {
+
+            int dist = Res.abs(var4.cx - var2) + Res.abs(var4.cy - var3);
+            boolean moved = false;
+            // Neu o gan (< 100px), thu di chuyen binh thuong truoc
+            if (dist <= 100) {
+                try {
+                    moved = Char.gameAD(var2, var3);
+                } catch (Exception e) {}
+            }
+            // Neu quai o xa hoac di chuyen binh thuong that bai (quai bay, dia hinh chan) -> Teleport ngay!
+            if (!moved) {
+                int groundY = TileMap.gameAD(var2, var3);
+                int targetY = (groundY > 0 && Math.abs(groundY - var3) <= 150) ? groundY : var3;
+                try {
+                    Char.gameAC(var2, targetY);
+                    var4.cx = var2;
+                    var4.cy = targetY;
+                    Service.gI().gameAC(var2, targetY);
+                    moved = true;
+                } catch (Exception e) {}
+            }
+
+            if (moved) {
                 this.gameAV = this.gameAE;
                 this.gameAW = this.gameAF;
                 this.gameAE = var4.cx;
@@ -417,7 +441,7 @@ public abstract class Auto {
                     return;
                 }
             }
-            var4.mobFocus = null;
+            var4.mobFocus = var1;
         }
     }
 
@@ -869,9 +893,20 @@ public abstract class Auto {
                         return;
                     }
                     if (!(var26.template.type != 1 && var26.template.type != 3 || Res.abs(var3.cx - var6.xFirst) <= var26.dx + 30 && Res.abs(var3.cy - var6.yFirst) <= var26.dy + 30)) {
-                        var3.mobFocus = null;
-                        var6 = null;
-                        return;
+                        // Teleport truc tiep den quai de danh neu con ngoai tam thay vi bo target va dung im
+                        int groundY = TileMap.gameAD(var6.xFirst, var6.yFirst);
+                        int targetY = (groundY > 0 && Math.abs(groundY - var6.yFirst) <= 150) ? groundY : var6.yFirst;
+                        try {
+                            Char.gameAC(var6.xFirst, targetY);
+                            var3.cx = var6.xFirst;
+                            var3.cy = targetY;
+                            Service.gI().gameAC(var6.xFirst, targetY);
+                        } catch (Exception e) {}
+                        if (Res.abs(var3.cx - var6.xFirst) > var26.dx + 60 || Res.abs(var3.cy - var6.yFirst) > var26.dy + 60) {
+                            var3.mobFocus = null;
+                            var6 = null;
+                            return;
+                        }
                     }
                     int var25 = var26.dx;
                     int var17 = var26.dy;

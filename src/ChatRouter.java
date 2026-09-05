@@ -541,7 +541,7 @@ public class ChatRouter {
             return true;
         }
         
-        // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost tu dong ===
+        // === INTERCEPT ts/tsn/ak: bat/tat nhat do + TsBoost + AutoTsXa tu dong ===
         if (text.equals("ts") || text.equals("tsn") || text.equals("ak")) {
             boolean isAk = text.equals("ak");
             boolean hadAuto = Code.gameAB != null;
@@ -553,12 +553,14 @@ public class ChatRouter {
                     Code.timBG = true;
                     if (!isAk) {
                         TsBoost.onTsStarted();
+                        AutoTsXa.start();
                     }
                     onTsActivated();
                     GameScr.gameAC(!isAk && TsBoost.isRunning ? "TS + Ts Pro!" : "TS ON!");
                 } else if (hadAuto) {
                     TsBoost.stop();
                     AutoPickup.stop();
+                    AutoTsXa.stop();
                     // Khoi phuc hieu ung skill
                     Code.timBG = false;
                     // Reset map goc khi nguoi dung chu dong tat TS
@@ -570,10 +572,17 @@ public class ChatRouter {
                     AutoPickup.syncAfterAutoCommand();
                     if (!isAk) {
                         TsBoost.syncAfterTs();
+                        AutoTsXa.start();
                     }
                 }
             }
             return handled;
+        }
+
+        // === LENH tsxa: Bat/tat Tan Sat Xa ===
+        if (text.equals("tsxa")) {
+            AutoTsXa.toggle();
+            return true;
         }
         
         // Fallback: goi Code.gameAF goc

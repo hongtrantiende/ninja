@@ -43,6 +43,7 @@ public final class NamMod implements IActionListener {
     private static final int CFG_BAN_VP_MENU = 120180;
 
     private static final int AUTO_BOSS_NOTICE = 120170;
+    private static final int TS_XA = 120185;
 
     private static final NamMod INSTANCE = new NamMod();
 
@@ -84,6 +85,7 @@ public final class NamMod implements IActionListener {
 
         // === Cài đặt Tàn Sát ===
         items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
+        items.addElement(command("T\u00e0n S\u00e1t Xa: " + onOff(AutoTsXa.isRunning), TS_XA));
 
         // === Cài đặt Bán VP ===
         String banVpStatus = AutoBanVP.isEnabled
@@ -249,6 +251,10 @@ public final class NamMod implements IActionListener {
 
             case CFG_BAN_VP_MENU:
                 BanVPConfig.select();
+                return;
+
+            case TS_XA:
+                AutoTsXa.toggle();
                 return;
 
             default:

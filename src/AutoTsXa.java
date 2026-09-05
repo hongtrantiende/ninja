@@ -1,31 +1,27 @@
 /**
- * AutoTsXa — Bat ts goc + ghost move toan map khi het quai gan.
- * Lenh: tsxa (bat/tat)
- *
- * Co che:
- * - Bat ts GOC (Code.gameAA) — game xu ly: skill, dame, chet hoi sinh, quay lai
- * - Thread nen: khi het quai gan, ghost move den cum quai xa
- * - Ts goc tiep tuc danh tai vi tri moi
- * - Het quai cum do → ghost move den cum tiep
- * - Giong ts binh thuong nhung CO THE DANH MOI QUAI TREN MAP
+ * AutoTsXa — Tự động chọn quái xa và ghost move/tele toàn map khi hết quái gần.
+ * Tích hợp tự động chạy song song cùng Tàn Sát (ts).
+ * Lệnh chat: tsxa (bật/tắt riêng)
  */
 public class AutoTsXa implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // Vi tri ban dau (de quay ve khi het quai)
-    private static int homeX = 0;
-    private static int homeY = 0;
+    // Vị trí ban đầu (để quay về khi hết sạch quái trên map chờ hồi sinh)
+    public static int homeX = 0;
+    public static int homeY = 0;
 
     // === CONFIG ===
-    private static final int CHECK_MS = 1500;       // 1.5 giay check 1 lan
-    private static final int NEARBY_RANGE = 150;     // Quai <150px = gan
+    private static final int CHECK_MS = 800;        // 800ms kiểm tra 1 lần
+    private static final int NEARBY_RANGE = 120;    // Quái <= 120px = quái gần
 
     public static void toggle() {
         if (isRunning) {
             stop();
+            GameScr.gameAC("T\u1eaft T\u00e0n S\u00e1t Xa!");
         } else {
             start();
+            GameScr.gameAC("B\u1eadt T\u00e0n S\u00e1t Xa! T\u1ef1 tele qu\u00e1i xa to\u00e0n map.");
         }
     }
 
@@ -39,40 +35,33 @@ public class AutoTsXa implements Runnable {
         }
 
         isRunning = true;
-
-        // Bat ts goc — game xu ly moi thu (skill, dame, chet, hoi sinh)
-        if (Code.gameAB == null) {
-            Code.gameAA(-1, TileMap.mapID);
-        }
-
         thread = new Thread(new AutoTsXa());
         thread.start();
-        GameScr.gameAC("B\u1eadt Ts Xa! Ts g\u1ed1c + auto move to\u00e0n map!");
     }
 
     public static void stop() {
         isRunning = false;
         thread = null;
-        // Tat ts goc
-        if (Code.gameAB != null) {
-            Code.gameAC();
-        }
-        GameScr.gameAC("T\u1eaft Ts Xa!");
     }
 
     /**
-     * Tim con quai song xa nhat (de ghost move den cum quai xa).
+     * Tìm con quái sống gần nhất nhưng nằm ngoài NEARBY_RANGE (để tele đến đánh cụm quái tiếp theo).
      */
     private static Mob findFarMob(int cx, int cy) {
         Mob best = null;
-        int bestDist = 0;
+        int bestDist = Integer.MAX_VALUE;
         int size = GameScr.vMob.size();
+        int targetTemplate = -1;
+        if (Code.gameAB instanceof TanSat) {
+            targetTemplate = ((TanSat) Code.gameAB).templateId;
+        }
         for (int i = 0; i < size; i++) {
             try {
                 Mob mob = (Mob) GameScr.vMob.elementAt(i);
-                if (mob == null || mob.hp <= 0) continue;
+                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1 || mob.isBoss) continue;
+                if (targetTemplate != -1 && mob.templateId != targetTemplate) continue;
                 int dist = Math.abs(cx - mob.x) + Math.abs(cy - mob.y);
-                if (dist > NEARBY_RANGE && dist > bestDist) {
+                if (dist > NEARBY_RANGE && dist < bestDist) {
                     best = mob;
                     bestDist = dist;
                 }
@@ -82,15 +71,20 @@ public class AutoTsXa implements Runnable {
     }
 
     /**
-     * Dem quai song gan vi tri.
+     * Đếm số quái sống gần vị trí hiện tại.
      */
     private static int countNearbyMobs(int cx, int cy) {
         int count = 0;
         int size = GameScr.vMob.size();
+        int targetTemplate = -1;
+        if (Code.gameAB instanceof TanSat) {
+            targetTemplate = ((TanSat) Code.gameAB).templateId;
+        }
         for (int i = 0; i < size; i++) {
             try {
                 Mob mob = (Mob) GameScr.vMob.elementAt(i);
-                if (mob == null || mob.hp <= 0) continue;
+                if (mob == null || mob.hp <= 0 || mob.status == 0 || mob.status == 1 || mob.isBoss) continue;
+                if (targetTemplate != -1 && mob.templateId != targetTemplate) continue;
                 if (Math.abs(cx - mob.x) + Math.abs(cy - mob.y) <= NEARBY_RANGE) {
                     count++;
                 }
@@ -100,39 +94,44 @@ public class AutoTsXa implements Runnable {
     }
 
     public void run() {
-        try { Thread.sleep(1000); } catch (Exception e) {}
+        try { Thread.sleep(500); } catch (Exception e) {}
 
         while (isRunning) {
             try {
-                Char myChar = Char.getMyChar();
-                if (myChar == null) break;
+                // Chỉ chạy khi đang bật Tàn Sát hoặc Auto và không trong chế độ săn boss
+                if (Code.gameAB == null || AutoSanBoss.isRunning || AutoBossEvent.inEvent) {
+                    try { Thread.sleep(1000); } catch (Exception e) {}
+                    continue;
+                }
 
-                // Kiem tra ts goc con chay khong — restart neu can
-                if (Code.gameAB == null && isRunning) {
-                    try { Thread.sleep(2000); } catch (Exception e) {}
-                    if (Code.gameAB == null && isRunning) {
-                        Code.gameAA(-1, TileMap.mapID);
-                    }
+                Char myChar = Char.getMyChar();
+                if (myChar == null || myChar.statusMe == 14 || myChar.cHP <= 0) {
+                    try { Thread.sleep(1000); } catch (Exception e) {}
+                    continue;
                 }
 
                 int cx = myChar.cx;
                 int cy = myChar.cy;
 
-                // Het quai gan → ghost move den cum quai xa
+                // Khi hết quái sống ở gần -> tele đến cụm quái sống xa gần nhất
                 int nearby = countNearbyMobs(cx, cy);
                 if (nearby == 0) {
                     Mob far = findFarMob(cx, cy);
                     if (far != null) {
-                        // Ghost move den cum quai xa
-                        Char.gameAC(far.x, far.y);
+                        int groundY = TileMap.gameAD(far.x, far.y);
+                        int targetY = (groundY > 0 && Math.abs(groundY - far.y) <= 150) ? groundY : far.y;
+                        Char.gameAC(far.x, targetY);
                         myChar.cx = far.x;
-                        myChar.cy = far.y;
+                        myChar.cy = targetY;
+                        Service.gI().gameAC(far.x, targetY);
+                        myChar.mobFocus = far;
                     } else {
-                        // Het quai tren map → quay ve home doi respawn
-                        if (Math.abs(cx - homeX) + Math.abs(cy - homeY) > NEARBY_RANGE) {
+                        // Hết sạch quái trên map -> quay về vị trí ban đầu chờ hồi sinh
+                        if (homeX > 0 && (Math.abs(cx - homeX) + Math.abs(cy - homeY) > NEARBY_RANGE)) {
                             Char.gameAC(homeX, homeY);
                             myChar.cx = homeX;
                             myChar.cy = homeY;
+                            Service.gI().gameAC(homeX, homeY);
                         }
                     }
                 }

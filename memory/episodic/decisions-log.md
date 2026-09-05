@@ -1,5 +1,36 @@
 # Decisions Log
 
+## 2026-09-05 (Session 28): Fix Tàn Sát Đứng Im/Treo Khi Quái Xa/Bay & Tự Động Tele Quái Toàn Map (AutoTsXa)
+- **Vấn đề:**
+  1. Khi bật Tàn Sát (`ts`), bot không chọn quái xa để đánh khi dọn hết quái gần.
+  2. Nhiều lúc bật Tàn Sát, bot không tự tele (ghost move) ra quái mà đứng im một chỗ bị đơ/treo luôn.
+- **Nguyên nhân:**
+  1. Trong `Auto.java:gameAC(Mob var1)`, bot gọi `Char.gameAD(var2, var3)` để tìm ground tile (type 2) bằng `TileMap.gameAA(x, y, result)` trong phạm vi 5 tile (120px). Nếu quái trên cao, quái bay (ong, dơi, quạ, cóc), hoặc địa hình không có tile đất type 2 chuẩn bên dưới, `Char.gameAD` trả về `false`.
+  2. Khi `Char.gameAD` thất bại, `Auto.java` gán `var4.mobFocus = null;` và hoàn toàn không di chuyển! Sau đó trong `Auto.gameAB`, khi kiểm tra khoảng cách đến quái `Res.abs(...) <= dx + 30 && ... <= dy + 30`, do nhân vật không di chuyển được nên ngoài tầm skill, hàm lập tức xóa `var3.mobFocus = null; var6 = null; return;`! Tick tiếp theo lại chọn đúng con quái đó, `gameAC` lại thất bại -> Vòng lặp vô tận khiến bot đứng im một chỗ bị treo cứng.
+  3. Cơ chế `AutoTsXa` trước đây đã được viết nhưng chưa từng được khởi chạy (`AutoTsXa.start()`) khi bật `ts` trong `ChatRouter.java` hoặc `Code.java`, chưa có lệnh chat `tsxa`, và thuật toán `findFarMob` trong `AutoTsXa` tìm quái xa nhất bản đồ thay vì tìm cụm quái gần nhất ngoài phạm vi `NEARBY_RANGE`, không kiểm tra `mob.status` hay `templateId` của Tàn Sát.
+- **Giải pháp & Chi tiết triển khai:**
+  1. `src/Auto.java`:
+     - Sửa `gameAC(Mob var1)`: Bổ sung fallback teleport tức thời `Char.gameAC(var2, targetY); var4.cx = var2; var4.cy = targetY; Service.gI().gameAC(var2, targetY);` (với `targetY = TileMap.gameAD(var2, var3)`) khi `Char.gameAD` thất bại hoặc khoảng cách > 100px. Luôn giữ `var4.mobFocus = var1` để không bị drop target.
+     - Sửa `gameAB` (chỗ kiểm tra tầm skill): Thay vì xóa `mobFocus` và `return` khiến bot đứng treo, tự động kích hoạt tele thẳng tới mục tiêu và giữ focus.
+  2. `src/AutoTsXa.java`:
+     - Viết lại luồng tìm quái: lọc chuẩn quái sống (`mob.status != 0 && mob.status != 1 && mob.hp > 0 && !mob.isBoss`), đúng `templateId` mục tiêu của Tàn Sát (nếu là `TanSat`).
+     - `findFarMob`: Tìm con quái sống gần nhất ngoài phạm vi `NEARBY_RANGE` (120px).
+     - Khi hết quái gần (`countNearbyMobs == 0`), tự động ghost move/teleport (`Char.gameAC`, `Service.gI().gameAC`) đến vị trí quái xa.
+     - Khi hết sạch quái trên map, tự động quay về vị trí ban đầu (`homeX, homeY`) để chờ quái hồi sinh.
+  3. `src/Code.java`:
+     - Tự động gọi `AutoTsXa.start()` khi bắt đầu Tàn Sát trong `gameAA(Auto)` (khi `var0 instanceof TanSat`), `gameAA(int, int)` và `gameAA(int, int, int)`.
+     - Tự động gọi `AutoTsXa.stop()` khi tắt auto trong `gameAF()`.
+  4. `src/ChatRouter.java`:
+     - Tự động bật/tắt `AutoTsXa` đồng bộ khi người dùng chat `ts`, `tsn`, `ak`.
+     - Bổ sung lệnh chat `tsxa` để bật/tắt riêng chế độ Tàn Sát Xa.
+  5. `src/NamMod.java`:
+     - Thêm mục "Tàn Sát Xa: ON/OFF" vào Menu NamMod (dưới mục Cài đặt Tàn Sát) với mã `TS_XA = 120185`.
+  6. Biên dịch & Đóng gói:
+     - Chạy `git checkout Aeharuna.jar && python3 do_build.py`.
+     - Biên dịch thành công `NinjaNamod.jar` (1,382,112 bytes).
+     - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar` và `Aeharuna.jar`.
+- **Files thay đổi:** `src/Auto.java`, `src/AutoTsXa.java`, `src/Code.java`, `src/ChatRouter.java`, `src/NamMod.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
 ## 2026-09-05 (Session 27): Fix Auto Bán VP Quay Lại Map Tìm Boss Thay Vì Tiếp Tục Tàn Sát
 - **Vấn đề:** Khi Auto Bán VP (`AutoBanVP`) trong Nam Mod tự về làng bán vật phẩm xong và quay lại map cũ thì nhân vật lại chuyển khu tìm boss, quét boss và hiển thị "PK Boss" trên màn hình, thay vì tiếp tục Tàn Sát (TS) tại map và khu đã lưu.
 - **Nguyên nhân:**
