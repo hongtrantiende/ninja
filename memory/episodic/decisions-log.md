@@ -1,5 +1,24 @@
 # Decisions Log
 
+## 2026-09-05 (Session 29): Fix Thành Viên Nhóm Bật Tàn Sát (ts) Không Đánh Khi Đã Có Nhóm (addn/sn)
+- **Vấn đề:** Khi có nhóm (dùng `addn` và `sn`), nếu trưởng nhóm chat `tsn` thì thành viên đánh bình thường, nhưng nếu thành viên nhóm tự bật `ts` (Tàn Sát cá nhân) thì nhân vật đứng im không đánh quái.
+- **Nguyên nhân:**
+  1. Trong `Code.java:348` và `359` (`gameAA(int, int)` và `gameAA(int, int, int)`), code từng bị gán nhầm cờ `gameCC.gameAA = true;`. Cờ `gameAA` trên `Auto` đại diện cho chế độ "Tàn Sát Nhóm" (chỉ bật khi trưởng nhóm dùng `tsn` hoặc khi thành viên nhận lệnh từ trưởng nhóm).
+  2. Khi `gameCC.gameAA = true;` bị gán cho cả lệnh `ts` cá nhân:
+     - Trong `Auto.java:755`, `var4 = this.gameAA && GameScr.vParty.size() > 0 ? ((Party)GameScr.vParty.firstElement()).c : null;` bị ép thành tham chiếu đến trưởng nhóm.
+     - Trong `Auto.java:658`, `(var4 == null || var4.charID == Char.getMyChar().charID || Res.gameAA(var14.xFirst, var14.yFirst, var4.cx, var4.cy) <= 1000)` chỉ cho phép đánh quái nằm trong phạm vi 1000px quanh trưởng nhóm. Nếu trưởng nhóm ở vị trí khác hoặc ở map khác, mọi quái xung quanh thành viên đều bị lọc bỏ $\rightarrow$ Thành viên không chọn được mục tiêu và đứng im.
+     - Trong `Auto.java:756`, `boolean var5 = !this.gameAA || Code.gameAH == null || var3.cName.equals(Code.gameAH) && LockGame.gameBH();` bị biến thành `false` đối với thành viên nhóm.
+- **Giải pháp & Chi tiết triển khai:**
+  1. `src/Code.java`:
+     - Sửa `gameCC.gameAA = false;` trong `gameAA(int, int)` và `gameAA(int, int, int)`. Lệnh `ts` cá nhân không bao giờ kích hoạt cờ nhóm. Chỉ `tsn`/lệnh từ trưởng nhóm mới set `true`.
+  2. `src/Auto.java`:
+     - Bổ sung kiểm tra `if (var4 != null && !GameScr.vCharInMap.contains(var4)) var4 = null;` để tránh tham chiếu rác đến trưởng nhóm khi trưởng nhóm không có mặt trên map hiện tại.
+  3. Biên dịch & Đóng gói:
+     - Chạy `git checkout Aeharuna.jar && python3 do_build.py`.
+     - Biên dịch thành công `NinjaNamod.jar` (1,382,151 bytes).
+     - Đã tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar` và `Aeharuna.jar`.
+- **Files thay đổi:** `src/Code.java`, `src/Auto.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
 ## 2026-09-05 (Session 28): Fix Tàn Sát Đứng Im/Treo Khi Quái Xa/Bay & Tự Động Tele Quái Toàn Map (AutoTsXa)
 - **Vấn đề:**
   1. Khi bật Tàn Sát (`ts`), bot không chọn quái xa để đánh khi dọn hết quái gần.

@@ -753,6 +753,9 @@ public abstract class Auto {
         if (!Auto.gameAJ()) {
             boolean var8;
             Char var4 = this.gameAA && GameScr.vParty.size() > 0 ? ((Party)GameScr.vParty.firstElement()).c : null;
+            if (var4 != null && !GameScr.vCharInMap.contains(var4)) {
+                var4 = null;
+            }
             boolean var5 = !this.gameAA || Code.gameAH == null || var3.cName.equals(Code.gameAH) && LockGame.gameBH();
             Mob var6 = var3.mobFocus;
             Char var7 = var3.charFocus;

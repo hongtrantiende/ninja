@@ -345,7 +345,7 @@ implements Runnable {
             gameAB = null;
         }
         gameCC.gameAA(var0, var1, Char.TsMapTrong ? -1 : (int)TileMap.zoneID);
-        gameCC.gameAA = true;
+        gameCC.gameAA = false;
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
@@ -356,7 +356,7 @@ implements Runnable {
             gameAB = null;
         }
         gameCC.gameAA(var0, var1, var2);
-        gameCC.gameAA = true;
+        gameCC.gameAA = false;
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
