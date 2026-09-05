@@ -896,6 +896,15 @@ Boss tồn tại: 40 phút (2400 giây)
   2. Trong luồng `AutoSuicide.run()`: Nếu `TileMap.mapID` là map Boss Thế Giới, bỏ qua kiểm tra tự sát và reset `lastMoveTime`, đảm bảo nhân vật có thể đứng yên đánh boss liên tục suốt 3 phút mà không bị tự sát về làng.
 - **Files:** `src/AutoSanBoss.java`, `src/AutoSuicide.java`, `Aeharuna.jar`
 
+## 2026-09-05: Sửa Lỗi Mua Cổ Lệnh Ở Shop 14 (Chuyển Từ Slot 29 Về Slot 28 - Hàng Cuối Cột 5)
+- **Bối cảnh & Phản ánh từ người dùng:** Cửa hàng Lượng Goshu (Shop 14) có dạng lưới 6 ô ngang mỗi hàng. Cổ Lệnh thực tế nằm ở **Cột 5 của hàng cuối cùng** (tức slot 28). Trước đó code patch sang slot 29 (Cột 6 - ô cuối cùng góc phải) khiến bot mua sai vật phẩm khác.
+- **Quyết định & Sửa đổi:**
+  1. `src/AutoSanBoss.java`: Đổi gói tin mua Cổ Lệnh từ `Service.gI().gameAB(14, 29, 2)` thành `Service.gI().gameAB(14, 28, 2)`.
+  2. `scripts/patch_colenh_slot.py`: Cập nhật logic patch đảm bảo `TileMap.class` gửi slot 28 (`0x1c`), không bị đổi nhầm sang 29.
+  3. `do_build.py`: Tích hợp tự động chạy `scripts/patch_colenh_slot.py` ở bước 3g để luôn đảm bảo `TileMap.class` sử dụng slot 28.
+  4. Đã build và đóng gói lại `NinjaNamod.jar` thành công.
+- **Files:** `src/AutoSanBoss.java`, `scripts/patch_colenh_slot.py`, `do_build.py`, `NinjaNamod.jar`
+
 
 
 

@@ -654,7 +654,7 @@ public class AutoSanBoss implements Runnable {
                 Service.gI().gameAH(4);
                 sleep(50L);
                 Service.gI().gameAC(4, 0, 0);
-                Service.gI().gameAB(14, 29, 2);
+                Service.gI().gameAB(14, 28, 2);
                 LockGame.gameAG();
             } catch (Exception e) {}
 
