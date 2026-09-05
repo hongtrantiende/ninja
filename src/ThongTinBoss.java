@@ -26,14 +26,14 @@ public class ThongTinBoss {
             nextHourStr = "";
 
             for (int i = 0; i < hours.length; i++) {
-                int h = hours[i];
-                int spawnSec = h * 3600;
+                int totalMin = hours[i];
+                int spawnSec = totalMin * 60;
 
                 int diffFromSpawn = currentSecOfDay - spawnSec;
                 if (diffFromSpawn >= 0 && diffFromSpawn < 2400) {
                     isLive = true;
                     secondsLeft = -1;
-                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h";
+                    nextHourStr = AutoSanBoss.formatTime(totalMin);
                     return;
                 }
 
@@ -44,19 +44,19 @@ public class ThongTinBoss {
 
                 if (diff < secondsLeft) {
                     secondsLeft = diff;
-                    nextHourStr = (h < 10 ? "0" + h : "" + h) + "h";
+                    nextHourStr = AutoSanBoss.formatTime(totalMin);
                 }
             }
         }
     }
 
     private static BossData[] bosses = new BossData[] {
-        new BossData("VDMQ", "M141-143", new int[] {6, 13, 19, 23}, AutoSanBoss.TYPE_VDMQ),
-        new BossData("MapNgoai", "Lv45: 14,15,16 | Lv55: 44,67,70 | Lv65: 24,41,45 | Lv75: 18,36,54", new int[] {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}, AutoSanBoss.TYPE_MAPNGOAI),
-        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {7, 10, 15, 23}, AutoSanBoss.TYPE_LANGCO),
-        new BossData("Th\u1ebf Gi\u1edbi", "M20", new int[] {12, 21}, AutoSanBoss.TYPE_THEGIOI),
-        new BossData("Map VIP", "M195", new int[] {6, 12, 20, 23}, AutoSanBoss.TYPE_MAPVIP),
-        new BossData("Map VIP2", "M196", new int[] {6, 12, 20, 23}, AutoSanBoss.TYPE_MAPVIP2)
+        new BossData("VDMQ", "M141-143", new int[] {360, 840, 1140, 1260}, AutoSanBoss.TYPE_VDMQ),
+        new BossData("MapNgoai", "14 map (Lv45-75)", new int[] {390, 930, 1290}, AutoSanBoss.TYPE_MAPNGOAI),
+        new BossData("L\u00e0ng C\u1ed5", "M135-136 (3K)", new int[] {60, 720, 1200}, AutoSanBoss.TYPE_LANGCO),
+        new BossData("Th\u1ebf Gi\u1edbi", "M20", new int[] {720, 1260}, AutoSanBoss.TYPE_THEGIOI),
+        new BossData("Map VIP", "M195", new int[] {360, 720, 1200, 1380}, AutoSanBoss.TYPE_MAPVIP),
+        new BossData("Map VIP2", "M196", new int[] {360, 720, 1200, 1380}, AutoSanBoss.TYPE_MAPVIP2)
     };
 
     public static void toggle() {

@@ -173,24 +173,66 @@ public class AutoSanBoss implements Runnable {
         } catch (Exception e) {}
     }
 
-    // === Boss Hours RMS ===
+    // === Boss Hours RMS (Format ho tro ca gio va phut, vd: 6h30, 15h30, 21h30 hoac 6, 14, 19, 21) ===
 
-    /** Lay chuoi gio spawn cua 1 loai boss, vd "6,13,19,23" */
+    /** Dinh dang so phut thanh chuoi gio/phut, vd: 390 -> "6h30", 360 -> "6h" */
+    public static String formatTime(int totalMin) {
+        int h = totalMin / 60;
+        int m = totalMin % 60;
+        if (m == 0) {
+            return h + "h";
+        }
+        return h + "h" + (m < 10 ? "0" + m : String.valueOf(m));
+    }
+
+    /** Parse chuoi thoi gian nhu "6h30", "6:30", "6h", "6" thanh so phut trong ngay */
+    public static int parseTimeToken(String str) {
+        str = str.trim().toLowerCase();
+        int h = 0, m = 0;
+        int hIdx = str.indexOf('h');
+        int colonIdx = str.indexOf(':');
+        if (hIdx >= 0) {
+            h = Integer.parseInt(str.substring(0, hIdx).trim());
+            String minPart = str.substring(hIdx + 1).trim();
+            if (minPart.length() > 0) {
+                m = Integer.parseInt(minPart);
+            }
+        } else if (colonIdx >= 0) {
+            h = Integer.parseInt(str.substring(0, colonIdx).trim());
+            String minPart = str.substring(colonIdx + 1).trim();
+            if (minPart.length() > 0) {
+                m = Integer.parseInt(minPart);
+            }
+        } else {
+            int val = Integer.parseInt(str);
+            if (val <= 23) {
+                h = val;
+                m = 0;
+            } else {
+                return val;
+            }
+        }
+        if (h < 0 || h > 23 || m < 0 || m > 59) {
+            throw new IllegalArgumentException("Invalid time: " + str);
+        }
+        return h * 60 + m;
+    }
+
+    /** Lay chuoi gio spawn cua 1 loai boss, vd "6h30,15h30,21h30" */
     public static String getBossHoursStr(int bossType) {
         int[] hours = BOSS_HOURS[bossType];
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < hours.length; i++) {
             if (i > 0) sb.append(',');
-            sb.append(hours[i]);
+            sb.append(formatTime(hours[i]));
         }
         return sb.toString();
     }
 
-    /** Set gio spawn tu chuoi, vd "6,13,19,23". Tra ve true neu hop le. */
+    /** Set gio spawn tu chuoi, vd "6h30,15h30,21h30" hoac "6,14,19,21". Tra ve true neu hop le. */
     public static boolean setBossHoursFromStr(int bossType, String str) {
         try {
             if (str == null || str.trim().length() == 0) return false;
-            // Dem so luong phan tu
             int count = 1;
             for (int i = 0; i < str.length(); i++) {
                 if (str.charAt(i) == ',') count++;
@@ -202,9 +244,7 @@ public class AutoSanBoss implements Runnable {
                 if (i == str.length() || str.charAt(i) == ',') {
                     String token = str.substring(start, i).trim();
                     if (token.length() == 0) return false;
-                    int h = Integer.parseInt(token);
-                    if (h < 0 || h > 23) return false;
-                    hours[idx++] = h;
+                    hours[idx++] = parseTimeToken(token);
                     start = i + 1;
                 }
             }
@@ -231,16 +271,15 @@ public class AutoSanBoss implements Runnable {
                 if (t > 0) sb.append('|');
                 sb.append(getBossHoursStr(t));
             }
-            RMS.gameAA("boss_hours", sb.toString());
+            RMS.gameAA("boss_hours_jenny", sb.toString());
         } catch (Exception e) {}
     }
 
     /** Load gio spawn tu RMS */
     public static void loadBossHoursFromRMS() {
         try {
-            String data = RMS.gameAC("boss_hours");
+            String data = RMS.gameAC("boss_hours_jenny");
             if (data != null && data.length() > 0) {
-                // Split by '|'
                 int typeIdx = 0;
                 int start = 0;
                 for (int i = 0; i <= data.length() && typeIdx < BOSS_HOURS.length; i++) {
@@ -251,6 +290,8 @@ public class AutoSanBoss implements Runnable {
                         start = i + 1;
                     }
                 }
+            } else {
+                saveBossHoursToRMS();
             }
         } catch (Exception e) {}
     }
@@ -258,7 +299,7 @@ public class AutoSanBoss implements Runnable {
     /** Tat ca maps cho moi loai boss (dung cho menu) */
     public static int[] getAllMapsForType(int bossType) {
         if (bossType == TYPE_MAPNGOAI) {
-            return new int[]{14,15,16,44,67,70,24,41,45,18,36,54};
+            return new int[]{14, 15, 16, 34, 52, 68, 44, 24, 41, 45, 59, 18, 36, 54};
         }
         if (bossType == TYPE_VDMQ) return new int[]{141,142,143};
         if (bossType == TYPE_LANGCO) return new int[]{135,136};
@@ -367,31 +408,31 @@ public class AutoSanBoss implements Runnable {
         {196}              // Map VIP2 (VIP 6-7)
     };
 
-    // Map IDs cua MapNgoai theo level (12 maps)
+    // Map IDs cua MapNgoai theo level (Server Jenny - 14 maps)
     private static final int[][] MAPNGOAI_BY_LEVEL = {
-        {14, 15, 16},                  // Lv45: Xích Phiến Thiên Long (ID 115)
-        {44, 67, 70},                  // Lv55: Thần Thố (ID 114)
-        {24, 41, 45},                  // Lv65: Samurai Chiến Tướng (ID 116)
+        {14, 15, 16, 34, 52, 68},      // Lv45: Xích Phiến Thiên Long (ID 115)
+        {16, 44},                      // Lv55: Thần Thố (ID 114)
+        {24, 41, 45, 59},              // Lv65: Samurai Chiến Tướng (ID 116)
         {18, 36, 54}                   // Lv75: Hỏa Ngưu Vương (ID 139)
     };
     private static final int[] MAPNGOAI_LEVELS = {45, 55, 65, 75};
 
-    // Khung gio spawn (gio) — co the chinh sua
+    // Khung gio spawn (phut trong ngay: h*60 + m) — Server Jenny
     private static final int[][] DEFAULT_BOSS_HOURS = {
-        {6, 13, 19, 23},                                       // VDMQ
-        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},            // MapNgoai (gio le)
-        {7, 10, 15, 23},                                       // Làng Cổ
-        {12, 21},                                               // Thế Giới
-        {6, 12, 20, 23},                                        // Map VIP
-        {6, 12, 20, 23}                                         // Map VIP2
+        {360, 840, 1140, 1260},                                // VDMQ: 6h, 14h, 19h, 21h
+        {390, 930, 1290},                                      // MapNgoai (Boss Thuong): 6h30, 15h30, 21h30
+        {60, 720, 1200},                                       // Làng Cổ: 1h, 12h, 20h
+        {720, 1260},                                           // Thế Giới: 12h, 21h
+        {360, 720, 1200, 1380},                                // Map VIP: 6h, 12h, 20h, 23h
+        {360, 720, 1200, 1380}                                 // Map VIP2: 6h, 12h, 20h, 23h
     };
     public static int[][] BOSS_HOURS = {
-        {6, 13, 19, 23},
-        {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23},
-        {7, 10, 15, 23},
-        {12, 21},
-        {6, 12, 20, 23},
-        {6, 12, 20, 23}
+        {360, 840, 1140, 1260},
+        {390, 930, 1290},
+        {60, 720, 1200},
+        {720, 1260},
+        {360, 720, 1200, 1380},
+        {360, 720, 1200, 1380}
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -1609,11 +1650,11 @@ public class AutoSanBoss implements Runnable {
      * Lay danh sach map ID cho boss MapNgoai dua tren level nhan vat
      */
     public static int[] getMapNgoaiMaps() {
-        // Boss MapNgoai spawn tren 12 map (da loc)
+        // Boss MapNgoai spawn tren 14 map (Server Jenny)
         return new int[] {
-            14, 15, 16,
-            44, 67, 70,
-            24, 41, 45,
+            14, 15, 16, 34, 52, 68,
+            44,
+            24, 41, 45, 59,
             18, 36, 54
         };
     }
@@ -1633,7 +1674,7 @@ public class AutoSanBoss implements Runnable {
 
         int[] hours = BOSS_HOURS[bossType];
         for (int i = 0; i < hours.length; i++) {
-            int spawnSec = hours[i] * 3600;
+            int spawnSec = hours[i] * 60;
             int diff = currentSec - spawnSec;
             if (diff >= 0 && diff < BOSS_ALIVE_DURATION) {
                 return true;
@@ -1644,8 +1685,7 @@ public class AutoSanBoss implements Runnable {
 
     /**
      * Tra ve so giay con lai den gio boss tiep theo cua loai boss nay.
-     * Tra ve Integer.MAX_VALUE neu khong co boss nao trong ngay.
-     * Chi tinh boss CHUA spawn (spawnSec > currentSec).
+     * Tra ve Integer.MAX_VALUE neu khong co boss nao.
      */
     public static int getSecondsTillNextBoss(int bossType) {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
@@ -1657,10 +1697,12 @@ public class AutoSanBoss implements Runnable {
         int[] hours = BOSS_HOURS[bossType];
         int minDiff = Integer.MAX_VALUE;
         for (int i = 0; i < hours.length; i++) {
-            int spawnSec = hours[i] * 3600;
+            int spawnSec = hours[i] * 60;
             int diff = spawnSec - currentSec;
-            // Chi tinh boss CHUA spawn (tuong lai)
-            if (diff > 0 && diff < minDiff) {
+            if (diff < 0) {
+                diff += 86400; // Next day
+            }
+            if (diff < minDiff) {
                 minDiff = diff;
             }
         }

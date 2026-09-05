@@ -1,5 +1,32 @@
 # Decisions Log
 
+## 2026-09-05 (Session 23): Cập Nhật Lịch Ra Boss & Danh Sách Map Boss Thường (Map Ngoài) Cho Server Jenny
+- **Yêu cầu:**
+  1. Cập nhật khung giờ ra Boss Server Jenny:
+     - BOSS THƯỜNG (Map Ngoài): 6H30, 15h30, 21H30
+     - BOSS VDMQ: 6h, 14h, 19h, 21h
+     - BOSS LÀNG CỔ: 12h, 20h, 1h
+  2. Cập nhật ID map Boss Thường (Boss Map Ngoài) theo Server Jenny:
+     - Xích Phiến Thiên Long (ID Boss: 115): Đảo Hebi / Hang Meiro (Map 34), Rừng Kappa (Map 52), Rừng Aokigahara (Map 14), Vách Núi Ito (Map 15), Núi Anzen (Map 68), Thung Lũng Taira (Map 16) -> Maps: 14, 15, 16, 34, 52, 68.
+     - Thần Thố (ID Boss: 114): Núi Ontake (Map 16), Đỉnh Okama (Map 44) -> Maps: 16, 44.
+     - Samurai Chiến Tướng (ID Boss: 116): Đỉnh Ichidai (Map 24), Khu Đá Đỏ Akai (Map 41), Hang Núi Kurai (Map 45), Mũi Hone (Map 59) -> Maps: 24, 41, 45, 59.
+     - Hỏa Ngưu Vương (ID Boss: 139): Ngôi Đền Orochi (Map 18), Đồng Kisei (Map 36), Đền Harumoto (Map 54) -> Maps: 18, 36, 54.
+     -> Tổng cộng 14 map ngoài: 14, 15, 16, 34, 52, 68, 44, 24, 41, 45, 59, 18, 36, 54.
+- **Chi tiết triển khai:**
+  1. Hỗ trợ giờ có phút (6h30, 15h30, 21h30):
+     - Chuyển đổi định dạng lưu trữ giờ trong `AutoSanBoss.java`, `ThongTinBoss.java`, `AutoBossEvent.java` từ `int hour` (0-23) sang `int totalMinutes = hour * 60 + minute` (0-1439).
+     - Bổ sung `parseTimeToken()` và `formatTime()` hỗ trợ nhập/xuất các định dạng như `"6h30"`, `"6:30"`, `"6h"`, `"6"`.
+     - Đổi RMS key sang `"boss_hours_jenny"` để tự động khởi tạo giờ mặc định mới cho Server Jenny mà không cần xóa dữ liệu game.
+  2. Cập nhật Map IDs trong `AutoSanBoss.java`:
+     - `MAPNGOAI_BY_LEVEL`: `{14, 15, 16, 34, 52, 68}`, `{16, 44}`, `{24, 41, 45, 59}`, `{18, 36, 54}`.
+     - `getAllMapsForType(TYPE_MAPNGOAI)`: return 14 map duy nhất `{14, 15, 16, 34, 52, 68, 44, 24, 41, 45, 59, 18, 36, 54}`, `BossConfig` tự động hiển thị đủ 14 checkbox bật/tắt map ngoài.
+     - `getMapNgoaiMaps()`: return 14 map ngoài trên.
+  3. `src/ThongTinBoss.java`: Cập nhật bảng hiển thị Lịch Boss đếm ngược chính xác theo phút spawn và hiển thị `14 map (Lv45-75)` gọn gàng, không bị tràn màn hình.
+  4. Biên dịch và đóng gói hoàn tất:
+     - `NinjaNamod.jar` (1,363,077 bytes)
+     - `SVJenny.jar` / `NinjaNamod_share.jar` (1,353,818 bytes)
+     - Đã tự động xuất sang `/storage/emulated/0/Download/`.
+
 ## 2026-09-05 (Session 22): Nâng Cấp AutoPickup (Hút VP) Thành Cơ Chế Nhặt ALL (Nhặt Cả Đồ Xịn Boss Rơi & Trang Bị)
 - **Yêu cầu:** Sửa AutoPickup (Hút VP) để nhặt ALL tất cả các vật phẩm trên map, không lọc theo danh sách và không bỏ qua trang bị, tránh tình trạng khi săn boss rơi đồ xịn không nhặt được.
 - **Nguyên nhân trước đó:**

@@ -216,7 +216,7 @@ public final class AutoBossEvent implements Runnable {
                 int nowSec = cal.get(Calendar.HOUR_OF_DAY) * 3600 + cal.get(Calendar.MINUTE) * 60 + cal.get(Calendar.SECOND);
                 int[] hrs = AutoSanBoss.BOSS_HOURS[vipType];
                 for (int i = 0; i < hrs.length; i++) {
-                    int d = nowSec - hrs[i] * 3600;
+                    int d = nowSec - hrs[i] * 60;
                     // FIX: d >= -PRE_SPAWN_SECONDS cho phep giu lai map VIP khi boss sap spawn
                     // (truoc day d >= 0 bo sot pre-spawn window → tu sat ra VDMQ)
                     if (d >= -PRE_SPAWN_SECONDS && d < 2400) { vipActive = true; break; }
@@ -462,7 +462,8 @@ public final class AutoBossEvent implements Runnable {
         if (!anyBossActiveForPriority()) return -1;
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int hour = c.get(Calendar.HOUR_OF_DAY);
-        return c.get(Calendar.YEAR) * 100000 + c.get(Calendar.DAY_OF_YEAR) * 100 + hour;
+        int minute = c.get(Calendar.MINUTE);
+        return c.get(Calendar.YEAR) * 1000000 + c.get(Calendar.DAY_OF_YEAR) * 1000 + hour * 10 + (minute / 30);
     }
 
     /** Kiem tra mat ket noi */
@@ -844,10 +845,12 @@ public final class AutoBossEvent implements Runnable {
                         // Tinh gio boss sap toi (khong dung Calendar.add vi J2ME khong co)
                         Calendar fc = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
                         int curSec = fc.get(Calendar.HOUR_OF_DAY) * 3600 + fc.get(Calendar.MINUTE) * 60 + fc.get(Calendar.SECOND);
-                        int spawnHour = ((curSec + secLeft) / 3600) % 24;
+                        int spawnMinTotal = ((curSec + secLeft) / 60) % 1440;
+                        int spawnHour = spawnMinTotal / 60;
+                        int spawnMin = spawnMinTotal % 60;
                         // Tinh day offset neu qua nua dem
                         int dayOff = (curSec + secLeft >= 86400) ? 1 : 0;
-                        lastWindowKey = fc.get(Calendar.YEAR) * 100000 + (fc.get(Calendar.DAY_OF_YEAR) + dayOff) * 100 + spawnHour;
+                        lastWindowKey = fc.get(Calendar.YEAR) * 1000000 + (fc.get(Calendar.DAY_OF_YEAR) + dayOff) * 1000 + spawnHour * 10 + (spawnMin / 30);
                         GameScr.gameAC("TSBoss: C\u00f2n " + secLeft + "s, chu\u1ea9n b\u1ecb s\u0103n boss!");
                         beginLeaderEvent();
                     }
