@@ -940,3 +940,24 @@ Boss tồn tại: 40 phút (2400 giây)
   2. `src/ChatRouter.java`: Sửa điều kiện tự sát chỉ chạy khi `AutoSanBoss.isLangTT(curMap) && !AutoSanBoss.isLangTT(auto.mapID)`.
   3. `src/AutoBossEvent.java` & `src/NamMod.java`: Thêm priority 8 ("Chỉ Làng TT") vào menu và event loop; thêm `TYPE_LANGTT` vào `startEventHuntVdmqLc()`.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/AutoBossEvent.java`, `src/NamMod.java`, `NinjaNamod.jar`
+
+## 2026-09-05: Thêm thống kê số lượng vật phẩm hành trang vào HUD Thống Kê (ThongKe & EcoMode)
+- **Yêu cầu:** Hiển thị trực quan số lượng các vật phẩm quan trọng có trong hành trang người chơi:
+  - Phân thân lệnh (ID 545): `PTL`
+  - Chuyển tinh thạch (ID 454): `CTT`
+  - Tử tinh thạch sơ cấp (ID 455): `TTS`
+  - Tử tinh thạch trung cấp (ID 456): `TTT`
+  - Tử tinh thạch cao cấp (ID 457): `TTC`
+- **Giải pháp:**
+  1. `src/ThongKe.java`:
+     - Khai báo các biến đếm tĩnh: `countPTL`, `countCTT`, `countTTTSC`, `countTTTTC`, `countTTTCC`.
+     - Thêm phương thức `updateItemCounts(Char myChar)` quét `myChar.arrItemBag`, tính tổng cả số lượng item cộng dồn (`item.quantity > 0 ? item.quantity : 1`).
+     - Tạo dòng hiển thị `cachedLineItems`: `VP: PTL: X | CTT: Y | TTS: Z | TTT: W | TTC: V`.
+     - Tự động cập nhật mỗi giây trong `recalcStats()` và khi `resetStats()`.
+     - Vẽ lên HUD với font `tahoma_7_yellow` cùng cơ chế tự động điều chỉnh tọa độ Y tránh tràn mép dưới màn hình trên các thiết bị màn hình nhỏ.
+     - Bổ sung hàm tiện ích `countItemInBag(int itemId)`.
+  2. `src/EcoMode.java`:
+     - Tự động lấy `ThongKe.cachedLineItems` và hiển thị thêm 1 dòng thông tin vật phẩm hành trang trên màn hình tiết kiệm pin.
+  3. Build thành công `NinjaNamod.jar` và `Aeharuna.jar`.
+- **Files:** `src/ThongKe.java`, `src/EcoMode.java`, `NinjaNamod.jar`, `Aeharuna.jar`
+

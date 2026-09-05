@@ -187,6 +187,8 @@ public class EcoMode {
 
             int lineH = 13;
             int lineCount = 6;
+            String itemsLine = ThongKe.cachedLineItems;
+            if (itemsLine != null && itemsLine.length() > 0) lineCount++;
             if (tuSatLine.length() > 0) lineCount++;
             int totalH = lineCount * lineH + 14;
             int startY = (gameH - totalH) / 2;
@@ -219,6 +221,12 @@ public class EcoMode {
             // Dong 3: Yen, Xu, Luong & Quai diet (Can giua, vang)
             mFont.tahoma_7_yellow.gameAA(ecoGraphics, "Y\u00ean: +" + gainYen + " | Xu: +" + gainXu + " | L\u01b0\u1ee3ng: +" + gainLuong + " | Di\u1ec7t: " + ThongKe.kills, centerX, startY, 2);
             startY += lineH;
+
+            // Dong 3b: Vat pham hanh trang (Can giua, vang)
+            if (itemsLine != null && itemsLine.length() > 0) {
+                mFont.tahoma_7_yellow.gameAA(ecoGraphics, itemsLine, centerX, startY, 2);
+                startY += lineH;
+            }
 
             // Dong 4: Boss da ha & Trang thai (Can giua, vang)
             mFont.tahoma_7_yellow.gameAA(ecoGraphics, "Boss \u0111\u00e3 h\u1ea1: " + totalBoss + " con | Tr\u1ea1ng th\u00e1i: [" + autoState + "]", centerX, startY, 2);
