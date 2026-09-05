@@ -1,24 +1,23 @@
 /**
- * AutoPickup v3.3 — On dinh nhu v3.2 + cai tien thong minh.
+ * AutoPickup v4.0 — Hút VP NHẶT ALL toàn map.
  *
- * Cai tien so voi v3.2:
- * - Tam dung khi chuyen khu (detect TileMap.zoneID thay doi)
- * - Loc item thong minh (theo ds nhat, bo item da nhat)
- * - Kiem tra HP va hanh trang truoc khi nhat
- * - Scan nhanh hon (150ms)
- *
- * Van dung Char.gameAC() cho ghost move (client-side, KHONG gui server packet).
+ * Tính năng:
+ * - Nhặt ALL toàn bộ vật phẩm trên map (kể cả trang bị, vũ khí, đồ xịn boss rơi, đá, yên, sách, vp sự kiện...)
+ * - KHÔNG lọc bỏ trang bị (đảm bảo săn boss rơi đồ xịn là nhặt ngay)
+ * - KHÔNG phụ thuộc danh sách lọc game
+ * - Hỗ trợ cả khi bật "Ẩn VP rơi" (đọc từ Code.realItemMap)
+ * - Dùng Char.gameAC() cho ghost move (client-side, tức thời)
+ * - Tự động blast toàn map sau khi boss chết (grabOnce) và chạy nền khi bật Hút VP
  */
 public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
     // === CONFIG ===
-    private static final int SCAN_INTERVAL_MS = 150;    // 150ms giua moi vong quet
-    private static final int BURST_ROUNDS = 3;          // 3 vong burst (grabOnce)
-    private static final int GHOST_RANGE = 50;          // Item > 50px thi ghost move
-    private static final int THREAD_DELAY_MS = 50;      // 50ms/item trong thread nen
-    private static final int GRAB_DELAY_MS = 3;         // 3ms/item trong grabOnce
+    private static final int SCAN_INTERVAL_MS = 150;     // 150ms giua moi vong quet
+    private static final int BURST_ROUNDS = 3;           // 3 vong burst (grabOnce)
+    private static final int GHOST_RANGE = 50;           // Item > 50px thi ghost move
+    private static final int GRAB_DELAY_MS = 3;          // 3ms/item trong grabOnce
     private static final int ZONE_CHANGE_WAIT_MS = 1000; // Cho 1s khi chuyen khu
 
     // Theo doi chuyen khu
@@ -30,10 +29,10 @@ public class AutoPickup implements Runnable {
     public static void toggle() {
         if (isRunning) {
             stop();
-            GameScr.gameAC("T\u1eaft h\u00FAt VP!");
+            GameScr.gameAC("T\u1eaft h\u00FAt VP (All)!");
         } else {
             start();
-            GameScr.gameAC("B\u1eadt h\u00FAt VP!");
+            GameScr.gameAC("B\u1eadt h\u00FAt VP (All)!");
         }
     }
 
@@ -52,7 +51,7 @@ public class AutoPickup implements Runnable {
                     if (Code.gameAB instanceof TanSat) {
                         boolean wasOff = !isRunning;
                         start();
-                        if (wasOff) GameScr.gameAC("H\u00FAt VP ON theo TS!");
+                        if (wasOff) GameScr.gameAC("H\u00FAt VP (All) ON theo TS!");
                         return;
                     }
                     try { Thread.sleep(250L); } catch (Exception e) {}
@@ -67,99 +66,70 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Kiem tra item co nen nhat khong.
-     * Loc theo ds nhat cua game, bo trang bi, bo item da nhat.
+     * Lay danh sach item tren map (uu tien realItemMap neu dang bat An VP roi).
+     */
+    private static MyVector getItemVector() {
+        if (Code.hideItemDrop && Code.realItemMap != null && Code.realItemMap.size() > 0) {
+            return Code.realItemMap;
+        }
+        return GameScr.vItemMap;
+    }
+
+    /**
+     * Kiem tra item co the nhat khong.
+     * Nhat ALL: khong loc, khong bo trang bi, chi bo item null hoac da nhat/bien mat (status == 2).
      */
     private static boolean shouldPickup(ItemMap item) {
-        if (item == null || item.template == null) return false;
-        if (item.gameAK) return false;
-        // Bo qua trang bi
-        if (item.template.gameAA()) return false;
-        try {
-            return Code.gameAA(item.template)
-                || Char.getMyChar().nClass.classId == 1 && item.template.id == 218;
-        } catch (Exception e) {
-            return false;
-        }
+        if (item == null) return false;
+        if (item.status == 2) return false;
+        return true;
     }
 
     /**
      * Hut toan bo VP 1 lan (dung cho AutoSanBoss sau boss chet).
-     * Ghost move NHANH — pham vi toan map, nhat sach.
+     * Ghost move NHANH — pham vi toan map, nhat sach tat ca do xin, trang bi, vat pham.
      */
     public static void grabOnce() {
         try {
             Char myChar = Char.getMyChar();
             if (myChar == null) return;
-            int initSize = GameScr.vItemMap.size();
+            MyVector items = getItemVector();
+            if (items == null) return;
+            int initSize = items.size();
             if (initSize == 0) return;
 
             for (int pass = 0; pass < BURST_ROUNDS + 2; pass++) {
-                if (GameScr.vItemMap.size() == 0) break;
+                items = getItemVector();
+                if (items == null || items.size() == 0) break;
                 blastPickupAll(GRAB_DELAY_MS);
                 try { Thread.sleep(100); } catch (Exception e) {}
             }
 
-            int picked = initSize - GameScr.vItemMap.size();
+            items = getItemVector();
+            int curSize = items != null ? items.size() : 0;
+            int picked = initSize - curSize;
             if (picked > 0) {
-                GameScr.gameAC("H\u00FAt " + picked + "/" + initSize + " VP!");
+                GameScr.gameAC("H\u00FAt " + picked + "/" + initSize + " VP (All)!");
             }
         } catch (Exception e) {}
     }
 
     /**
-     * Blast nhat TAT CA item (tru trang bi) — dung cho grabOnce.
+     * Blast nhat TAT CA item tren map (NHAT ALL, ke ca trang bi, do xin).
      * Ghost move bang Char.gameAC (client-side).
      */
-    private static void blastPickupAll(int delayMs) {
+    public static void blastPickupAll(int delayMs) {
         Char myChar = Char.getMyChar();
         if (myChar == null) return;
         int origCx = myChar.cx;
         int origCy = myChar.cy;
 
-        int size = GameScr.vItemMap.size();
+        MyVector items = getItemVector();
+        if (items == null) return;
+        int size = items.size();
         for (int i = 0; i < size; i++) {
             try {
-                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
-
-                // Bo qua trang bi
-                if (item.template != null && item.template.gameAA()) continue;
-
-                int dx = Math.abs(origCx - item.xEnd);
-                int dy = Math.abs(origCy - item.yEnd);
-
-                if (dx > GHOST_RANGE || dy > GHOST_RANGE) {
-                    Char.gameAC(item.xEnd, item.yEnd);
-                }
-
-                Service.gI().gameAQ(item.itemMapID);
-
-                if (delayMs > 0) {
-                    try { Thread.sleep(delayMs); } catch (Exception e2) {}
-                }
-            } catch (Exception e) {}
-        }
-
-        // Quay ve vi tri goc
-        Char.gameAC(origCx, origCy);
-        myChar.cx = origCx;
-        myChar.cy = origCy;
-    }
-
-    /**
-     * Blast nhat VP co loc — theo ds nhat, bo item da nhat.
-     * Ghost move bang Char.gameAC (client-side).
-     */
-    private static void blastPickupFiltered(int delayMs) {
-        Char myChar = Char.getMyChar();
-        if (myChar == null) return;
-        int origCx = myChar.cx;
-        int origCy = myChar.cy;
-
-        int size = GameScr.vItemMap.size();
-        for (int i = 0; i < size; i++) {
-            try {
-                ItemMap item = (ItemMap) GameScr.vItemMap.elementAt(i);
+                ItemMap item = (ItemMap) items.elementAt(i);
                 if (!shouldPickup(item)) continue;
 
                 int dx = Math.abs(origCx - item.xEnd);
@@ -184,7 +154,7 @@ public class AutoPickup implements Runnable {
     }
 
     /**
-     * Thread chinh — chay nen SONG SONG voi danh quai.
+     * Thread chinh — chay nen SONG SONG voi danh quai / san boss.
      * Tam dung khi chuyen khu, kiem tra HP + hanh trang.
      */
     public void run() {
@@ -207,17 +177,18 @@ public class AutoPickup implements Runnable {
                     continue;
                 }
 
-                // Kiem tra hanh trang con cho
+                // Kiem tra hanh trang con cho (chi bo qua khi thuc su khong con slot nao)
                 try {
-                    if (Char.gameBG() <= 2) {
+                    if (Char.gameBG() <= 0) {
                         try { Thread.sleep(SCAN_INTERVAL_MS); } catch (Exception e) {}
                         continue;
                     }
                 } catch (Exception e) {}
 
-                // Hut VP
-                if (GameScr.vItemMap.size() > 0) {
-                    blastPickupFiltered(0);
+                // Hut VP — nhat ALL
+                MyVector items = getItemVector();
+                if (items != null && items.size() > 0) {
+                    blastPickupAll(0);
                 }
             } catch (Exception e) {}
 

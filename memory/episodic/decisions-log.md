@@ -1,5 +1,21 @@
 # Decisions Log
 
+## 2026-09-05 (Session 22): Nâng Cấp AutoPickup (Hút VP) Thành Cơ Chế Nhặt ALL (Nhặt Cả Đồ Xịn Boss Rơi & Trang Bị)
+- **Yêu cầu:** Sửa AutoPickup (Hút VP) để nhặt ALL tất cả các vật phẩm trên map, không lọc theo danh sách và không bỏ qua trang bị, tránh tình trạng khi săn boss rơi đồ xịn không nhặt được.
+- **Nguyên nhân trước đó:**
+  1. `AutoPickup.shouldPickup` và `blastPickupAll` có điều kiện `if (item.template.gameAA()) return false / continue;` để bỏ qua trang bị. Do trang bị boss rơi (vũ khí, quần áo, phụ kiện) đều thỏa mãn `gameAA()`, nên bot bỏ qua toàn bộ đồ xịn boss rơi.
+  2. `shouldPickup` phụ thuộc vào `Code.gameAA(item.template)`, chỉ nhặt các vật phẩm nằm trong danh sách cài đặt của game.
+- **Chi tiết triển khai:**
+  1. `src/AutoPickup.java`:
+     - Viết lại `shouldPickup(ItemMap item)`: Nhặt ALL, chỉ bỏ qua `item == null` hoặc `item.status == 2` (đang biến mất/đã nhặt).
+     - Gỡ bỏ hoàn toàn dòng kiểm tra bỏ qua trang bị `item.template.gameAA()` trong cả `blastPickupAll` và `shouldPickup`.
+     - Tích hợp hàm `getItemVector()` hỗ trợ nhặt bình thường kể cả khi bật tính năng "Ẩn VP rơi" (`Code.hideItemDrop` / `Code.realItemMap`).
+     - Tối ưu hóa điều kiện kiểm tra hành trang trong `run()`: chỉ bỏ qua khi hành trang thực sự hết chỗ (0 slot) thay vì <= 2 slot như trước.
+     - Hàm `grabOnce()` sau khi boss chết giờ đây hút sạch toàn bộ đồ xịn, trang bị và vật phẩm boss rơi.
+  2. Biên dịch và đóng gói thành công `NinjaNamod.jar` (1,362,833 bytes) và `SVJenny.jar` / `NinjaNamod_share.jar` (1,353,570 bytes).
+  3. Đã copy sang `/storage/emulated/0/Download/`.
+- **Files thay đổi:** `src/AutoPickup.java`, `Aeharuna.jar`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`
+
 ## 2026-09-04 (Session 21): Chuyển Đổi Hoàn Toàn Sang "NinjaNamod", Loại Bỏ Triệt Để Mọi Dấu Vết "Aeharuna"
 - **Yêu cầu:** Cập nhật AGENTS.md sang NinjaNamod, xóa toàn bộ các từ liên quan đến Aeharuna. Dự án chính thức đổi sang NinjaNamod kết nối server mới (160.250.130.241:15555).
 - **Chi tiết triển khai:**
