@@ -644,17 +644,14 @@ public class AutoSanBoss implements Runnable {
         // 1. Tim Co Lenh / Khao Di Lenh (ID 490, 35, 37) bang ca 2 cach
         Item item = findCoLenhItem();
 
-        // 2. Neu chua co -> Mua tu Shop Goshu (14, 29, 2)
+        // 2. Neu chua co -> Mua tu Shop Goshu (14, 28)
         if (item == null) {
-            GameScr.gameAC("LC: Mua C\u1ed5 L\u1ec7nh...");
+            GameScr.gameAC("LC: Mua C\u1ed5 L\u1ec7nh (Shop 14)...");
             try {
                 GameCanvas.endDlg();
-                try { InfoDlg.gameAB(); } catch (Exception ed) {}
-                sleep(50L);
-                Service.gI().gameAH(4);
-                sleep(50L);
-                Service.gI().gameAC(4, 0, 0);
-                Service.gI().gameAB(14, 28, 2);
+                try { InfoDlg.gameAD(); } catch (Exception ed) {}
+                sleep(100L);
+                Service.gI().gameAB(14, 28, 1);
                 LockGame.gameAG();
             } catch (Exception e) {}
 
@@ -666,19 +663,19 @@ public class AutoSanBoss implements Runnable {
             }
 
             if (item == null) {
-                // Thu mua tu Tabemono NPC (9, 6, 1) neu Goshu ko co
+                // Thu gui packet mua 2 cai phong truong hop server yeu cau qty=2
                 try {
                     GameCanvas.endDlg();
-                    try { InfoDlg.gameAB(); } catch (Exception ed) {}
-                    sleep(50L);
-                    Service.gI().gameAH(4);
-                    sleep(50L);
-                    Service.gI().gameAC(4, 0, 0);
-                    Service.gI().gameAB(9, 6, 1);
+                    try { InfoDlg.gameAD(); } catch (Exception ed) {}
+                    sleep(100L);
+                    Service.gI().gameAB(14, 28, 2);
                     LockGame.gameAG();
                 } catch (Exception e) {}
-                sleep(1000L);
-                item = findCoLenhItem();
+                for (int retry = 0; retry < 4; retry++) {
+                    sleep(500L);
+                    item = findCoLenhItem();
+                    if (item != null) break;
+                }
             }
         }
 
