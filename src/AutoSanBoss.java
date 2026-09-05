@@ -27,18 +27,20 @@ public class AutoSanBoss implements Runnable {
     /** Override thu tu uu tien boss cho TS event (null = dung HUNT_PRIORITY mac dinh) */
     static int[] eventHuntTypes;
 
-    // 6 loai boss (VDMQ, MapNgoai, LangCo, TheGioi, MapVIP, MapVIP2)
+    // 3 loai boss cho Server Jenny (VDMQ, MapNgoai, LangCo)
     public static final int TYPE_VDMQ = 0;
     public static final int TYPE_MAPNGOAI = 1;
     public static final int TYPE_LANGCO = 2;
-    public static final int TYPE_THEGIOI = 3;
-    public static final int TYPE_MAPVIP = 4;
-    public static final int TYPE_MAPVIP2 = 5;
-    public static final int TYPE_ALL = 6;
-    public static final int TYPE_TEST_1MAP = 7;
+    public static final int TYPE_ALL = 3;
+    public static final int TYPE_TEST_1MAP = 4;
     public static int testMapId = 141;
 
-    public static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "Th\u1ebf Gi\u1edbi", "Map VIP", "Map VIP2", "T\u1ea5t C\u1ea3", "Test 1 Map"};
+    // Giu lai cac constant cu tranh loi
+    public static final int TYPE_THEGIOI = -1;
+    public static final int TYPE_MAPVIP = -2;
+    public static final int TYPE_MAPVIP2 = -3;
+
+    public static final String[] BOSS_NAMES = {"VDMQ", "MapNgoai", "L\u00e0ng C\u1ed5", "T\u1ea5t C\u1ea3", "Test 1 Map"};
 
     /** Lay ten boss theo type (dung cho thong bao) */
     public static String getBossName(int bossType) {
@@ -263,7 +265,7 @@ public class AutoSanBoss implements Runnable {
         BOSS_HOURS[bossType] = copy;
     }
 
-    /** Luu gio spawn vao RMS. Format: "type0|type1|type2|type3" */
+    /** Luu gio spawn vao RMS. Format: "type0|type1|type2" */
     public static void saveBossHoursToRMS() {
         try {
             StringBuffer sb = new StringBuffer();
@@ -271,14 +273,14 @@ public class AutoSanBoss implements Runnable {
                 if (t > 0) sb.append('|');
                 sb.append(getBossHoursStr(t));
             }
-            RMS.gameAA("boss_hours_jenny", sb.toString());
+            RMS.gameAA("boss_hours_jenny_v2", sb.toString());
         } catch (Exception e) {}
     }
 
     /** Load gio spawn tu RMS */
     public static void loadBossHoursFromRMS() {
         try {
-            String data = RMS.gameAC("boss_hours_jenny");
+            String data = RMS.gameAC("boss_hours_jenny_v2");
             if (data != null && data.length() > 0) {
                 int typeIdx = 0;
                 int start = 0;
@@ -303,31 +305,18 @@ public class AutoSanBoss implements Runnable {
         }
         if (bossType == TYPE_VDMQ) return new int[]{141,142,143};
         if (bossType == TYPE_LANGCO) return new int[]{135,136};
-        if (bossType == TYPE_THEGIOI) return new int[]{20};
-        if (bossType == TYPE_MAPVIP) return new int[]{195};
-        if (bossType == TYPE_MAPVIP2) return new int[]{196};
         return new int[0];
     }
 
     /** Xac dinh loai boss dua vao map ID */
     public static int getBossTypeFromMap(int mapId) {
-        if (mapId == 195) return TYPE_MAPVIP;
-        if (mapId == 196) return TYPE_MAPVIP2;
         if (mapId == 135 || mapId == 136 || mapId == 138) return TYPE_LANGCO;
-        if (mapId == 20) return TYPE_THEGIOI;
         if (mapId == 141 || mapId == 142 || mapId == 143) return TYPE_VDMQ;
         return TYPE_MAPNGOAI;
     }
 
     /** Kiem tra map co phai la map Boss The Gioi khong */
     public static boolean isWorldBossMap(int mapId) {
-        if (mapId == 20) return true;
-        int[] tg = getAllMapsForType(TYPE_THEGIOI);
-        if (tg != null) {
-            for (int i = 0; i < tg.length; i++) {
-                if (tg[i] == mapId) return true;
-            }
-        }
         return false;
     }
 
@@ -392,20 +381,17 @@ public class AutoSanBoss implements Runnable {
         return count;
     }
 
-    /** Thu tu uu tien quet boss: MapVIP2 > MapVIP > Lang Co > VDMQ > TheGioi > MapNgoai */
-    private static final int[] HUNT_PRIORITY = {TYPE_MAPVIP2, TYPE_MAPVIP, TYPE_LANGCO, TYPE_VDMQ, TYPE_THEGIOI, TYPE_MAPNGOAI};
+    /** Thu tu uu tien quet boss: Lang Co > VDMQ > MapNgoai */
+    private static final int[] HUNT_PRIORITY = {TYPE_LANGCO, TYPE_VDMQ, TYPE_MAPNGOAI};
 
     /** Expose HUNT_PRIORITY cho AutoBossEvent pre-spawn su dung */
     public static int[] getHuntPriority() { return HUNT_PRIORITY; }
 
-    // Map IDs cho moi loai boss
+    // Map IDs cho moi loai boss (VDMQ, MapNgoai, LangCo)
     private static final int[][] BOSS_MAPS = {
         {141, 142, 143},   // VDMQ
         {},                // MapNgoai
-        {135, 136},        // Làng Cổ
-        {20},              // Thế Giới
-        {195},             // Map VIP
-        {196}              // Map VIP2 (VIP 6-7)
+        {135, 136}         // Làng Cổ
     };
 
     // Map IDs cua MapNgoai theo level (Server Jenny - 14 maps)
@@ -421,18 +407,12 @@ public class AutoSanBoss implements Runnable {
     private static final int[][] DEFAULT_BOSS_HOURS = {
         {360, 840, 1140, 1260},                                // VDMQ: 6h, 14h, 19h, 21h
         {390, 930, 1290},                                      // MapNgoai (Boss Thuong): 6h30, 15h30, 21h30
-        {60, 720, 1200},                                       // Làng Cổ: 1h, 12h, 20h
-        {720, 1260},                                           // Thế Giới: 12h, 21h
-        {360, 720, 1200, 1380},                                // Map VIP: 6h, 12h, 20h, 23h
-        {360, 720, 1200, 1380}                                 // Map VIP2: 6h, 12h, 20h, 23h
+        {60, 720, 1200}                                        // Làng Cổ: 1h, 12h, 20h
     };
     public static int[][] BOSS_HOURS = {
         {360, 840, 1140, 1260},
         {390, 930, 1290},
-        {60, 720, 1200},
-        {720, 1260},
-        {360, 720, 1200, 1380},
-        {360, 720, 1200, 1380}
+        {60, 720, 1200}
     };
 
     // Dummy Auto giu Code.gameAB != null -> menu hien "Tat Auto"
@@ -804,22 +784,16 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(checkHasPartyOrFriends(), TYPE_LANGCO);
     }
 
-    /**
-     * tspkbtg - San boss TheGioi (M20) ngay lap tuc
-     */
     public static void toggleTheGioi() {
-        toggleInternal(checkHasPartyOrFriends(), TYPE_THEGIOI);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
-    /**
-     * tspkbmv - San boss Map VIP (M195) ngay lap tuc
-     */
     public static void toggleMapVIP() {
-        toggleInternal(checkHasPartyOrFriends(), TYPE_MAPVIP);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     public static void toggleMapVIP2() {
-        toggleInternal(checkHasPartyOrFriends(), TYPE_MAPVIP2);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     /**
@@ -851,18 +825,16 @@ public class AutoSanBoss implements Runnable {
         toggleTreoInternal(TYPE_LANGCO);
     }
 
-    /** treotg - Treo boss TheGioi */
     public static void toggleTreoTheGioi() {
-        toggleTreoInternal(TYPE_THEGIOI);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
-    /** treomv - Treo boss MapVIP */
     public static void toggleTreoMapVIP() {
-        toggleTreoInternal(TYPE_MAPVIP);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     public static void toggleTreoMapVIP2() {
-        toggleTreoInternal(TYPE_MAPVIP2);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     private static void toggleTreoInternal(int bossType) {
@@ -966,27 +938,12 @@ public class AutoSanBoss implements Runnable {
         toggleInternal(true, TYPE_ALL);
     }
 
-    /** TS Boss chi san MapVIP */
     public static void startEventHuntMapVIP() {
-        if (isRunning) {
-            stop();
-            sleep(500L);
-        }
-        eventHuntMode = true;
-        eventRoundCompleted = false;
-        eventHuntTypes = new int[]{TYPE_MAPVIP};
-        toggleInternal(true, TYPE_ALL);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     public static void startEventHuntMapVIP2() {
-        if (isRunning) {
-            stop();
-            sleep(500L);
-        }
-        eventHuntMode = true;
-        eventRoundCompleted = false;
-        eventHuntTypes = new int[]{TYPE_MAPVIP2};
-        toggleInternal(true, TYPE_ALL);
+        GameScr.gameAC("Kh\u00f4ng c\u00f3 tr\u00ean SV Jenny!");
     }
 
     /** TS Boss Test: quet dung 1 map test duy nhat */
@@ -1665,6 +1622,7 @@ public class AutoSanBoss implements Runnable {
      * Kiem tra khung gio spawn cho 1 loai boss.
      */
     public static boolean isBossActive(int bossType) {
+        if (bossType < 0 || bossType >= BOSS_HOURS.length) return false;
         if (ignoreBossHourCheck) return true; // Khi duoc kich hoat qua Chat Notice / Force: Bo qua check gio!
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int h = cal.get(Calendar.HOUR_OF_DAY);
@@ -1688,6 +1646,7 @@ public class AutoSanBoss implements Runnable {
      * Tra ve Integer.MAX_VALUE neu khong co boss nao.
      */
     public static int getSecondsTillNextBoss(int bossType) {
+        if (bossType < 0 || bossType >= BOSS_HOURS.length) return Integer.MAX_VALUE;
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int h = cal.get(Calendar.HOUR_OF_DAY);
         int m = cal.get(Calendar.MINUTE);

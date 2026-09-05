@@ -1,5 +1,38 @@
 # Decisions Log
 
+## 2026-09-05 (Session 24): Xóa Bỏ Boss Thế Giới & Boss Map VIP, Kiểm Tra & Xác Nhận Hút VP (Nhặt ALL) Cho Bản NinjaNamod
+- **Yêu cầu:**
+  1. Chỉ build bản NinjaNamod (không build bản share).
+  2. Xóa bỏ hoàn toàn Boss Thế Giới (Map 20) và Boss Map VIP (Map 195, 196) khỏi mod.
+  3. Kiểm tra tính năng Hút VP (AutoPickup) đã được cập nhật chuẩn cho bản NinjaNamod chưa.
+- **Chi tiết triển khai:**
+  1. Kiểm tra & xác minh tính năng Hút VP trên bản NinjaNamod:
+     - Đã kiểm tra trực tiếp mã nguồn `src/AutoPickup.java` và bytecode decompiled của `AutoPickup.class` trong `NinjaNamod.jar`.
+     - `shouldPickup(ItemMap item)`: Trả về `true` cho mọi vật phẩm trên map (chỉ bỏ qua `item == null` hoặc `item.status == 2` đã biến mất/đã nhặt). Bỏ hoàn toàn việc lọc bỏ trang bị `item.template.gameAA()`, đảm bảo nhặt 100% đồ xịn boss rơi.
+     - `getItemVector()`: Đọc từ `Code.realItemMap` khi bật "Ẩn VP rơi" giúp nhặt bình thường kể cả khi bật ẩn item.
+     - `grabOnce()`: Tự động chạy 5 lượt quét hút toàn bộ VP ngay khi boss bị hạ gục (`AutoSanBoss.java:1842`).
+     - `blastPickupAll(delayMs)`: Dùng ghost move dịch chuyển tức thời nhặt sạch vật phẩm trên toàn map.
+     - Kiểm tra hành trang: Chỉ dừng nhặt khi hành trang thực sự hết chỗ (`Char.gameBG() <= 0`).
+  2. Xóa Boss Thế Giới & Boss Map VIP / VIP 2:
+     - `src/AutoSanBoss.java`:
+       - Thu gọn danh sách loại boss xuống còn 3 loại: `TYPE_VDMQ = 0`, `TYPE_MAPNGOAI = 1`, `TYPE_LANGCO = 2`, `TYPE_ALL = 3`.
+       - `BOSS_NAMES`: `{"VDMQ", "MapNgoai", "Làng Cổ", "Tất Cả", "Test 1 Map"}`.
+       - `HUNT_PRIORITY`: `{TYPE_LANGCO, TYPE_VDMQ, TYPE_MAPNGOAI}`.
+       - `BOSS_MAPS`: `{ {141, 142, 143}, {}, {135, 136} }`.
+       - `DEFAULT_BOSS_HOURS` & `BOSS_HOURS`: Thu gọn thành 3 mảng tương ứng.
+       - Cập nhật RMS key: `"boss_hours_jenny_v2"`.
+       - `getAllMapsForType`: Chỉ còn map cho VDMQ, Map Ngoài và Làng Cổ.
+       - Thêm kiểm tra biên độ an toàn (`bossType < 0 || bossType >= BOSS_HOURS.length`) cho `isBossActive` và `getSecondsTillNextBoss`.
+     - `src/ThongTinBoss.java`: Xóa Thế Giới và Map VIP/VIP 2 khỏi mảng `bosses[]`, bảng Lịch Boss chỉ hiển thị 3 loại boss (VDMQ, Map Ngoài, Làng Cổ).
+     - `src/BossConfig.java`: Xóa toàn bộ TextField và ChoiceGroup của Thế Giới, Map VIP, Map VIP 2. Giao diện form cài đặt giờ và map chỉ còn 3 loại boss chính.
+     - `src/NamMod.java`: Xóa các nút "Săn Thế Giới", "Săn Map VIP", "Săn Map VIP 2" trong menu Săn Boss và xóa "Chỉ Thế Giới", "Chỉ Map VIP", "Chỉ Map VIP 2" trong menu TS ưu tiên Boss.
+     - `src/AutoBossEvent.java`: Xóa các nhánh kiểm tra và ưu tiên cho Thế Giới và Map VIP.
+     - `src/BossLog.java`: Bỏ các case `TYPE_THEGIOI`, `TYPE_MAPVIP`, `TYPE_MAPVIP2` trong `recordBossKill`.
+  3. Biên dịch và xuất file:
+     - Chạy `python3 do_build.py` biên dịch thành công `NinjaNamod.jar` (1,361,625 bytes).
+     - Tự động sao chép sang `/storage/emulated/0/Download/NinjaNamod.jar`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/BossConfig.java`, `src/BossLog.java`, `src/NamMod.java`, `src/ThongTinBoss.java`, `src/AutoBossEvent.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
 ## 2026-09-05 (Session 23): Cập Nhật Lịch Ra Boss & Danh Sách Map Boss Thường (Map Ngoài) Cho Server Jenny
 - **Yêu cầu:**
   1. Cập nhật khung giờ ra Boss Server Jenny:

@@ -53,7 +53,7 @@ public final class NamMod implements IActionListener {
         String bossLabel = "S\u0103n Boss";
         if (AutoSanBoss.isRunning) {
             int f = AutoSanBoss.forcedBossType;
-            bossLabel += ": ON (" + (f == -1 ? "Auto" : f == AutoSanBoss.TYPE_ALL ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : f == 2 ? "LC" : f == 3 ? "TG" : f == 4 ? "MV" : "?") + ")";
+            bossLabel += ": ON (" + (f == -1 ? "Auto" : f == AutoSanBoss.TYPE_ALL ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : f == 2 ? "LC" : "?") + ")";
         } else {
             bossLabel += ": OFF";
         }
@@ -70,8 +70,6 @@ public final class NamMod implements IActionListener {
         cfgLabel += " \u25b8";
         items.addElement(command(cfgLabel, CFG_BOSS_MENU));
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
-
-
         // === Hút VP & Tiện ích ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
@@ -92,7 +90,6 @@ public final class NamMod implements IActionListener {
 
         // === Exploit / Test ===
         items.addElement(command("C\u00e0i \u0111\u1eb7t CN Test \u25b8", CFG_EXPLOIT_MENU));
-
         GameCanvas.menu.gameAA(items);
     }
 
@@ -105,8 +102,8 @@ public final class NamMod implements IActionListener {
     }
 
     private static String bossStatus(int type) {
-        if (!AutoSanBoss.isRunning) return "OFF";
         int forced = AutoSanBoss.forcedBossType;
+        if (!AutoSanBoss.isRunning) return "OFF";
         if (type == AutoSanBoss.TYPE_ALL) return (forced == AutoSanBoss.TYPE_ALL) ? "ON" : "OFF";
         if (forced == -1) return "Auto";
         return (forced == type) ? "ON" : "OFF";
@@ -119,9 +116,6 @@ public final class NamMod implements IActionListener {
         items.addElement(command("S\u0103n VDMQ: " + bossStatus(0), BOSS_VDMQ));
         items.addElement(command("S\u0103n Map Ngo\u00e0i: " + bossStatus(1), BOSS_MAP_NGOAI));
         items.addElement(command("S\u0103n L\u00e0ng C\u1ed5: " + bossStatus(2), BOSS_LANG_CO));
-        items.addElement(command("S\u0103n Th\u1ebf Gi\u1edbi: " + bossStatus(3), BOSS_THEGIOI));
-        items.addElement(command("S\u0103n Map VIP: " + bossStatus(AutoSanBoss.TYPE_MAPVIP), BOSS_MAP_VIP));
-        items.addElement(command("S\u0103n Map VIP2: " + bossStatus(AutoSanBoss.TYPE_MAPVIP2), BOSS_MAP_VIP2));
         items.addElement(command("S\u0103n T\u1ea5t C\u1ea3: " + bossStatus(AutoSanBoss.TYPE_ALL), BOSS_ALL));
         GameCanvas.menu.gameAA(items);
     }
@@ -135,9 +129,6 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Ch\u1ec9 L\u00e0ng C\u1ed5" + (on && p == 4 ? " \u2714" : ""), TS_BOSS_LC));
         items.addElement(command("VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
-        items.addElement(command("Ch\u1ec9 Th\u1ebf Gi\u1edbi" + (on && p == 3 ? " \u2714" : ""), TS_BOSS_TG));
-        items.addElement(command("Ch\u1ec9 Map VIP" + (on && p == 6 ? " \u2714" : ""), TS_BOSS_MV));
-        items.addElement(command("Ch\u1ec9 Map VIP2" + (on && p == 7 ? " \u2714" : ""), TS_BOSS_MV2));
         items.addElement(command("Test TS Boss (1 Map)", TS_BOSS_TEST));
         GameCanvas.menu.gameAA(items);
     }

@@ -88,9 +88,6 @@ public class BossLog {
             case AutoSanBoss.TYPE_MAPNGOAI: countMapNgoai++; break;
             case AutoSanBoss.TYPE_VDMQ: countVDMQ++; break;
             case AutoSanBoss.TYPE_LANGCO: countLangCo++; break;
-            case AutoSanBoss.TYPE_THEGIOI: countTheGioi++; break;
-            case AutoSanBoss.TYPE_MAPVIP: countMapVIP++; break;
-            case AutoSanBoss.TYPE_MAPVIP2: countMapVIP2++; break;
             default: countMapNgoai++; break;
         }
         saveToRMS();
