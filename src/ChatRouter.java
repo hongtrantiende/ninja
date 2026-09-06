@@ -77,6 +77,10 @@ public class ChatRouter {
             AutoBossEvent.saveMemberState();
         }
 
+        if (auto.mapID > 0) {
+            AutoSanBoss.prepareMemberForMap(auto.mapID);
+        }
+
         // === Lang Co (134-137) ===
         if (auto.mapID >= 134 && auto.mapID <= 137) {
             AutoSanBoss.startPartyMember();

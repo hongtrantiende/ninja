@@ -1223,10 +1223,28 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
+     * Chuan bi cho thanh vien chuyen sang map boss moi:
+     * 1. Dat memberTargetMap = targetMap.
+     * 2. Reset mapID cua PkBoss cu neu co de tranh PkBoss.gameAK() tu dong chay ve map cu.
+     * 3. Gan Code.gameAB = dummyAuto.
+     */
+    public static void prepareMemberForMap(int targetMap) {
+        memberTargetMap = targetMap;
+        if (Code.gameAB instanceof PkBoss) {
+            Code.gameAB.mapID = targetMap;
+        }
+        if (dummyAuto == null) {
+            dummyAuto = new SanBossHolder();
+        }
+        Code.gameAB = dummyAuto;
+    }
+
+    /**
      * Thanh vien vao Lang Co theo lenh pkm tu truong nhom.
      */
     public static void handleMemberLangCo(final int targetMap) {
-        memberTargetMap = targetMap;
+        prepareMemberForMap(targetMap);
+        syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
             try { memberMoveThread.interrupt(); } catch (Exception e) {}
         }
@@ -1296,6 +1314,11 @@ public class AutoSanBoss implements Runnable {
                         }
                         sleep(500L);
                     }
+                    memberTargetZone = -1;
+                    if (Code.gameAB instanceof PkBoss) {
+                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
+                        Code.gameAB = dummyAuto;
+                    }
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1307,7 +1330,8 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien vao Lang TT theo lenh pkm tu truong nhom.
      */
     public static void handleMemberLangTT(final int targetMap) {
-        memberTargetMap = targetMap;
+        prepareMemberForMap(targetMap);
+        syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
             try { memberMoveThread.interrupt(); } catch (Exception e) {}
         }
@@ -1377,6 +1401,11 @@ public class AutoSanBoss implements Runnable {
                         }
                         sleep(500L);
                     }
+                    memberTargetZone = -1;
+                    if (Code.gameAB instanceof PkBoss) {
+                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
+                        Code.gameAB = dummyAuto;
+                    }
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1400,7 +1429,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien vao Map VIP (M195/196) theo lenh pkm tu truong nhom.
      */
     public static void handleMemberMapVIP(final int targetMap) {
-        memberTargetMap = targetMap;
+        prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
             try { memberMoveThread.interrupt(); } catch (Exception e) {}
@@ -1479,6 +1508,11 @@ public class AutoSanBoss implements Runnable {
                         }
                         sleep(500L);
                     }
+                    memberTargetZone = -1;
+                    if (Code.gameAB instanceof PkBoss) {
+                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
+                        Code.gameAB = dummyAuto;
+                    }
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1490,7 +1524,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien di toi Map thuong / VDMQ theo lenh pkm tu truong nhom.
      */
     public static void handleMemberNormalMap(final int targetMap) {
-        memberTargetMap = targetMap;
+        prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
             try { memberMoveThread.interrupt(); } catch (Exception e) {}
@@ -1574,6 +1608,11 @@ public class AutoSanBoss implements Runnable {
                             }
                         }
                         sleep(500L);
+                    }
+                    memberTargetZone = -1;
+                    if (Code.gameAB instanceof PkBoss) {
+                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
+                        Code.gameAB = dummyAuto;
                     }
                     restoreDummyAuto();
                 } catch (Exception e) {}
@@ -1695,20 +1734,27 @@ public class AutoSanBoss implements Runnable {
 
     /**
      * Dam bao SanBossHolder luon ton tai de giu menu "Tat Auto".
-     * Phuc hoi khi gameAB bi null HOAC bi ghi de boi auto khac (khong phai PkBoss).
-     * PkBoss duoc giu nguyen vi no la phan cua flow san boss nhom.
+     * Phuc hoi khi gameAB bi null HOAC bi ghi de boi auto khac.
+     * Voi thanh vien nhom (isPartyMember hoac memberTargetMap > 0), PkBoss cung duoc thay the
+     * boi dummyAuto de tranh PkBoss.gameAK() tu dong keo nhan vat chay nguoc ve map cu.
      */
     public static void restoreDummyAuto() {
-        if (!isRunning || dummyAuto == null) return;
+        if (!isRunning) return;
+        if (dummyAuto == null) {
+            dummyAuto = new SanBossHolder();
+        }
         Auto current = Code.gameAB;
         if (current == null) {
             // gameAB bi null (bi pe, hoac auto khac tat)
             Code.gameAB = dummyAuto;
-        } else if (current != dummyAuto && !(current instanceof PkBoss)) {
-            // gameAB bi ghi de boi auto khac (khong phai PkBoss)
-            // Giu lai reAB chain: dummyAuto.reAB = current (de pop dung)
-            dummyAuto.reAB = current;
-            Code.gameAB = dummyAuto;
+        } else if (current != dummyAuto) {
+            if (isPartyMember() || memberTargetMap > 0 || !(current instanceof PkBoss)) {
+                if (current instanceof PkBoss && memberTargetMap > 0) {
+                    current.mapID = memberTargetMap;
+                }
+                dummyAuto.reAB = current;
+                Code.gameAB = dummyAuto;
+            }
         }
     }
 
@@ -4009,20 +4055,29 @@ public class AutoSanBoss implements Runnable {
                         if (isGhostAttack) {
                             doBossGhostAttack();
                         }
-                        if (Code.gameAB instanceof PkBoss) {
-                            Code.gameAB.zoneID = TileMap.zoneID;
+                        if (!isGhostAttack) {
+                            if (Code.gameAB instanceof PkBoss) {
+                                Code.gameAB.mapID = TileMap.mapID;
+                                Code.gameAB.zoneID = TileMap.zoneID;
+                            } else {
+                                PkBoss pk = new PkBoss(TileMap.mapID);
+                                pk.zoneID = TileMap.zoneID;
+                                Code.gameAA(pk);
+                            }
                         } else {
-                            PkBoss pk = new PkBoss(TileMap.mapID);
-                            pk.zoneID = TileMap.zoneID;
-                            Code.gameAA(pk);
+                            restoreDummyAuto();
                         }
                     } else if (memberTargetMap > 0) {
                         // 1. Neu chua o dung map boss -> Di chuyen toi map
                         if (TileMap.mapID != memberTargetMap) {
+                            if (Code.gameAB instanceof PkBoss) {
+                                Code.gameAB.mapID = memberTargetMap;
+                                restoreDummyAuto();
+                            }
                             if (memberMoveThread == null || !memberMoveThread.isAlive()) {
                                 if (memberTargetMap >= 134 && memberTargetMap <= 137) {
                                     handleMemberLangCo(memberTargetMap);
-                                } else if (memberTargetMap >= 163 && memberTargetMap <= 165) {
+                                } else if (memberTargetMap >= 162 && memberTargetMap <= 165) {
                                     handleMemberLangTT(memberTargetMap);
                                 } else if (memberTargetMap == 195 || memberTargetMap == 196) {
                                     handleMemberMapVIP(memberTargetMap);
@@ -4047,12 +4102,19 @@ public class AutoSanBoss implements Runnable {
                                     }
                                 }
                                 int effectiveZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                                if (!(Code.gameAB instanceof PkBoss)) {
-                                    PkBoss pk = new PkBoss(memberTargetMap);
-                                    pk.zoneID = effectiveZone;
-                                    Code.gameAA(pk);
-                                } else if (Code.gameAB.zoneID != effectiveZone) {
-                                    Code.gameAB.zoneID = effectiveZone;
+                                if (!isGhostAttack) {
+                                    if (!(Code.gameAB instanceof PkBoss)) {
+                                        PkBoss pk = new PkBoss(memberTargetMap);
+                                        pk.zoneID = effectiveZone;
+                                        Code.gameAA(pk);
+                                    } else {
+                                        Code.gameAB.mapID = memberTargetMap;
+                                        if (Code.gameAB.zoneID != effectiveZone) {
+                                            Code.gameAB.zoneID = effectiveZone;
+                                        }
+                                    }
+                                } else {
+                                    restoreDummyAuto();
                                 }
                             }
                         }

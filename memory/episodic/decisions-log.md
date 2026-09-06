@@ -1178,5 +1178,34 @@ Boss tồn tại: 40 phút (2400 giây)
   2. `src/ChatRouter.java`:
      - Thêm các lệnh chat nhanh: `langtt`, `tspkblangtt`, `treolangtt`.
   3. Đã biên dịch Java 8 target 8, hạ version bytecode 45.3, gỡ StackMapTable, build và đóng gói thành công `NinjaNamod.jar` và `Aeharuna.jar` (1,382,353 bytes), tự động sao chép sang thư mục `Downloads`.
+## 2026-09-06: Fix Lỗi Thành Viên Bị Chạy Ngược Về Map Cũ Khi Trưởng Nhóm Gọi Sang Map Tiếp Theo (Tất Cả Các Map)
+- **Hiện tượng:**
+  - Trong tính năng "TS Boss Ưu Tiên" (`AutoSanBoss` / `AutoBossEvent`), khi trưởng nhóm săn boss ở Map Ngoài (hoặc các cụm map săn boss liên tiếp như Làng Cổ, Làng Truyền Thuyết, VDMQ, Map VIP):
+  - Ăn xong boss ở Map 1, trưởng nhóm chạy sang Map 2 và gọi thành viên (`pkm <map2> <zone>`).
+  - Thành viên nhận lệnh, chạy sang Map 2 xong thì lập tức quay đầu chạy ngược về Map 1! Trưởng nhóm phải gọi đến lần thứ 2, 3 thì thành viên mới chịu ở lại Map 2 để đánh.
+- **Nguyên nhân gốc (Root Cause):**
+  1. Khi thành viên đánh boss ở Map 1, `AutoSanBoss.java` khởi tạo `PkBoss pk = new PkBoss(memberTargetMap)` và gán vào `Code.gameAB`. `PkBoss` này lưu trường `mapID = Map 1` (ví dụ: Map 14).
+  2. Khi boss ở Map 1 chết, `handleMemberNormalMap` (và các handler khác) kết thúc và gọi `restoreDummyAuto()`. Nhưng trong `restoreDummyAuto()` có điều kiện `!(current instanceof PkBoss)`, nên nó từ chối thay thế `PkBoss`! Do đó `Code.gameAB` vẫn giữ nguyên `PkBoss` của Map 1.
+  3. Khi trưởng nhóm sang Map 2 gửi `pkm 15 <zone>`, `ChatRouter.startPartyBoss` gọi `handleMemberNormalMap(15)`. Luồng `memberMoveThread` đưa nhân vật sang Map 15 thành công (`TileMap.mapID` trở thành 15).
+  4. Ngay khi nhân vật vừa đặt chân sang Map 15, luồng chính của game gọi `Code.gameAB.gameAK()`. Bytecode của `PkBoss.gameAK()` kiểm tra `this.mapID != TileMap.mapID` (14 != 15) -> Lập tức gọi `TileMap.GoMap(14)` kéo nhân vật quay đầu chạy ngược về Map 14! Đồng thời luồng `handleMemberNormalMap` thấy `TileMap.mapID != 15` nên break thoát luồng.
+  5. Lỗi này xảy ra trên **100% tất cả các cụm map** có săn nhiều map liên tiếp:
+     - Map Ngoài: 14 -> 15 -> 16 -> 34 -> 52 -> 68
+     - Làng Cổ: 134 -> 135 -> 136 -> 137
+     - Làng Truyền Thuyết: 163 -> 164 -> 165
+     - VDMQ: 141 -> 142 -> 143
+     - Map VIP: 195 -> 196
+- **Giải pháp:**
+  1. `src/AutoSanBoss.java`:
+     - Thêm phương thức `prepareMemberForMap(int targetMap)`:
+       - Cập nhật `memberTargetMap = targetMap`.
+       - Nếu `Code.gameAB instanceof PkBoss`, cập nhật `Code.gameAB.mapID = targetMap`.
+       - Đặt lại `Code.gameAB = dummyAuto` (`SanBossHolder`), đảm bảo `gameAK()` không thực hiện bất kỳ lệnh điều hướng nào gây xung đột.
+     - Gọi `prepareMemberForMap(targetMap)` ở ngay đầu cả 4 hàm di chuyển của thành viên: `handleMemberNormalMap`, `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`.
+     - Khi boss chết ở cả 4 hàm: đặt `memberTargetZone = -1;`, giải phóng `PkBoss` về `dummyAuto`, và gọi `restoreDummyAuto()`.
+     - Sửa `restoreDummyAuto()`: Cho phép thay thế `PkBoss` thành `dummyAuto` đối với thành viên nhóm (`isPartyMember() || memberTargetMap > 0`).
+     - Cập nhật vòng lặp `run()` cho `isMember`: luôn giữ `dummyAuto` khi dùng `isGhostAttack` (mặc định), và nếu dùng `!isGhostAttack` thì luôn cập nhật cả `Code.gameAB.mapID = memberTargetMap`.
+  2. `src/ChatRouter.java`:
+     - Trong `startPartyBoss(Auto auto)`: Khi nhận `auto.mapID > 0`, gọi ngay `AutoSanBoss.prepareMemberForMap(auto.mapID)` để dọn dẹp `PkBoss` cũ trước khi khởi chạy handler map.
+  3. Đã biên dịch, patch J2ME 45.3 thành công 0 lỗi, xuất file `NinjaNamod.jar` và `Aeharuna.jar` vào `/storage/emulated/0/Download/`.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`
 
