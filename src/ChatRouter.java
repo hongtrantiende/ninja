@@ -69,6 +69,16 @@ public class ChatRouter {
             return;
         }
 
+        // Tu dong luu map farm goc ngay khi nhan pkm di san boss lan dau tien
+        if (auto.mapID > 0 && (!AutoBossEvent.inEvent || AutoBossEvent.getSavedMap() < 0)) {
+            AutoBossEvent.saveMemberState();
+        }
+
+        // Tu dong luu map farm goc ngay khi nhan pkm di san boss lan dau tien
+        if (auto.mapID > 0 && (!AutoBossEvent.inEvent || AutoBossEvent.getSavedMap() < 0)) {
+            AutoBossEvent.saveMemberState();
+        }
+
         // === Lang Co (134-137) ===
         if (auto.mapID >= 134 && auto.mapID <= 137) {
             AutoSanBoss.startPartyMember();

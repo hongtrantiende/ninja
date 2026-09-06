@@ -188,11 +188,13 @@ public final class AutoBossEvent implements Runnable {
 
     public static void exitGatedMapIfNeeded() {
         int curMap = TileMap.mapID;
-        boolean isGated = curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled
-                || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap);
+        // Chi gated map thuc su (Lang Co, Lang TT, Map VIP 195/196/192). Map Ngoai va VDMQ khong can thoat/tu sat!
+        boolean isGated = curMap == 195 || curMap == 196 || curMap == 192
+                || curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)
+                || AutoSanBoss.isLangTT(curMap);
         if (!isGated) return;
 
-        // Neu priority la MapVIP/MapVIP2 → luon giu nguyen
+        // Neu priority la MapVIP/MapVIP2: giu nguyen
         if (eventPriority == 6 || eventPriority == 7) {
             if (TileMap.isLangCo(curMap)) {
                 AutoSanBoss.cleanKhaoDiLenh();
@@ -205,9 +207,8 @@ public final class AutoBossEvent implements Runnable {
             return;
         }
 
-
         if (curMap == 135 || curMap == 136 || TileMap.isLangCo(curMap)) {
-            // Dung auto truoc khi exit
+            // Dung auto truoc khi exit qua NPC 7 o M138 (tuyet doi khong tu sat o Lang Co)
             LockGame.gameBK();
             if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
                 Code.gameAB = null;
@@ -217,29 +218,15 @@ public final class AutoBossEvent implements Runnable {
             sleep(500L);
             return;
         }
+
+        // Lang TT hoac Map VIP (192, 195, 196) -> tu sat ve lang
         GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 ra s\u0103n boss...");
         LockGame.gameBK();
         if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
             Code.gameAB = null;
         }
-        try { Code.gameAN(); } catch (Exception e) {}
-        sleep(1000L);
-        for (int r = 0; r < 10; r++) {
-            try {
-                Char me = Char.getMyChar();
-                if (me != null && me.statusMe != 14 && me.cHP > 0) break;
-                GameCanvas.endDlg();
-                sleep(20L);
-                Auto.gameAN.removeAllElements();
-                Auto.gameAM = false;
-                LockGame.gameAA = true;
-                Service.gI().gameAK();
-                TileMap.gameAF();
-                LockGame.gameAA = false;
-                sleep(300L);
-            } catch (Exception ex) {}
-        }
-        sleep(1000L);
+        AutoSanBoss.suicideAndEnsureAlive();
+        sleep(500L);
     }
 
     public static void saveMemberState() {
@@ -259,27 +246,12 @@ public final class AutoBossEvent implements Runnable {
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
-        // Fallback: neu co bat TS Map VIP hoac Tu Luyen
-        if (savedMap < 0) {
-            if (AutoVipMap.isEnabled) savedMap = AutoVipMap.targetMapID;
-            else if (AutoTuLuyen.isEnabled) savedMap = 192;
-        }
 
         // Hoi sinh neu dang chet
         ensureAlive();
 
-        // Xu ly roi map theo quy tac:
-        // - Lang Co: chay ra cong M138 goi NPC 7 ve lang (KHONG tu sat)
-        // - Lang TT: tu sat ve lang
-        // - VDMQ: neu savedMap la VDMQ (139-148) -> khong tu sat; neu savedMap ngoai VDMQ -> tu sat ve lang
-        // - Map ngoai: khong tu sat, tu chay ve map cu
-        if (savedMap >= 0) {
-            AutoSanBoss.exitCurrentMapIfNeeded(savedMap);
-            ensureAlive();
-        }
-
-        // Neu co savedMap -> ve map cu
-        if (savedMap >= 0 || savedAuto != null || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+        // Neu co savedMap -> goi returnAndResume() de xu ly thoat map va travel trong thread rieng
+        if (savedMap >= 0 || savedAuto != null) {
             returnAndResume();
         } else {
             // Khong co state da luu -> chi dung auto, khong travel
@@ -1006,11 +978,7 @@ public final class AutoBossEvent implements Runnable {
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
-        // Leader xu ly thoat map dac thu theo dung quy tac truoc khi ve map cu
-        if (savedMap >= 0) {
-            AutoSanBoss.exitCurrentMapIfNeeded(savedMap);
-            ensureAlive();
-        }
+
         returnAndResume();
         sleep(2000L);
         // Moi lai cac thanh vien bi thieu (neu co)
@@ -1060,15 +1028,15 @@ public final class AutoBossEvent implements Runnable {
         final int targetNpcMap;
         final int npcOption;
         final boolean isNpcMap;
-        if (map == 196 || (AutoVipMap.isEnabled && AutoVipMap.targetMapID == 196)) {
+        if (map == 196) {
             targetNpcMap = 196;
             npcOption = 5;
             isNpcMap = true;
-        } else if (map == 195 || (AutoVipMap.isEnabled && AutoVipMap.targetMapID == 195)) {
+        } else if (map == 195) {
             targetNpcMap = 195;
             npcOption = 4;
             isNpcMap = true;
-        } else if (map == 192 || AutoTuLuyen.isEnabled) {
+        } else if (map == 192) {
             targetNpcMap = 192;
             npcOption = 3;
             isNpcMap = true;
@@ -1096,10 +1064,6 @@ public final class AutoBossEvent implements Runnable {
                             // Thoat map dac thu theo quy tac
                             AutoSanBoss.exitCurrentMapIfNeeded(targetNpcMap);
                             ensureAlive();
-                            if (TileMap.mapID != targetNpcMap && !AutoSanBoss.isLangCoMap(TileMap.mapID)) {
-                                AutoSanBoss.suicideAndEnsureAlive();
-                                sleep(800L);
-                            }
 
                             // Goi NPC 47 de vao targetNpcMap
                             GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M" + targetNpcMap + "...");
@@ -1179,34 +1143,17 @@ public final class AutoBossEvent implements Runnable {
                     } else if (map >= 163 && map <= 165) {
                         AutoSanBoss.enterLangTTSpecificMap(map);
                     } else {
-                        // Map thuong hoac VDMQ (neu cung VDMQ -> chay thang khong tu sat)
-                        for (int attempt = 0; attempt < 30 && TileMap.mapID != map; attempt++) {
+                        // Map thuong hoac VDMQ (tuyet doi KHONG tu sat o map ngoai hoac khi cung o VDMQ)
+                        for (int attempt = 0; attempt < 50 && TileMap.mapID != map; attempt++) {
                             if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
                                 ensureAlive();
                             }
                             if (TileMap.mapID == map) break;
-                            try { TileMap.GoMap(map); } catch (Exception e) {}
-                            for (int w = 0; w < 30 && TileMap.mapID != map; w++) {
-                                sleep(100L);
-                                if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
-                            }
-                        }
-                    }
-
-                    // Fallback neu van chua ve duoc dung map (neu khong phai VDMQ cung he)
-                    if (TileMap.mapID != map) {
-                        GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u00fang map! Th\u1eed t\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 \u0111i l\u1ea1i...");
-                        try { Code.gameAN(); } catch (Exception e) {}
-                        sleep(800L);
-                        ensureAlive();
-                        sleep(1000L);
-                        for (int attempt = 0; attempt < 30 && TileMap.mapID != map; attempt++) {
-                            if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
-                                ensureAlive();
-                            }
-                            if (TileMap.mapID == map) break;
-                            try { TileMap.GoMap(map); } catch (Exception e) {}
-                            for (int w = 0; w < 30 && TileMap.mapID != map; w++) {
+                            try {
+                                GameCanvas.endDlg();
+                                TileMap.GoMap(map);
+                            } catch (Exception e) {}
+                            for (int w = 0; w < 40 && TileMap.mapID != map; w++) {
                                 sleep(100L);
                                 if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
                             }

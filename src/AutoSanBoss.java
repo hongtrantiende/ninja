@@ -594,7 +594,7 @@ public class AutoSanBoss implements Runnable {
         }
 
         // 4. Map VIP (195, 196, 192)
-        if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+        if (curMap == 195 || curMap == 196 || curMap == 192) {
             if (targetMap != curMap) {
                 suicideAndEnsureAlive();
             }
