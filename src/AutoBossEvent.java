@@ -464,8 +464,9 @@ public final class AutoBossEvent implements Runnable {
 
     public static void saveLocalState() {
         int curMap = TileMap.mapID;
-        // Khong luu map gated / map boss Lang Co (135, 136, 138)
-        if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap)) {
+        // Khong luu map gated / map boss Lang Co (134-138), Lang TT (162-165), Map VIP (192, 195, 196)
+        if (curMap == 135 || curMap == 136 || curMap == 138 || TileMap.isLangCo(curMap)
+                || AutoSanBoss.isLangTT(curMap) || curMap == 195 || curMap == 196 || curMap == 192) {
             return;
         }
         savedMap = curMap;
@@ -1187,7 +1188,13 @@ public final class AutoBossEvent implements Runnable {
         preSpawnTriggered = false;
     }
 
+    private static volatile boolean isReturning = false;
+
     private static void returnAndResume() {
+        if (isReturning) {
+            return;
+        }
+        isReturning = true;
         eventStartTime = 0L;
         if (savedMap < 0) {
             loadSavedStateFromRMS();
@@ -1207,7 +1214,10 @@ public final class AutoBossEvent implements Runnable {
         // GIU NGUYEN savedMap, savedZone trong RMS de phong crash/disconnect tiep
         saveSavedStateToRMS();
 
-        if (map < 0 && !AutoVipMap.isEnabled && !AutoTuLuyen.isEnabled) return;
+        if (map < 0 && !AutoVipMap.isEnabled && !AutoTuLuyen.isEnabled) {
+            isReturning = false;
+            return;
+        }
 
         // Xac dinh neu day la Map VIP hoac Tu Luyen (vao qua NPC)
         final int targetNpcMap;
@@ -1377,7 +1387,10 @@ public final class AutoBossEvent implements Runnable {
                     } else {
                         GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u01b0\u1ee3c Map G\u1ed1c M" + map + " (hi\u1ec7n \u1edf M" + TileMap.mapID + "), KH\u00d4NG b\u1eadt TS sai map!");
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                } finally {
+                    isReturning = false;
+                }
             }
         }).start();
     }

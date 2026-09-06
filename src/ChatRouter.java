@@ -43,6 +43,9 @@ public class ChatRouter {
     /** Nhan pkm tu truong nhom; xu ly chuyen map va danh boss cho thanh vien. */
     public static void startPartyBoss(Auto auto) {
         if (auto == null) return;
+        if (AutoSanBoss.isPartyLeader()) {
+            return; // Truong nhom khong thuc thi lenh pkm do chinh minh gui!
+        }
         AutoSanBoss.syncPartyLeaderName();
 
         if (auto.mapID == -6 || auto.mapID == -5) {
