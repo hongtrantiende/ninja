@@ -1,6 +1,23 @@
 # Decisions Log
 
-## 2026-09-06 (Session 31): Fix Bot Tưởng Boss Đã Chết Sau Respawn & Xóa PkBoss Map VIP / TS Tu Luyện
+## 2026-09-06 (Session 32): Fix Xóa Map Gốc Tàn Sát Khi Tắt Auto Ở Menu GameScr & Tự Động Lưu Map Gốc Khi Bật Tàn Sát Ở Menu
+- **Vấn đề:** Khi người dùng bật TS thì hệ thống lưu map gốc, nhưng khi tắt TS từ Menu Auto ("Tắt Auto" / command 1100073) thì hệ thống không xóa map gốc TS đã lưu, trên HUD màn hình vẫn hiển thị `[Gốc: M... K...]` và bot vẫn nhớ map gốc cũ.
+- **Nguyên nhân gốc rễ:**
+  1. Menu Auto khi chọn "Tắt Auto" gọi trực tiếp `Code.gameAF()`.
+  2. Trong `Code.gameAF()`, chỉ gán `gameAB = null`, dừng `TsBoost`, `AutoSuicide`, `AutoPickup`, nhưng hoàn toàn KHÔNG gọi `AutoBossEvent.resetSavedFarmState()`.
+  3. Khi thiếu lời gọi này, `savedMap`, `savedZone`, `savedX`, `savedY` trong RAM và record `boss_saved_pos` trong RMS vẫn được giữ nguyên. Do đó `ThongKe` và `EcoMode` vẫn render `[Gốc: M... K...]`.
+  4. Đồng thời, khi bật TS qua Menu Auto (`GameScr` gọi `Code.gameAA(int, int)`), hệ thống chưa gọi `ChatRouter.onTsActivated()` để lưu map gốc tức thì mà phải đợi timer của `ThongKe`.
+- **Giải pháp:**
+  1. `src/Code.java`:
+     - Trong `gameAF()`: Thêm `if (!AutoBossEvent.inEvent) { AutoBossEvent.resetSavedFarmState(); }` kèm dừng `AutoLevel` và `AutoBanVP` nếu đang chạy.
+     - Trong `gameAA(Auto var0)`: Thêm `if (var0 == gameCC || var0 instanceof TanSat || var0 == gameAC || var0 instanceof Stanima) { ChatRouter.onTsActivated(); }` đảm bảo mọi nguồn kích hoạt TS / Stanima đều lập tức lưu map gốc và kích hoạt config liên quan.
+     - Trong `gameAA(int, int)` & `gameAA(int, int, int)`: Gọi trực tiếp `ChatRouter.onTsActivated()` khi bật tàn sát từ menu.
+     - Trong xử lý packet `pe` (nhận lệnh kết thúc auto từ trưởng nhóm): Thay `LockGame.gameBK(); gameAB = null;` bằng `Code.gameAF();` để đồng bộ dọn dẹp sạch sẽ.
+- **Build & Verify:**
+  - Biên dịch 0 lỗi, J2ME bytecode downgrade 45.3 (77 class), đóng gói `Aeharuna.jar` & `NinjaNamod.jar` thành công.
+  - Tự động copy ra `/storage/emulated/0/Download/Aeharuna.jar` và `NinjaNamod.jar`.
+- **Files thay đổi:** `src/Code.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
 - **Vấn đề 1:** Khi bị boss đánh chết → hồi sinh → quay lại map boss, bot xác nhận boss đã chết quá sớm (chỉ 300ms) trước khi server kịp gửi mob data → bỏ qua boss đang săn.
 - **Nguyên nhân gốc:**
   1. Mob wait sau respawn chỉ 1 giây (`wm < 10` × 100ms) — quá ngắn, server chưa kịp gửi mob data.

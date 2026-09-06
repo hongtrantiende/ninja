@@ -332,6 +332,9 @@ implements Runnable {
         gameAB = var0;
         AutoPickup.start();
         TsBoost.onTsStarted();
+        if (var0 == gameCC || var0 instanceof TanSat || var0 == gameAC || var0 instanceof Stanima) {
+            ChatRouter.onTsActivated();
+        }
     }
 
     public static void gameAC() {
@@ -349,6 +352,7 @@ implements Runnable {
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
+        ChatRouter.onTsActivated();
     }
 
     public static void gameAA(int var0, int var1, int var2) {
@@ -360,6 +364,7 @@ implements Runnable {
         Code.gameAA(gameCC);
         timBG = true; // Tat hieu ung skill giam lag khi TS
         TsBoost.onTsStarted(); // Bat Ts Pro kem theo nhu lenh chat ts
+        ChatRouter.onTsActivated();
     }
 
     private static void gameAC(int var0, int var1) {
@@ -427,6 +432,16 @@ implements Runnable {
         // Tat hut VP khi tat auto — dong bo trang thai
         if (AutoPickup.isRunning) {
             AutoPickup.stop();
+        }
+        if (AutoLevel.isRunning) {
+            AutoLevel.stop();
+        }
+        if (AutoBanVP.isRunning) {
+            AutoBanVP.stop();
+        }
+        // Reset map goc khi nguoi dung chu dong tat TS o menu auto hoac stop auto
+        if (!AutoBossEvent.inEvent) {
+            AutoBossEvent.resetSavedFarmState();
         }
     }
 
@@ -2744,8 +2759,7 @@ implements Runnable {
                 }
                 if (var5[0].equals("pe")) {
                     GameScr.gameAC("End Auto");
-                    LockGame.gameBK();
-                    gameAB = null;
+                    Code.gameAF();
                     return;
                 }
                 if (var5[0].equals("tsa")) {
