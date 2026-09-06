@@ -143,12 +143,7 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Ch\u1ec9 L\u00e0ng TT" + (on && p == 8 ? " \u2714" : ""), TS_BOSS_LTT));
         items.addElement(command("VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
-        items.addElement(command("Test T\u1eebng Map \u25b8", TS_TEST_MENU));
-        GameCanvas.menu.gameAA(items);
-    }
-
-    private static void openTsTestMenu() {
-        MyVector items = new MyVector();
+        // Cac muc test dat truc tiep trong menu de mo ra la thay ngay
         items.addElement(command("Test: Map Ngo\u00e0i (M14)", TS_TEST_MN));
         items.addElement(command("Test: V\u0110MQ (M141)", TS_TEST_VDMQ));
         items.addElement(command("Test: L\u00e0ng C\u1ed5 (M134)", TS_TEST_LC));
@@ -201,9 +196,6 @@ public final class NamMod implements IActionListener {
                 return;
             case TS_BOSS_LTT:
                 AutoBossEvent.togglePriority(8);
-                return;
-            case TS_TEST_MENU:
-                openTsTestMenu();
                 return;
             case TS_TEST_MN:
                 AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
