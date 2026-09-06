@@ -128,25 +128,23 @@ public final class AutoBossEvent implements Runnable {
             return;
         }
 
-        final int targetMap;
+        final int[] testMaps;
         final String typeName;
-        if (testType == TEST_MAP_NGOAI) {
-            targetMap = 14;
-            typeName = "Map Ngo\u00e0i (M14)";
-        } else if (testType == TEST_VDMQ) {
-            targetMap = 141;
-            typeName = "V\u0110MQ (M141)";
-        } else if (testType == TEST_LANG_CO) {
-            targetMap = 134;
-            typeName = "L\u00e0ng C\u1ed5 (M134)";
+        if (testType == TEST_LANG_CO) {
+            testMaps = new int[]{134, 135, 136, 137};
+            typeName = "L\u00e0ng C\u1ed5";
         } else if (testType == TEST_LANG_TT) {
-            targetMap = 164;
-            typeName = "L\u00e0ng TT (M164)";
+            testMaps = new int[]{163, 164, 165};
+            typeName = "L\u00e0ng TT";
+        } else if (testType == TEST_VDMQ) {
+            testMaps = new int[]{141, 142, 143};
+            typeName = "V\u0110MQ";
         } else if (testType == TEST_MAP_VIP) {
-            targetMap = 195;
-            typeName = "Map VIP (M195)";
+            testMaps = new int[]{195};
+            typeName = "Map VIP";
         } else {
-            targetMap = 14;
+            // Map ngoai chon bua 1 map (M14)
+            testMaps = new int[]{14};
             typeName = "Map Ngo\u00e0i";
         }
 
@@ -180,93 +178,74 @@ public final class AutoBossEvent implements Runnable {
                     exitGatedMapIfNeeded();
                     ensureAlive();
 
-                    // B4: Truong nhom di chuyen toi map test
-                    GameScr.gameAC("TSBoss Test: Tr\u01b0\u1edfng nh\u00f3m t\u1edbi " + typeName + "...");
-                    boolean arrived = false;
-                    if (testType == TEST_LANG_CO) {
-                        arrived = AutoSanBoss.enterLangCoSpecificMap(targetMap);
-                    } else if (testType == TEST_LANG_TT) {
-                        arrived = AutoSanBoss.enterLangTTSpecificMap(targetMap);
-                    } else if (testType == TEST_MAP_VIP) {
-                        arrived = AutoSanBoss.enterMapVIP();
-                    } else {
-                        AutoSanBoss.exitCurrentMapIfNeeded(targetMap);
-                        ensureAlive();
-                        for (int att = 0; att < 50 && TileMap.mapID != targetMap; att++) {
-                            if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
-                                ensureAlive();
+                    // Vong lap qua TUNG MAP boss trong loai nay
+                    for (int mIdx = 0; mIdx < testMaps.length && isEnabled && inEvent; mIdx++) {
+                        int targetMap = testMaps[mIdx];
+                        GameScr.gameAC("TSBoss Test: Tr\u01b0\u1edfng nh\u00f3m t\u1edbi M" + targetMap + " (" + (mIdx + 1) + "/" + testMaps.length + ")...");
+
+                        boolean arrived = false;
+                        if (testType == TEST_LANG_CO) {
+                            arrived = AutoSanBoss.enterLangCoSpecificMap(targetMap);
+                        } else if (testType == TEST_LANG_TT) {
+                            arrived = AutoSanBoss.enterLangTTSpecificMap(targetMap);
+                        } else if (testType == TEST_MAP_VIP) {
+                            arrived = AutoSanBoss.enterMapVIP();
+                        } else {
+                            // Map Ngoai hoac VDMQ
+                            AutoSanBoss.exitCurrentMapIfNeeded(targetMap);
+                            ensureAlive();
+                            for (int att = 0; att < 50 && TileMap.mapID != targetMap; att++) {
+                                if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
+                                    ensureAlive();
+                                }
+                                if (TileMap.mapID == targetMap) break;
+                                GameCanvas.endDlg();
+                                TileMap.GoMap(targetMap);
+                                for (int w = 0; w < 40 && TileMap.mapID != targetMap; w++) {
+                                    sleep(100L);
+                                    if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
+                                }
                             }
-                            if (TileMap.mapID == targetMap) break;
-                            GameCanvas.endDlg();
-                            TileMap.GoMap(targetMap);
-                            for (int w = 0; w < 40 && TileMap.mapID != targetMap; w++) {
-                                sleep(100L);
-                                if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
+                            arrived = (TileMap.mapID == targetMap);
+                        }
+
+                        if (!arrived || TileMap.mapID != targetMap) {
+                            GameScr.gameAC("TSBoss Test: Kh\u00f4ng t\u1edbi \u0111\u01b0\u1ee3c M" + targetMap + "! Chuy\u1ec3n map ti\u1ebfp...");
+                            continue;
+                        }
+
+                        // Chon 1 khu bat ky (khu 3, 5, 7...)
+                        int targetZone = 3 + (mIdx * 2);
+                        if (TileMap.zoneID != targetZone) {
+                            Auto.gameAA(targetZone);
+                            for (int z = 0; z < 50 && TileMap.zoneID != targetZone; z++) sleep(100L);
+                        }
+                        int curZone = TileMap.zoneID;
+
+                        // Goi TV qua map va khu nay dung
+                        GameScr.gameAC("TSBoss Test: G\u1eb7p boss M" + targetMap + " K" + curZone + "! G\u1ecdi TV qua...");
+                        sendParty("pkm " + targetMap + " " + curZone);
+
+                        // Dem nguoc 10s cho TV qua dung
+                        for (int w = 10; w > 0 && isEnabled && inEvent; w--) {
+                            if (w == 10 || w == 5 || w <= 2) {
+                                GameScr.gameAC("TSBoss Test: Ch\u1edd TV qua M" + targetMap + " K" + curZone + " (" + w + "s)...");
                             }
+                            sleep(1000L);
                         }
-                        arrived = (TileMap.mapID == targetMap);
+
+                        // Bao boss map nay da chet!
+                        GameScr.gameAC("TSBoss Test: Boss M" + targetMap + " K" + curZone + " \u0111\u00e3 ch\u1ebft!");
+                        sleep(2000L);
                     }
 
-                    if (!arrived || TileMap.mapID != targetMap) {
-                        GameScr.gameAC("TSBoss Test: Kh\u00f4ng t\u1edbi \u0111\u01b0\u1ee3c M" + targetMap + "! H\u1ee7y test.");
-                        finishEvent(false);
-                        return;
-                    }
-
-                    // B5: Vao khu dau tien (Khu 4)
-                    int zoneA = 4;
-                    if (TileMap.zoneID != zoneA) {
-                        Auto.gameAA(zoneA);
-                        for (int z = 0; z < 50 && TileMap.zoneID != zoneA; z++) sleep(100L);
-                    }
-                    int curZoneA = TileMap.zoneID;
-
-                    // B6: Goi TV qua Khu A dung
-                    GameScr.gameAC("TSBoss Test: G\u1eb7p boss K" + curZoneA + "! G\u1ecdi TV qua...");
-                    sendParty("pkm " + targetMap + " " + curZoneA);
-
-                    // Cho TV qua Khu A (dem nguoc 12s)
-                    for (int w = 12; w > 0 && isEnabled && inEvent; w--) {
-                        if (w == 12 || w == 8 || w == 4 || w <= 2) {
-                            GameScr.gameAC("TSBoss Test: TV qua K" + curZoneA + " (c\u00f2n " + w + "s)...");
-                        }
-                        sleep(1000L);
-                    }
-
-                    // B7: Bao boss Khu A da chet!
-                    GameScr.gameAC("TSBoss Test: Boss M" + targetMap + " K" + curZoneA + " \u0111\u00e3 ch\u1ebft! Qu\u00e9t khu kh\u00e1c...");
-                    sleep(2500L);
-
-                    // B8: Quet tiep -> doi sang Khu B (Khu 8)
-                    int zoneB = (curZoneA == 4) ? 8 : 4;
-                    GameScr.gameAC("TSBoss Test: Tr\u01b0\u1edfng nh\u00f3m qua K" + zoneB + " qu\u00e9t ti\u1ebfp...");
-                    Auto.gameAA(zoneB);
-                    for (int z = 0; z < 50 && TileMap.zoneID != zoneB; z++) sleep(100L);
-                    int curZoneB = TileMap.zoneID;
-
-                    // B9: Goi TV qua Khu B
-                    GameScr.gameAC("TSBoss Test: G\u1eb7p boss K" + curZoneB + "! G\u1ecdi TV qua...");
-                    sendParty("pkm " + targetMap + " " + curZoneB);
-
-                    // Cho TV qua Khu B (dem nguoc 10s)
-                    for (int w = 10; w > 0 && isEnabled && inEvent; w--) {
-                        if (w == 10 || w == 6 || w == 3 || w <= 2) {
-                            GameScr.gameAC("TSBoss Test: TV chuy\u1ec3n sang K" + curZoneB + " (c\u00f2n " + w + "s)...");
-                        }
-                        sleep(1000L);
-                    }
-
-                    // B10: Bao boss Khu B da chet & ket thuc luot quet!
-                    GameScr.gameAC("TSBoss Test: Boss M" + targetMap + " K" + curZoneB + " \u0111\u00e3 ch\u1ebft! Qu\u00e9t xong 1 l\u01b0\u1ee3t.");
-                    sleep(2500L);
-
-                    // B11: Duoi thanh vien ve map farm cu!
-                    GameScr.gameAC("TSBoss Test: Xong l\u01b0\u1ee3t! G\u1eedi nh\u00f3m v\u1ec1 map farm!");
+                    // Da quet het tat ca map cua loai nay!
+                    GameScr.gameAC("TSBoss Test: \u0110\u00e3 qu\u00e9t h\u1ebft " + typeName + "! \u0110u\u1ed5i TV v\u1ec1 map farm...");
                     sendParty("pkm -5");
                     membersSentBack = true;
                     sleep(2000L);
 
-                    // B12: Truong nhom quay ve map farm cu va khoi phuc TS
+                    // Truong nhom quay ve map farm cu va khoi phuc TS
                     GameScr.gameAC("TSBoss Test [" + typeName + "]: Tr\u01b0\u1edfng nh\u00f3m quay v\u1ec1 map c\u0169...");
                     finishEvent(false);
 
