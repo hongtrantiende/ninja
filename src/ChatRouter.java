@@ -74,11 +74,6 @@ public class ChatRouter {
             AutoBossEvent.saveMemberState();
         }
 
-        // Tu dong luu map farm goc ngay khi nhan pkm di san boss lan dau tien
-        if (auto.mapID > 0 && (!AutoBossEvent.inEvent || AutoBossEvent.getSavedMap() < 0)) {
-            AutoBossEvent.saveMemberState();
-        }
-
         // === Lang Co (134-137) ===
         if (auto.mapID >= 134 && auto.mapID <= 137) {
             AutoSanBoss.startPartyMember();
@@ -90,6 +85,13 @@ public class ChatRouter {
         if (auto.mapID >= 162 && auto.mapID <= 165) {
             AutoSanBoss.startPartyMember();
             AutoSanBoss.handleMemberLangTT(auto.mapID);
+            return;
+        }
+
+        // === Map VIP (195, 196) ===
+        if (auto.mapID == 195 || auto.mapID == 196) {
+            AutoSanBoss.startPartyMember();
+            AutoSanBoss.handleMemberMapVIP(auto.mapID);
             return;
         }
 
@@ -172,8 +174,28 @@ public class ChatRouter {
             return true;
         }
 
-        if (text.equals("tsbosstest")) {
-            AutoBossEvent.testNow();
+        if (text.equals("tsbosstest") || text.equals("testboss")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
+            return true;
+        }
+        if (text.equals("testmn")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
+            return true;
+        }
+        if (text.equals("testvm") || text.equals("testvdmq")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_VDMQ);
+            return true;
+        }
+        if (text.equals("testlc") || text.equals("testlangco")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_CO);
+            return true;
+        }
+        if (text.equals("testltt") || text.equals("testlangtt")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_TT);
+            return true;
+        }
+        if (text.equals("testvip")) {
+            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_VIP);
             return true;
         }
         if (text.equals("tsboss")) {

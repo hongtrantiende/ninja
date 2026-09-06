@@ -26,6 +26,12 @@ public final class NamMod implements IActionListener {
     private static final int BOSS_LANG_CO = 120125;
     private static final int BOSS_LANG_TT = 120138;
     private static final int TS_BOSS_LTT = 120139;
+    private static final int TS_TEST_MENU = 120141;
+    private static final int TS_TEST_MN = 120142;
+    private static final int TS_TEST_VDMQ = 120143;
+    private static final int TS_TEST_LC = 120144;
+    private static final int TS_TEST_LTT = 120145;
+    private static final int TS_TEST_VIP = 120146;
 
     // Cai dat San Boss: mo Form checkbox
     private static final int CFG_BOSS_MENU = 120140;
@@ -137,7 +143,18 @@ public final class NamMod implements IActionListener {
         items.addElement(command("Ch\u1ec9 L\u00e0ng TT" + (on && p == 8 ? " \u2714" : ""), TS_BOSS_LTT));
         items.addElement(command("VDMQ + L\u00e0ng C\u1ed5" + (on && p == 1 ? " \u2714" : ""), TS_BOSS_VDMQ_LC));
         items.addElement(command("Ch\u1ec9 Map Ngo\u00e0i" + (on && p == 2 ? " \u2714" : ""), TS_BOSS_MN));
-        items.addElement(command("Test TS Boss (1 Map)", TS_BOSS_TEST));
+        items.addElement(command("Test T\u1eebng Map \u25b8", TS_TEST_MENU));
+        GameCanvas.menu.gameAA(items);
+    }
+
+    private static void openTsTestMenu() {
+        MyVector items = new MyVector();
+        items.addElement(command("Test: Map Ngo\u00e0i (M14)", TS_TEST_MN));
+        items.addElement(command("Test: V\u0110MQ (M141)", TS_TEST_VDMQ));
+        items.addElement(command("Test: L\u00e0ng C\u1ed5 (M134)", TS_TEST_LC));
+        items.addElement(command("Test: L\u00e0ng TT (M164)", TS_TEST_LTT));
+        items.addElement(command("Test: Map VIP (M195)", TS_TEST_VIP));
+        items.addElement(command("Qu\u00e9t th\u1eadt 1 map", TS_BOSS_TEST));
         GameCanvas.menu.gameAA(items);
     }
 
@@ -185,8 +202,26 @@ public final class NamMod implements IActionListener {
             case TS_BOSS_LTT:
                 AutoBossEvent.togglePriority(8);
                 return;
+            case TS_TEST_MENU:
+                openTsTestMenu();
+                return;
+            case TS_TEST_MN:
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
+                return;
+            case TS_TEST_VDMQ:
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_VDMQ);
+                return;
+            case TS_TEST_LC:
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_CO);
+                return;
+            case TS_TEST_LTT:
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_TT);
+                return;
+            case TS_TEST_VIP:
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_VIP);
+                return;
             case TS_BOSS_TEST:
-                AutoBossEvent.testNow();
+                AutoBossEvent.testRealHunt1Map();
                 return;
 
             case LICH_BOSS:
