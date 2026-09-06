@@ -83,11 +83,6 @@ public class AutoSanBoss implements Runnable {
     /** Khu ket thuc khi quet tim boss (0-29). Mac dinh 29. */
     public static int scanZoneEnd = 29;
 
-    /** Ghost Attack Boss: Danh xa ngay khi thay boss va lao vao dan. Mac dinh bat (true). */
-    public static boolean isGhostAttack = true;
-    /** Tam Ghost Attack Boss (px, 9999=toan map). */
-    public static int ghostRange = 9999;
-
     /** So lan hoi sinh toi da khi danh boss (0 = vo han, mac dinh 100). */
     public static int maxDeathRevive = 0;
 
@@ -160,15 +155,6 @@ public class AutoSanBoss implements Runnable {
             if (zoneRangeStr != null && zoneRangeStr.trim().length() > 0) {
                 setZoneRangeFromStr(zoneRangeStr.trim());
             }
-            String ghostAtkStr = RMS.gameAC("boss_ghost_atk");
-            if (ghostAtkStr != null && ghostAtkStr.trim().length() > 0) {
-                isGhostAttack = "1".equals(ghostAtkStr.trim()) || "true".equalsIgnoreCase(ghostAtkStr.trim());
-            }
-            String ghostRangeStr = RMS.gameAC("boss_ghost_range");
-            if (ghostRangeStr != null && ghostRangeStr.trim().length() > 0) {
-                int r = Integer.parseInt(ghostRangeStr.trim());
-                if (r >= 100 && r <= 9999) ghostRange = r;
-            }
             String maxDeathStr = RMS.gameAC("boss_max_death");
             if (maxDeathStr != null && maxDeathStr.trim().length() > 0) {
                 int md = Integer.parseInt(maxDeathStr.trim());
@@ -191,8 +177,6 @@ public class AutoSanBoss implements Runnable {
             RMS.gameAA("dis_boss_maps", sb.toString());
             RMS.gameAA("boss_zone_delay", String.valueOf(zoneChangeDelayMs));
             RMS.gameAA("boss_zone_range", getZoneRangeStr());
-            RMS.gameAA("boss_ghost_atk", isGhostAttack ? "1" : "0");
-            RMS.gameAA("boss_ghost_range", String.valueOf(ghostRange));
             RMS.gameAA("boss_max_death", String.valueOf(maxDeathRevive));
             RMS.gameAA("boss_rev_hunt", isReverseMapHunt ? "1" : "0");
         } catch (Exception e) {}
@@ -1289,6 +1273,7 @@ public class AutoSanBoss implements Runnable {
                     if (boss != null) {
                         teleportToBoss(boss);
                         lockBossFocus();
+                        attackBossDirectly(boss);
                     }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -1305,6 +1290,7 @@ public class AutoSanBoss implements Runnable {
                             if (boss != null) {
                                 teleportToBoss(boss);
                                 lockBossFocus();
+                                attackBossDirectly(boss);
                             }
                             continue;
                         }
@@ -1328,8 +1314,6 @@ public class AutoSanBoss implements Runnable {
                             }
                             lockBossFocus();
                             attackBossDirectly(boss);
-                        } else if (isGhostAttack) {
-                            doBossGhostAttack();
                         }
                         if (!hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
@@ -1403,6 +1387,7 @@ public class AutoSanBoss implements Runnable {
                     if (boss != null) {
                         teleportToBoss(boss);
                         lockBossFocus();
+                        attackBossDirectly(boss);
                     }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -1419,6 +1404,7 @@ public class AutoSanBoss implements Runnable {
                             if (boss != null) {
                                 teleportToBoss(boss);
                                 lockBossFocus();
+                                attackBossDirectly(boss);
                             }
                             continue;
                         }
@@ -1442,8 +1428,6 @@ public class AutoSanBoss implements Runnable {
                             }
                             lockBossFocus();
                             attackBossDirectly(boss);
-                        } else if (isGhostAttack) {
-                            doBossGhostAttack();
                         }
                         if (!hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
@@ -1533,6 +1517,7 @@ public class AutoSanBoss implements Runnable {
                     if (boss != null) {
                         teleportToBoss(boss);
                         lockBossFocus();
+                        attackBossDirectly(boss);
                     }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -1553,6 +1538,7 @@ public class AutoSanBoss implements Runnable {
                             if (boss != null) {
                                 teleportToBoss(boss);
                                 lockBossFocus();
+                                attackBossDirectly(boss);
                             }
                             continue;
                         }
@@ -1576,8 +1562,6 @@ public class AutoSanBoss implements Runnable {
                             }
                             lockBossFocus();
                             attackBossDirectly(boss);
-                        } else if (isGhostAttack) {
-                            doBossGhostAttack();
                         }
                         if (!hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
@@ -1661,6 +1645,7 @@ public class AutoSanBoss implements Runnable {
                     if (boss != null) {
                         teleportToBoss(boss);
                         lockBossFocus();
+                        attackBossDirectly(boss);
                     }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -1681,6 +1666,7 @@ public class AutoSanBoss implements Runnable {
                             if (boss != null) {
                                 teleportToBoss(boss);
                                 lockBossFocus();
+                                attackBossDirectly(boss);
                             }
                             continue;
                         }
@@ -1704,8 +1690,6 @@ public class AutoSanBoss implements Runnable {
                             }
                             lockBossFocus();
                             attackBossDirectly(boss);
-                        } else if (isGhostAttack) {
-                            doBossGhostAttack();
                         }
                         if (!hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
@@ -2494,50 +2478,6 @@ public class AutoSanBoss implements Runnable {
         } catch (Exception e) {}
     }
 
-    /**
-     * Ghost Attack: Danh boss tu xa xuyen toan map va lao vao ap sat ngay.
-     */
-    public static void doBossGhostAttack() {
-        try {
-            Char myChar = Char.getMyChar();
-            if (myChar == null || myChar.statusMe == 14 || myChar.cHP <= 0) return;
-
-            Mob boss = findBossMob();
-            if (boss == null || boss.hp <= 0 || boss.status == 0) return;
-
-            int dx = boss.x - myChar.cx;
-            int dy = boss.y - myChar.cy;
-            int dist = Math.abs(dx) + Math.abs(dy);
-            if (dist > ghostRange) return;
-
-            // 1. Ghim target
-            myChar.mobFocus = boss;
-
-            // 2. Chon skill danh
-            int bestSkillId = findBestAttackSkill(myChar);
-            if (bestSkillId >= 0) {
-                try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
-            }
-
-            // 3. Gui attack truc tiep toi boss (danh xa xuyen map)
-            MyVector mobs = new MyVector();
-            mobs.addElement(boss);
-            MyVector chars = new MyVector();
-            int atkType = bestSkillId >= 0 ? 2 : 1;
-            Service.gI().gameAA(mobs, chars, atkType);
-
-            if (ExploitConfig.isFastAttack && ExploitConfig.isActive()) {
-                for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
-                    Service.gI().gameAA(mobs, chars, atkType);
-                }
-            }
-
-            // 4. Teleport thang den sat boss ngay lap tuc neu con o xa
-            if (Math.abs(dx) > 45 || Math.abs(dy) > 45) {
-                teleportToBoss(boss);
-            }
-        } catch (Exception e) {}
-    }
 
     /**
      * Gui lenh party thong bao tim thay boss chay ngam trong background de KHONG lam cham Leader tan cong.
@@ -3209,12 +3149,6 @@ public class AutoSanBoss implements Runnable {
                 Mob boss = findBossMob();
                 if (boss != null) {
                     teleportToBoss(boss);
-                }
-
-                // 1. Ghost attack tu xa ngay lap tuc
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                } else if (boss != null) {
                     attackBossDirectly(boss);
                 }
 
@@ -3269,6 +3203,7 @@ public class AutoSanBoss implements Runnable {
                         Mob bRespawn = findBossMob();
                         if (bRespawn != null) {
                             teleportToBoss(bRespawn);
+                            attackBossDirectly(bRespawn);
                         }
                         try {
                             PkBoss pk2 = new PkBoss(195);
@@ -3276,11 +3211,6 @@ public class AutoSanBoss implements Runnable {
                             Code.gameAA(pk2);
                         } catch (Exception e2) {}
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
-                        } else if (bRespawn != null) {
-                            attackBossDirectly(bRespawn);
-                        }
                         sleep(100);
                         continue;
                     }
@@ -3312,13 +3242,9 @@ public class AutoSanBoss implements Runnable {
                                 teleportToBoss(bLoop);
                             }
                         }
-                    }
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
-                    } else if (bLoop != null) {
                         attackBossDirectly(bLoop);
                     }
+                    lockBossFocus();
                     sleep(100);
                 }
 
@@ -3587,12 +3513,6 @@ public class AutoSanBoss implements Runnable {
                 Mob boss = findBossMob();
                 if (boss != null) {
                     teleportToBoss(boss);
-                }
-
-                // 1. Ghost attack tu xa ngay lap tuc
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                } else if (boss != null) {
                     attackBossDirectly(boss);
                 }
 
@@ -3647,6 +3567,7 @@ public class AutoSanBoss implements Runnable {
                         Mob bRespawn = findBossMob();
                         if (bRespawn != null) {
                             teleportToBoss(bRespawn);
+                            attackBossDirectly(bRespawn);
                         }
                         try {
                             PkBoss pk2 = new PkBoss(196);
@@ -3654,11 +3575,6 @@ public class AutoSanBoss implements Runnable {
                             Code.gameAA(pk2);
                         } catch (Exception e2) {}
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
-                        } else if (bRespawn != null) {
-                            attackBossDirectly(bRespawn);
-                        }
                         sleep(100);
                         continue;
                     }
@@ -3690,13 +3606,10 @@ public class AutoSanBoss implements Runnable {
                                 teleportToBoss(bLoop);
                             }
                         }
-                    }
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
-                    } else if (bLoop != null) {
                         attackBossDirectly(bLoop);
                     }
+                    lockBossFocus();
+                    sleep(100);
                     sleep(100);
                 }
 
@@ -3963,12 +3876,6 @@ public class AutoSanBoss implements Runnable {
                 Mob boss = findBossMob();
                 if (boss != null) {
                     teleportToBoss(boss);
-                }
-
-                // 1. Ghost attack tu xa ngay lap tuc
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                } else if (boss != null) {
                     attackBossDirectly(boss);
                 }
 
@@ -4030,9 +3937,7 @@ public class AutoSanBoss implements Runnable {
                             Code.gameAA(pk2);
                         } catch (Exception e2) {}
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
-                        } else if (bRespawn != null) {
+                        if (bRespawn != null) {
                             attackBossDirectly(bRespawn);
                         }
                         sleep(100);
@@ -4068,9 +3973,7 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
                     lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
-                    } else if (bLoop != null) {
+                    if (bLoop != null) {
                         attackBossDirectly(bLoop);
                     }
                     sleep(100);
@@ -4143,12 +4046,6 @@ public class AutoSanBoss implements Runnable {
                 Mob boss = findBossMob();
                 if (boss != null) {
                     teleportToBoss(boss);
-                }
-
-                // 1. Ghost attack danh xa ngay lap tuc + lock focus
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                } else if (boss != null) {
                     attackBossDirectly(boss);
                 }
 
@@ -4207,9 +4104,7 @@ public class AutoSanBoss implements Runnable {
                             Code.gameAA(pk2);
                         } catch (Exception e2) {}
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
-                        } else if (bRespawn != null) {
+                        if (bRespawn != null) {
                             attackBossDirectly(bRespawn);
                         }
                         sleep(100);
@@ -4245,9 +4140,7 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
                     lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
-                    } else if (bLoop != null) {
+                    if (bLoop != null) {
                         attackBossDirectly(bLoop);
                     }
                     sleep(100);
@@ -4315,22 +4208,14 @@ public class AutoSanBoss implements Runnable {
                         memberTargetZone = TileMap.zoneID;
                         teleportToBoss(curZoneBoss);
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
+                        attackBossDirectly(curZoneBoss);
+                        if (Code.gameAB instanceof PkBoss) {
+                            Code.gameAB.mapID = TileMap.mapID;
+                            Code.gameAB.zoneID = TileMap.zoneID;
                         } else {
-                            attackBossDirectly(curZoneBoss);
-                        }
-                        if (!isGhostAttack) {
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAB.mapID = TileMap.mapID;
-                                Code.gameAB.zoneID = TileMap.zoneID;
-                            } else {
-                                PkBoss pk = new PkBoss(TileMap.mapID);
-                                pk.zoneID = TileMap.zoneID;
-                                Code.gameAA(pk);
-                            }
-                        } else {
-                            restoreDummyAuto();
+                            PkBoss pk = new PkBoss(TileMap.mapID);
+                            pk.zoneID = TileMap.zoneID;
+                            Code.gameAA(pk);
                         }
                     } else if (memberTargetMap > 0) {
                         // 1. Neu chua o dung map boss -> Di chuyen toi map
@@ -4363,26 +4248,18 @@ public class AutoSanBoss implements Runnable {
                                     memberTargetZone = TileMap.zoneID;
                                     teleportToBoss(boss);
                                     lockBossFocus();
-                                    if (isGhostAttack) {
-                                        doBossGhostAttack();
-                                    } else {
-                                        attackBossDirectly(boss);
-                                    }
+                                    attackBossDirectly(boss);
                                 }
                                 int effectiveZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                                if (!isGhostAttack) {
-                                    if (!(Code.gameAB instanceof PkBoss)) {
-                                        PkBoss pk = new PkBoss(memberTargetMap);
-                                        pk.zoneID = effectiveZone;
-                                        Code.gameAA(pk);
-                                    } else {
-                                        Code.gameAB.mapID = memberTargetMap;
-                                        if (Code.gameAB.zoneID != effectiveZone) {
-                                            Code.gameAB.zoneID = effectiveZone;
-                                        }
-                                    }
+                                if (!(Code.gameAB instanceof PkBoss)) {
+                                    PkBoss pk = new PkBoss(memberTargetMap);
+                                    pk.zoneID = effectiveZone;
+                                    Code.gameAA(pk);
                                 } else {
-                                    restoreDummyAuto();
+                                    Code.gameAB.mapID = memberTargetMap;
+                                    if (Code.gameAB.zoneID != effectiveZone) {
+                                        Code.gameAB.zoneID = effectiveZone;
+                                    }
                                 }
                             }
                         }
@@ -4939,11 +4816,6 @@ public class AutoSanBoss implements Runnable {
                 Mob boss = findBossMob();
                 if (boss != null) {
                     teleportToBoss(boss);
-                }
-
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                } else if (boss != null) {
                     attackBossDirectly(boss);
                 }
 
@@ -5001,9 +4873,7 @@ public class AutoSanBoss implements Runnable {
                             Code.gameAA(pk2);
                         } catch (Exception e2) {}
                         lockBossFocus();
-                        if (isGhostAttack) {
-                            doBossGhostAttack();
-                        } else if (bRespawn != null) {
+                        if (bRespawn != null) {
                             attackBossDirectly(bRespawn);
                         }
                         sleep(100);
@@ -5038,9 +4908,7 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
                     lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
-                    } else if (bLoop != null) {
+                    if (bLoop != null) {
                         attackBossDirectly(bLoop);
                     }
                     sleep(100);
@@ -5081,9 +4949,6 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = TileMap.zoneID;
                 GameScr.gameAC("TREO: Boss LTT M" + mapID + " K" + bossZone + "!");
                 notifyPartyBossFound(mapID, bossZone);
-                if (isGhostAttack) {
-                    doBossGhostAttack();
-                }
                 GameScr.gameAC("TREO: \u0110\u00e3 g\u1ecdi nh\u00f3m, \u0111\u1ee9ng ch\u1edd t\u1ea1i LTT M" + mapID + " K" + bossZone);
                 return true;
             }
