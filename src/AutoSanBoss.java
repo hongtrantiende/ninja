@@ -1281,6 +1281,15 @@ public class AutoSanBoss implements Runnable {
 
                     GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LC M" + targetMap + " K" + targetZone);
                     restoreDummyAuto();
+                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
+                    Mob boss = null;
+                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
+                        sleep(100L);
+                    }
+                    if (boss != null) {
+                        teleportToBoss(boss);
+                        lockBossFocus();
+                    }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1291,7 +1300,12 @@ public class AutoSanBoss implements Runnable {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
                             }
-                            sleep(1000L);
+                            sleep(500L);
+                            boss = findBossMob();
+                            if (boss != null) {
+                                teleportToBoss(boss);
+                                lockBossFocus();
+                            }
                             continue;
                         }
                         if (isDisconnected()) {
@@ -1303,16 +1317,29 @@ public class AutoSanBoss implements Runnable {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
-                        lockBossFocus();
-                        if (isGhostAttack) doBossGhostAttack();
+                        boss = findBossMob();
+                        if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            Char me = Char.getMyChar();
+                            if (me != null) {
+                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
+                                if (dist > 70) {
+                                    teleportToBoss(boss);
+                                }
+                            }
+                            lockBossFocus();
+                            attackBossDirectly(boss);
+                        } else if (isGhostAttack) {
+                            doBossGhostAttack();
+                        }
                         if (!hasBossOnCurrentMap() && !isDead()) {
-                            sleep(3000L);
+                            sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                grabAllItems();
                                 break;
                             }
                         }
-                        sleep(500L);
+                        sleep(300L);
                     }
                     memberTargetZone = -1;
                     if (Code.gameAB instanceof PkBoss) {
@@ -1368,6 +1395,15 @@ public class AutoSanBoss implements Runnable {
 
                     GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LTT M" + targetMap + " K" + targetZone);
                     restoreDummyAuto();
+                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
+                    Mob boss = null;
+                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
+                        sleep(100L);
+                    }
+                    if (boss != null) {
+                        teleportToBoss(boss);
+                        lockBossFocus();
+                    }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1378,7 +1414,12 @@ public class AutoSanBoss implements Runnable {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
                             }
-                            sleep(1000L);
+                            sleep(500L);
+                            boss = findBossMob();
+                            if (boss != null) {
+                                teleportToBoss(boss);
+                                lockBossFocus();
+                            }
                             continue;
                         }
                         if (isDisconnected()) {
@@ -1390,16 +1431,29 @@ public class AutoSanBoss implements Runnable {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
-                        lockBossFocus();
-                        if (isGhostAttack) doBossGhostAttack();
+                        boss = findBossMob();
+                        if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            Char me = Char.getMyChar();
+                            if (me != null) {
+                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
+                                if (dist > 70) {
+                                    teleportToBoss(boss);
+                                }
+                            }
+                            lockBossFocus();
+                            attackBossDirectly(boss);
+                        } else if (isGhostAttack) {
+                            doBossGhostAttack();
+                        }
                         if (!hasBossOnCurrentMap() && !isDead()) {
-                            sleep(3000L);
+                            sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                grabAllItems();
                                 break;
                             }
                         }
-                        sleep(500L);
+                        sleep(300L);
                     }
                     memberTargetZone = -1;
                     if (Code.gameAB instanceof PkBoss) {
@@ -1471,6 +1525,15 @@ public class AutoSanBoss implements Runnable {
 
                     GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss VIP M" + targetMap + " K" + targetZone);
                     restoreDummyAuto();
+                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
+                    Mob boss = null;
+                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
+                        sleep(100L);
+                    }
+                    if (boss != null) {
+                        teleportToBoss(boss);
+                        lockBossFocus();
+                    }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1485,7 +1548,12 @@ public class AutoSanBoss implements Runnable {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
                             }
-                            sleep(1000L);
+                            sleep(500L);
+                            boss = findBossMob();
+                            if (boss != null) {
+                                teleportToBoss(boss);
+                                lockBossFocus();
+                            }
                             continue;
                         }
                         if (isDisconnected()) {
@@ -1497,16 +1565,29 @@ public class AutoSanBoss implements Runnable {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
-                        lockBossFocus();
-                        if (isGhostAttack) doBossGhostAttack();
+                        boss = findBossMob();
+                        if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            Char me = Char.getMyChar();
+                            if (me != null) {
+                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
+                                if (dist > 70) {
+                                    teleportToBoss(boss);
+                                }
+                            }
+                            lockBossFocus();
+                            attackBossDirectly(boss);
+                        } else if (isGhostAttack) {
+                            doBossGhostAttack();
+                        }
                         if (!hasBossOnCurrentMap() && !isDead()) {
-                            sleep(3000L);
+                            sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                grabAllItems();
                                 break;
                             }
                         }
-                        sleep(500L);
+                        sleep(300L);
                     }
                     memberTargetZone = -1;
                     if (Code.gameAB instanceof PkBoss) {
@@ -1572,6 +1653,15 @@ public class AutoSanBoss implements Runnable {
 
                     GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss M" + targetMap + " K" + targetZone);
                     restoreDummyAuto();
+                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
+                    Mob boss = null;
+                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
+                        sleep(100L);
+                    }
+                    if (boss != null) {
+                        teleportToBoss(boss);
+                        lockBossFocus();
+                    }
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1586,7 +1676,12 @@ public class AutoSanBoss implements Runnable {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
                             }
-                            sleep(1000L);
+                            sleep(500L);
+                            boss = findBossMob();
+                            if (boss != null) {
+                                teleportToBoss(boss);
+                                lockBossFocus();
+                            }
                             continue;
                         }
                         if (isDisconnected()) {
@@ -1598,16 +1693,29 @@ public class AutoSanBoss implements Runnable {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
-                        lockBossFocus();
-                        if (isGhostAttack) doBossGhostAttack();
+                        boss = findBossMob();
+                        if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            Char me = Char.getMyChar();
+                            if (me != null) {
+                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
+                                if (dist > 70) {
+                                    teleportToBoss(boss);
+                                }
+                            }
+                            lockBossFocus();
+                            attackBossDirectly(boss);
+                        } else if (isGhostAttack) {
+                            doBossGhostAttack();
+                        }
                         if (!hasBossOnCurrentMap() && !isDead()) {
-                            sleep(3000L);
+                            sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                grabAllItems();
                                 break;
                             }
                         }
-                        sleep(500L);
+                        sleep(300L);
                     }
                     memberTargetZone = -1;
                     if (Code.gameAB instanceof PkBoss) {
@@ -2334,7 +2442,57 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Ghost Attack: Danh boss tu xa xuyen toan map va lao vao dan.
+     * Teleport truc tiep den sat canh boss (client + server), khong nhay tung doan 60px gay ao/giat
+     */
+    public static void teleportToBoss(Mob boss) {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar == null || boss == null) return;
+            int groundY = TileMap.gameAD(boss.x, boss.y);
+            int targetY = (groundY > 0 && Math.abs(groundY - boss.y) <= 150) ? groundY : boss.y;
+            int targetX = boss.x > myChar.cx ? (boss.x - 35) : (boss.x + 35);
+            if (targetX < 20) targetX = boss.x;
+            if (targetX > TileMap.pxw - 20) targetX = boss.x;
+
+            Char.gameAC(targetX, targetY);
+            myChar.cx = targetX;
+            myChar.cy = targetY;
+            Service.gI().gameAC(targetX, targetY);
+        } catch (Exception e) {}
+    }
+
+    /**
+     * Tan cong boss truc tiep bang skill danh tot nhat
+     */
+    public static void attackBossDirectly(Mob boss) {
+        try {
+            Char myChar = Char.getMyChar();
+            if (myChar == null || myChar.statusMe == 14 || myChar.cHP <= 0) return;
+            if (boss == null || boss.hp <= 0 || boss.status == 0) return;
+
+            myChar.mobFocus = boss;
+
+            int bestSkillId = findBestAttackSkill(myChar);
+            if (bestSkillId >= 0) {
+                try { Service.gI().gameAG(bestSkillId); } catch (Exception e) {}
+            }
+
+            MyVector mobs = new MyVector();
+            mobs.addElement(boss);
+            MyVector chars = new MyVector();
+            int atkType = bestSkillId >= 0 ? 2 : 1;
+            Service.gI().gameAA(mobs, chars, atkType);
+
+            if (ExploitConfig.isFastAttack && ExploitConfig.isActive()) {
+                for (int fa = 0; fa < ExploitConfig.FAST_ATTACK_COUNT; fa++) {
+                    Service.gI().gameAA(mobs, chars, atkType);
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /**
+     * Ghost Attack: Danh boss tu xa xuyen toan map va lao vao ap sat ngay.
      */
     public static void doBossGhostAttack() {
         try {
@@ -2371,12 +2529,9 @@ public class AutoSanBoss implements Runnable {
                 }
             }
 
-            // 4. Lao vao dan ve phia boss neu con o xa (buoc nhay 60px)
-            if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
-                int step = 60;
-                int nextX = myChar.cx + (dx > 0 ? Math.min(step, dx) : Math.max(-step, dx));
-                int nextY = myChar.cy + (dy > 0 ? Math.min(step, dy) : Math.max(-step, dy));
-                Char.gameAC(nextX, nextY);
+            // 4. Teleport thang den sat boss ngay lap tuc neu con o xa
+            if (Math.abs(dx) > 45 || Math.abs(dy) > 45) {
+                teleportToBoss(boss);
             }
         } catch (Exception e) {}
     }
@@ -2398,7 +2553,7 @@ public class AutoSanBoss implements Runnable {
      * Nhat nhanh tat ca item tren dat sau khi boss chet.
      * Cho 1.5s de do roi het, roi blast pickup 1 lan.
      */
-    private void grabAllItems() {
+    public static void grabAllItems() {
         sleep(1500);
         AutoPickup.grabOnce();
     }

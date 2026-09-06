@@ -1,5 +1,27 @@
 # Decisions Log
 
+## 2026-09-06 (Session 33): Nâng Cấp Thành Viên Nhóm Teleport Tức Thì Đến Sát Cạnh Boss, Xóa Bỏ Dịch Từng Khúc 60px Chậm Chạp
+- **Vấn đề:** Thành viên nhóm khi vào map boss di chuyển ra boss rất chậm, "dịch dịch chuyển từng khúc rồi cứ thế dịch đến khi ra chỗ boss chứ không tele ra boss đánh luôn trông ảo lắm".
+- **Nguyên nhân cốt lõi:**
+  1. Trong `doBossGhostAttack()`, khi nhân vật cách xa boss, code cũ dùng bước nhảy cứng `step = 60` pixel (`int nextX = myChar.cx + Math.min(step, dx)`) và chỉ gọi `Char.gameAC(nextX, nextY)` phía client mà không gửi packet tọa độ `Service.gI().gameAC` lên server.
+  2. Với map rộng hàng nghìn pixel, mỗi nhịp 500ms nhân vật chỉ nhích 60px, mất 15-20 lần (7-10 giây) mới tới được boss, tạo cảm giác giật cục, ảo và chậm chạp.
+  3. Trong 4 hàm điều khiển thành viên nhóm (`handleMemberNormalMap`, `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`): Khi thành viên vào map và chuyển vào khu boss, nhân vật đứng ở cổng map và không có lệnh tele ra boss; nếu tắt Ghost Attack thì nhân vật thậm chí đứng im ở cổng không di chuyển và không đánh.
+- **Giải pháp:**
+  1. Tạo hàm `teleportToBoss(Mob boss)`: Tính toán tọa độ mặt đất tại vị trí boss (`TileMap.gameAD(boss.x, boss.y)`), đặt nhân vật đứng cạnh boss 35px, cập nhật client (`Char.gameAC`) và gửi ngay packet tọa độ lên server (`Service.gI().gameAC(targetX, targetY)`).
+  2. Tạo hàm `attackBossDirectly(Mob boss)`: Cho phép thành viên tấn công trực tiếp bằng skill tối ưu nhất kèm fast attack bất kể có bật Ghost Attack hay không.
+  3. Thay thế bước nhảy 60px trong `doBossGhostAttack()` thành gọi trực tiếp `teleportToBoss(boss)` khi khoảng cách > 45px.
+  4. Cập nhật cả 4 hàm thành viên (`handleMemberNormalMap`, `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`):
+     - Vừa chuyển vào khu: đợi tải quái và tele 1 phát đến ngay cạnh boss tức thì.
+     - Trong vòng lặp đánh: nếu khoảng cách > 70px (boss bay/di chuyển), tele bám sát boss ngay lập tức.
+     - Đánh dồn dập với chu kỳ 300ms (thay vì 500ms).
+     - Khi hồi sinh quay lại khu: tele ngay đến boss.
+     - Khi boss chết: tự động gọi `grabAllItems()` hút sạch đồ rơi.
+- **Build & Verify:**
+  - Biên dịch 0 lỗi, J2ME bytecode downgrade 45.3 (77 class), đóng gói `Aeharuna.jar` & `NinjaNamod.jar` thành công.
+  - Tự động copy ra `/storage/emulated/0/Download/Aeharuna.jar` và `NinjaNamod.jar`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
+
 ## 2026-09-06 (Session 32): Fix Xóa Map Gốc Tàn Sát Khi Tắt Auto Ở Menu GameScr & Tự Động Lưu Map Gốc Khi Bật Tàn Sát Ở Menu
 - **Vấn đề:** Khi người dùng bật TS thì hệ thống lưu map gốc, nhưng khi tắt TS từ Menu Auto ("Tắt Auto" / command 1100073) thì hệ thống không xóa map gốc TS đã lưu, trên HUD màn hình vẫn hiển thị `[Gốc: M... K...]` và bot vẫn nhớ map gốc cũ.
 - **Nguyên nhân gốc rễ:**
