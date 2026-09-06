@@ -157,6 +157,8 @@ public final class AutoBossEvent implements Runnable {
 
         new Thread(new Runnable() {
             public void run() {
+                boolean wasSanBossRunning = AutoSanBoss.isRunning;
+                AutoSanBoss.isRunning = true;
                 try {
                     GameScr.gameAC("TSBoss Test [" + typeName + "]: B\u1eaft \u0111\u1ea7u test m\u00f4 ph\u1ecfng!");
                     eventStartTime = System.currentTimeMillis();
@@ -185,10 +187,16 @@ public final class AutoBossEvent implements Runnable {
 
                         boolean arrived = false;
                         if (testType == TEST_LANG_CO) {
+                            AutoSanBoss.exitCurrentMapIfNeeded(targetMap);
+                            ensureAlive();
                             arrived = AutoSanBoss.enterLangCoSpecificMap(targetMap);
                         } else if (testType == TEST_LANG_TT) {
+                            AutoSanBoss.exitCurrentMapIfNeeded(targetMap);
+                            ensureAlive();
                             arrived = AutoSanBoss.enterLangTTSpecificMap(targetMap);
                         } else if (testType == TEST_MAP_VIP) {
+                            AutoSanBoss.exitCurrentMapIfNeeded(targetMap);
+                            ensureAlive();
                             arrived = AutoSanBoss.enterMapVIP();
                         } else {
                             // Map Ngoai hoac VDMQ
@@ -226,9 +234,9 @@ public final class AutoBossEvent implements Runnable {
                         GameScr.gameAC("TSBoss Test: G\u1eb7p boss M" + targetMap + " K" + curZone + "! G\u1ecdi TV qua...");
                         sendParty("pkm " + targetMap + " " + curZone);
 
-                        // Dem nguoc 10s cho TV qua dung
-                        for (int w = 10; w > 0 && isEnabled && inEvent; w--) {
-                            if (w == 10 || w == 5 || w <= 2) {
+                        // Dem nguoc 15s cho TV qua dung
+                        for (int w = 15; w > 0 && isEnabled && inEvent; w--) {
+                            if (w == 15 || w == 10 || w == 5 || w <= 2) {
                                 GameScr.gameAC("TSBoss Test: Ch\u1edd TV qua M" + targetMap + " K" + curZone + " (" + w + "s)...");
                             }
                             sleep(1000L);
@@ -251,6 +259,8 @@ public final class AutoBossEvent implements Runnable {
 
                 } catch (Exception ex) {
                     finishEvent(false);
+                } finally {
+                    AutoSanBoss.isRunning = wasSanBossRunning;
                 }
             }
         }).start();

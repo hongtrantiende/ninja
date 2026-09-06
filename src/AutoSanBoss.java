@@ -1688,8 +1688,9 @@ public class AutoSanBoss implements Runnable {
      * Hoac qua 6 phut san boss -> tu ngat de tranh treo vo han.
      */
     public static boolean checkStillRunning() {
-        if (!isRunning) return false;
-        return true;
+        if (isRunning) return true;
+        if (AutoBossEvent.inEvent || AutoBossEvent.isEnabled) return true;
+        return false;
     }
 
     /**
@@ -2036,14 +2037,14 @@ public class AutoSanBoss implements Runnable {
                     TileMap.gameAJ(0);
                     TileMap.gameAF();
                 } catch (Exception e) {}
-                for (int w = 0; w < 30 && checkStillRunning() && TileMap.mapID == 138; w++) {
-                    sleep(50);
+                for (int w = 0; w < 60 && checkStillRunning() && TileMap.mapID == 138; w++) {
+                    sleep(100L);
                     if (isDead()) {
                         respawnFast();
                         break;
                     }
                 }
-                sleep(50);
+                sleep(200L);
             }
             if (TileMap.mapID == targetMap && !isDead()) return true;
         }
@@ -2483,8 +2484,8 @@ public class AutoSanBoss implements Runnable {
             TileMap.gameAJ(0);
             TileMap.gameAF();
         } catch (Exception e) {}
-        for (int w = 0; w < 30 && checkStillRunning() && TileMap.mapID != 138; w++) {
-            sleep(50);
+        for (int w = 0; w < 60 && checkStillRunning() && TileMap.mapID != 138; w++) {
+            sleep(100L);
         }
         return TileMap.mapID == 138;
     }
