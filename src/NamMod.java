@@ -48,10 +48,6 @@ public final class NamMod implements IActionListener {
     private static final int AUTO_BOSS_NOTICE = 120170;
     private static final int TS_XA = 120185;
 
-    // Hut Da & Hut Trang Bi
-    private static final int HUT_DA = 120191;
-    private static final int HUT_TB = 120192;
-
     private static final NamMod INSTANCE = new NamMod();
 
     private NamMod() {
@@ -83,8 +79,6 @@ public final class NamMod implements IActionListener {
         items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
         // === Hút VP & Tiện ích ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
-        items.addElement(command("  \u2514 H\u00fat \u0110\u00e1: " + onOff(AutoPickup.isHutDa), HUT_DA));
-        items.addElement(command("  \u2514 H\u00fat Trang B\u1ecb: " + onOff(AutoPickup.isHutTrangBi), HUT_TB));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
 
         String lvStatus = AutoLevel.isRunning
@@ -246,14 +240,6 @@ public final class NamMod implements IActionListener {
 
             case HUT_VP:
                 AutoPickup.toggle();
-                open();
-                return;
-            case HUT_DA:
-                AutoPickup.toggleHutDa();
-                open();
-                return;
-            case HUT_TB:
-                AutoPickup.toggleHutTrangBi();
                 open();
                 return;
             case HIDE_ITEM_DROP:
