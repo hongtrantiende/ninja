@@ -461,50 +461,74 @@ public class AutoSanBoss implements Runnable {
         Char.DungCoLenh = false;
     }
 
-    /** Finishes Lang Co hunt and uses NPC 7 at M138 to return to village. */
-    public static void finishLangCoAndExit() {
+    /** Kiem tra map co thuoc Lang Co (134-138) hay khong */
+    public static boolean isLangCoMap(int mapID) {
+        return (mapID >= 134 && mapID <= 138) || TileMap.isLangCo(mapID);
+    }
 
-        if (!TileMap.isLangCo(TileMap.mapID)) return;
+    /** Finishes Lang Co hunt and uses NPC 7 at M138 to return to village (khong tu sat). */
+    public static void finishLangCoAndExit() {
+        if (!isLangCoMap(TileMap.mapID)) return;
+
+        // Hoi sinh neu dang chet de co the di chuyen
+        if (isDead()) {
+            respawnFast();
+            sleep(300L);
+        }
 
         // Xoa sach item KDL
         cleanKhaoDiLenh();
         sleep(200L);
 
-        // Neu dang o cac map Lang Co (134-137), chuyen ve M138 (zone 0 = cong vao)
+        // Neu dang o cac map Lang Co (134-137), chay ra cong de ve M138 (cong lang)
         if (TileMap.mapID >= 134 && TileMap.mapID <= 137) {
-            try { Auto.gameAA(0); } catch (Exception e) {}
-            for (int w = 0; w < 50 && (TileMap.mapID >= 134 && TileMap.mapID <= 137); w++) {
-                sleep(100L);
+            GameScr.gameAC("TSB: Ch\u1ea1y ra c\u1ed5ng M138 \u0111\u1ec3 v\u1ec1 l\u00e0ng...");
+            for (int a = 0; a < 10 && TileMap.mapID >= 134 && TileMap.mapID <= 137; a++) {
+                if (isDead()) respawnFast();
+                returnToLangCoHub();
+                for (int w = 0; w < 30 && (TileMap.mapID >= 134 && TileMap.mapID <= 137); w++) {
+                    sleep(100L);
+                }
             }
         }
 
-        // O M138: dung NPC 7 nut so 4 (index 3) de ve lang
+        // O M138: dung NPC 7 nut so 4 (index 3, sub 0) de ve lang
         if (TileMap.mapID == 138) {
-            for (int retry = 0; retry < 3; retry++) {
+            GameScr.gameAC("TSB: G\u1ecdi NPC 7 t\u1ea1i M138 v\u1ec1 l\u00e0ng...");
+            if (isDead()) respawnFast();
+            Npc npc7 = GameScr.gameAI(7);
+            if (npc7 != null && (Math.abs(npc7.cx - Char.getMyChar().cx) > 30 || Math.abs(npc7.cy - Char.getMyChar().cy) > 30)) {
+                Char.gameAC(npc7.cx, npc7.cy);
+                sleep(200L);
+            }
+            for (int retry = 0; retry < 5; retry++) {
                 try {
                     GameCanvas.endDlg();
                     try { InfoDlg.gameAB(); } catch (Exception ed) {}
                     sleep(50L);
                     Service.gI().gameAH(7);
-                    sleep(50L);
+                    sleep(100L);
                     Service.gI().gameAC(7, 3, 0);
                 } catch (Exception e) {
                     sleep(1000L);
                     continue;
                 }
                 // Cho roi khoi Lang Co (toi da 10s)
-                for (int w = 0; w < 100 && TileMap.isLangCo(TileMap.mapID); w++) {
+                for (int w = 0; w < 100 && isLangCoMap(TileMap.mapID); w++) {
                     sleep(100L);
                 }
-                if (!TileMap.isLangCo(TileMap.mapID)) return;
+                if (!isLangCoMap(TileMap.mapID)) {
+                    GameScr.gameAC("TSB: \u0110\u00e3 r\u1eddi L\u00e0ng C\u1ed5 v\u1ec1 l\u00e0ng th\u00e0nh c\u00f4ng!");
+                    return;
+                }
                 sleep(500L);
             }
         }
 
-        // Fallback: neu NPC that bai, tu sat ve thon
-        if (TileMap.isLangCo(TileMap.mapID)) {
+        // Fallback: neu NPC that bai hoan toan sau 5 lan retry, moi tu sat ve thon
+        if (isLangCoMap(TileMap.mapID)) {
             suicideAndEnsureAlive();
-            for (int w = 0; w < 50 && TileMap.isLangCo(TileMap.mapID); w++) {
+            for (int w = 0; w < 50 && isLangCoMap(TileMap.mapID); w++) {
                 sleep(100L);
             }
         }
@@ -524,6 +548,60 @@ public class AutoSanBoss implements Runnable {
                 sleep(100L);
             }
         }
+    }
+
+    /**
+     * Chuyen map an toan tu map hien tai sang targetMap:
+     * - Neu dang o Lang Co (134-138):
+     *     + Neu targetMap cung o Lang Co -> khong lam gi (enterLangCoSpecificMap tu lo).
+     *     + Neu targetMap KHONG o Lang Co -> chay ra cong M138 goi NPC 7 ve lang (KHONG tu sat).
+     * - Neu dang o Lang TT (162-165):
+     *     + Neu targetMap cung o Lang TT -> khong lam gi.
+     *     + Neu targetMap KHONG o Lang TT -> tu sat ve lang.
+     * - Neu dang o VDMQ (139-148):
+     *     + Neu targetMap cung o VDMQ -> KHONG tu sat, chay thang qua map dich.
+     *     + Neu targetMap KHONG o VDMQ -> tu sat ve lang de qua map khac.
+     * - Neu dang o Map Ngoai:
+     *     + KHONG tu sat, giu nguyen de tu chay qua targetMap.
+     * - Neu dang o Map VIP (195, 196, 192):
+     *     + Neu targetMap khong phai VIP -> tu sat ve lang.
+     */
+    public static void exitCurrentMapIfNeeded(int targetMap) {
+        int curMap = TileMap.mapID;
+
+        // 1. Lang Co (134-138)
+        if (isLangCoMap(curMap)) {
+            if (!isLangCoMap(targetMap)) {
+                finishLangCoAndExit();
+            }
+            return;
+        }
+
+        // 2. Lang TT (162-165)
+        if (isLangTT(curMap)) {
+            if (!isLangTT(targetMap)) {
+                finishLangTTAndExit();
+            }
+            return;
+        }
+
+        // 3. VDMQ (139-148)
+        if (isVDMQ(curMap)) {
+            if (!isVDMQ(targetMap)) {
+                finishVDMQAndExit();
+            }
+            return;
+        }
+
+        // 4. Map VIP (195, 196, 192)
+        if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
+            if (targetMap != curMap) {
+                suicideAndEnsureAlive();
+            }
+            return;
+        }
+
+        // 5. Map Ngoai: khong tu sat, giu nguyen de tu chay qua targetMap!
     }
 
     /**
@@ -1155,13 +1233,7 @@ public class AutoSanBoss implements Runnable {
         memberMoveThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    int curMap = TileMap.mapID;
-                    if (isLangTT(curMap)) {
-                        finishLangTTAndExit();
-                    }
-                    if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
-                        suicideAndEnsureAlive();
-                    }
+                    exitCurrentMapIfNeeded(targetMap);
 
                     GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng C\u1ed5 M" + targetMap + "...");
                     if (!enterLangCoSpecificMap(targetMap)) {
@@ -1242,13 +1314,7 @@ public class AutoSanBoss implements Runnable {
         memberMoveThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    int curMap = TileMap.mapID;
-                    if (TileMap.isLangCo(curMap)) {
-                        finishLangCoAndExit();
-                    }
-                    if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
-                        suicideAndEnsureAlive();
-                    }
+                    exitCurrentMapIfNeeded(targetMap);
 
                     GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng TT M" + targetMap + "...");
                     if (!enterLangTTSpecificMap(targetMap)) {
@@ -1342,9 +1408,7 @@ public class AutoSanBoss implements Runnable {
         memberMoveThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    int curMap = TileMap.mapID;
-                    if (isLangTT(curMap)) finishLangTTAndExit();
-                    if (TileMap.isLangCo(curMap)) finishLangCoAndExit();
+                    exitCurrentMapIfNeeded(targetMap);
 
                     GameScr.gameAC("TSB-TV: V\u00e0o Map VIP M" + targetMap + "...");
                     boolean entered = false;
@@ -1434,12 +1498,7 @@ public class AutoSanBoss implements Runnable {
         memberMoveThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    int curMap = TileMap.mapID;
-                    if (isLangTT(curMap)) finishLangTTAndExit();
-                    if (TileMap.isLangCo(curMap)) finishLangCoAndExit();
-                    if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
-                        suicideAndEnsureAlive();
-                    }
+                    exitCurrentMapIfNeeded(targetMap);
 
                     GameScr.gameAC("TSB-TV: \u0110i t\u1edbi M" + targetMap + "...");
                     for (int attempt = 0; attempt < 30 && checkStillRunning() && TileMap.mapID != targetMap; attempt++) {
@@ -1995,22 +2054,11 @@ public class AutoSanBoss implements Runnable {
      * Dieu huong den map chi dinh (ho tro Map VIP 1, Map VIP 2, Lang Co, Lang TT, va Map thuong).
      * Tu dong hoi sinh va di tiep neu bi quai / nguoi danh chet tren duong.
      */
-    private boolean navigateToMap(int mapID) {
+    public static boolean navigateToMap(int mapID) {
         if (!checkStillRunning()) return false;
 
-        // 1. Thoat cac map gated/dac thu neu map dich khong nam cung khu vuc
-        if (TileMap.isLangCo(TileMap.mapID) && !TileMap.isLangCo(mapID)) {
-            finishLangCoAndExit();
-        }
-        if (isLangTT(TileMap.mapID) && !isLangTT(mapID)) {
-            finishLangTTAndExit();
-        }
-        if ((TileMap.mapID == 195 || TileMap.mapID == 196) && mapID != 195 && mapID != 196) {
-            suicideAndEnsureAlive();
-        }
-        if (isVDMQ(TileMap.mapID) && !isVDMQ(mapID)) {
-            finishVDMQAndExit();
-        }
+        // Thoat map hien tai neu can thiet
+        exitCurrentMapIfNeeded(mapID);
 
         if (mapID == 195) {
             if (TileMap.mapID == 195 && !isDead()) return true;
@@ -2446,6 +2494,7 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean treoScanMap(int mapID) {
         if (!checkStillRunning()) return false;
+        exitCurrentMapIfNeeded(mapID);
 
         // === XU LY LANG TT (M163-165) — cong co dinh ===
         if (mapID >= 163 && mapID <= 165) {
@@ -3766,22 +3815,11 @@ public class AutoSanBoss implements Runnable {
      */
     private boolean pkBossOnMap(int mapID) {
         if (!checkStillRunning()) return false;
+        exitCurrentMapIfNeeded(mapID);
         if (mapID >= 134 && mapID <= 137) {
             return pkLangCoMap(mapID);
         } else if (mapID >= 163 && mapID <= 165) {
             return pkLangTTMap(mapID);
-        } else {
-            if (TileMap.isLangCo(TileMap.mapID)) {
-                finishLangCoAndExit();
-            }
-            if (isLangTT(TileMap.mapID)) {
-                finishLangTTAndExit();
-            }
-            // Thoat Map VIP neu dang o (M195/M196 la gated map, PkBoss khong the thoat)
-            if (TileMap.mapID == 195 || TileMap.mapID == 196) {
-                GameScr.gameAC("TSB: Tho\u00e1t Map VIP \u0111\u1ec3 s\u0103n map kh\u00e1c...");
-                suicideAndEnsureAlive();
-            }
         }
         GameScr.gameAC("TSB: PK M" + mapID);
 

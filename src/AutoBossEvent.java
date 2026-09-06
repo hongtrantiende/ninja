@@ -256,25 +256,6 @@ public final class AutoBossEvent implements Runnable {
         AutoSanBoss.stopPartyMemberFully();
         Char.MuaCoLenh = false;
         Char.DungCoLenh = false;
-        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
-            AutoSanBoss.cleanKhaoDiLenh();
-            sleep(300L);
-            try { Code.gameAN(); } catch (Exception e) {}
-            sleep(800L);
-            // Fallback: neu gameAN khong tu sat (item 35/37 chua xoa kip) -> gui truc tiep
-            if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
-                try { Service.gI().gameAE(); } catch (Exception e) {}
-                sleep(800L);
-            }
-            // Hoi sinh sau tu sat de tranh member bi ket trang thai chet
-            ensureAlive();
-        }
-        if (AutoSanBoss.isLangTT(TileMap.mapID)) {
-            AutoSanBoss.finishLangTTAndExit();
-            ensureAlive();
-        }
-        // Hoi sinh neu dang chet (truong hop bi giet truoc khi nhan pkm -5)
-        ensureAlive();
         if (savedMap < 0) {
             loadSavedStateFromRMS();
         }
@@ -283,6 +264,20 @@ public final class AutoBossEvent implements Runnable {
             if (AutoVipMap.isEnabled) savedMap = AutoVipMap.targetMapID;
             else if (AutoTuLuyen.isEnabled) savedMap = 192;
         }
+
+        // Hoi sinh neu dang chet
+        ensureAlive();
+
+        // Xu ly roi map theo quy tac:
+        // - Lang Co: chay ra cong M138 goi NPC 7 ve lang (KHONG tu sat)
+        // - Lang TT: tu sat ve lang
+        // - VDMQ: neu savedMap la VDMQ (139-148) -> khong tu sat; neu savedMap ngoai VDMQ -> tu sat ve lang
+        // - Map ngoai: khong tu sat, tu chay ve map cu
+        if (savedMap >= 0) {
+            AutoSanBoss.exitCurrentMapIfNeeded(savedMap);
+            ensureAlive();
+        }
+
         // Neu co savedMap -> ve map cu
         if (savedMap >= 0 || savedAuto != null || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled) {
             returnAndResume();
@@ -1008,9 +1003,13 @@ public final class AutoBossEvent implements Runnable {
         }
         membersSentBack = false;
         if (!disabledByUser) GameScr.gameAC("TSBoss: Ket thuc, quay lai TS");
-        // Leader xu ly thoat Lang Co truoc khi ve map cu
-        if (TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.isLangCo(TileMap.mapID)) {
-            AutoSanBoss.finishLangCoAndExit();
+        if (savedMap < 0) {
+            loadSavedStateFromRMS();
+        }
+        // Leader xu ly thoat map dac thu theo dung quy tac truoc khi ve map cu
+        if (savedMap >= 0) {
+            AutoSanBoss.exitCurrentMapIfNeeded(savedMap);
+            ensureAlive();
         }
         returnAndResume();
         sleep(2000L);
@@ -1088,45 +1087,19 @@ public final class AutoBossEvent implements Runnable {
                     if (isNpcMap) {
                         // === CHE DO VIP / TU LUYEN: Vao qua NPC 47 ===
                         if (TileMap.mapID != targetNpcMap) {
-                            GameScr.gameAC("TSBoss: T\u1ef1 s\u00e1t v\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M" + targetNpcMap + "...");
+                            GameScr.gameAC("TSBoss: V\u1ec1 th\u00f4n \u0111\u1ec3 v\u00e0o M" + targetNpcMap + "...");
                             // Xoa auto hien tai
                             LockGame.gameBK();
                             if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
                                 Code.gameAB = null;
                             }
-                            // Clean Lang Co neu con sot
-                            if (TileMap.isLangCo(TileMap.mapID) || TileMap.mapID == 135 || TileMap.mapID == 136 || TileMap.mapID == 138) {
-                                AutoSanBoss.cleanKhaoDiLenh();
-                                sleep(300L);
+                            // Thoat map dac thu theo quy tac
+                            AutoSanBoss.exitCurrentMapIfNeeded(targetNpcMap);
+                            ensureAlive();
+                            if (TileMap.mapID != targetNpcMap && !AutoSanBoss.isLangCoMap(TileMap.mapID)) {
+                                AutoSanBoss.suicideAndEnsureAlive();
+                                sleep(800L);
                             }
-                            // Tu sat
-                            try { Code.gameAN(); } catch (Exception e) {}
-                            sleep(500L);
-                            // Cho nhan vat chet (statusMe == 14 hoac cHP <= 0)
-                            for (int d = 0; d < 30; d++) {
-                                sleep(100L);
-                                try {
-                                    Char me2 = Char.getMyChar();
-                                    if (me2 != null && (me2.statusMe == 14 || me2.cHP <= 0)) break;
-                                } catch (Exception e) {}
-                            }
-                            // Hoi sinh ve lang (gameAK) - LUON LUON de ve thon co NPC 47
-                            for (int r = 0; r < 15; r++) {
-                                try {
-                                    Char me = Char.getMyChar();
-                                    if (me != null && me.statusMe != 14 && me.cHP > 0) break;
-                                    GameCanvas.endDlg();
-                                    sleep(20L);
-                                    Auto.gameAN.removeAllElements();
-                                    Auto.gameAM = false;
-                                    LockGame.gameAA = true;
-                                    Service.gI().gameAK(); // Ve lang (LUON LUON)
-                                    TileMap.gameAF();
-                                    LockGame.gameAA = false;
-                                    sleep(150L);
-                                } catch (Exception ex) { break; }
-                            }
-                            sleep(800L);
 
                             // Goi NPC 47 de vao targetNpcMap
                             GameScr.gameAC("TSBoss: G\u1ecdi NPC VIP v\u00e0o M" + targetNpcMap + "...");
@@ -1190,44 +1163,54 @@ public final class AutoBossEvent implements Runnable {
                     }
 
                     // === CHE DO BINH THUONG: Travel ve map cu ===
-                    // Hoi sinh neu dang chet truoc khi travel
                     ensureAlive();
-                    // Xoa lock va auto hien tai de tranh xung dot
                     LockGame.gameBK();
                     if (Code.gameAB != null && !(Code.gameAB instanceof PkBoss)) {
                         Code.gameAB = null;
                     }
-                    // Travel ve map cu voi retry toi da 5 lan
-                    for (int retry = 0; retry < 5 && TileMap.mapID != map; retry++) {
-                        if (retry > 0) {
-                            GameScr.gameAC("TSBoss: Th\u1eed l\u1ea1i l\u1ea7n " + (retry + 1) + "...");
-                            sleep(2000L);
-                            try { GameCanvas.endDlg(); } catch (Exception e) {}
-                            LockGame.gameBK();
+
+                    // Dam bao thoat map dac thu theo dung quy tac truoc khi chay
+                    AutoSanBoss.exitCurrentMapIfNeeded(map);
+                    ensureAlive();
+
+                    // Di chuyen ve map cu bang TileMap.GoMap hoac enterLangCo/LangTT
+                    if (map >= 134 && map <= 137) {
+                        AutoSanBoss.enterLangCoSpecificMap(map);
+                    } else if (map >= 163 && map <= 165) {
+                        AutoSanBoss.enterLangTTSpecificMap(map);
+                    } else {
+                        // Map thuong hoac VDMQ (neu cung VDMQ -> chay thang khong tu sat)
+                        for (int attempt = 0; attempt < 30 && TileMap.mapID != map; attempt++) {
+                            if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
+                                ensureAlive();
+                            }
+                            if (TileMap.mapID == map) break;
+                            try { TileMap.GoMap(map); } catch (Exception e) {}
+                            for (int w = 0; w < 30 && TileMap.mapID != map; w++) {
+                                sleep(100L);
+                                if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
+                            }
                         }
-                        PkBoss travel = new PkBoss(map);
-                        Code.gameAB = travel;
-                        for (int i = 0; i < 9000 && TileMap.mapID != map; i++) sleep(10L);
-                        if (Code.gameAB == travel) Code.gameAB = null;
                     }
 
-                    // Neu thu 5 lan van chua ve dung map -> Tu sat ve lang de vao lai
+                    // Fallback neu van chua ve duoc dung map (neu khong phai VDMQ cung he)
                     if (TileMap.mapID != map) {
-                        GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u00fang map sau 5 l\u1ea7n! T\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 \u0111i l\u1ea1i...");
+                        GameScr.gameAC("TSBoss: Ch\u01b0a v\u1ec1 \u0111\u00fang map! Th\u1eed t\u1ef1 s\u00e1t v\u1ec1 l\u00e0ng \u0111\u1ec3 \u0111i l\u1ea1i...");
                         try { Code.gameAN(); } catch (Exception e) {}
-                        sleep(1000L);
-                        if (Char.getMyChar() != null && Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
-                            try { Service.gI().gameAE(); } catch (Exception e) {}
-                            sleep(800L);
-                        }
+                        sleep(800L);
                         ensureAlive();
-                        sleep(1500L);
-                        // Re-navigate from village
-                        GameScr.gameAC("TSBoss: T\u1eeb l\u00e0ng \u0111i l\u1ea1i v\u1ec1 M" + map + "...");
-                        PkBoss travelFinal = new PkBoss(map);
-                        Code.gameAB = travelFinal;
-                        for (int i = 0; i < 9000 && TileMap.mapID != map; i++) sleep(10L);
-                        if (Code.gameAB == travelFinal) Code.gameAB = null;
+                        sleep(1000L);
+                        for (int attempt = 0; attempt < 30 && TileMap.mapID != map; attempt++) {
+                            if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) {
+                                ensureAlive();
+                            }
+                            if (TileMap.mapID == map) break;
+                            try { TileMap.GoMap(map); } catch (Exception e) {}
+                            for (int w = 0; w < 30 && TileMap.mapID != map; w++) {
+                                sleep(100L);
+                                if (Char.getMyChar() != null && (Char.getMyChar().statusMe == 14 || Char.getMyChar().cHP <= 0)) break;
+                            }
+                        }
                     }
 
                     // KIEM TRA CHAT CHE: Chi khi da ve DUNG MAP GOC moi khoi phuc TS!
