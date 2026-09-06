@@ -280,9 +280,17 @@ public class ChatRouter {
             return true;
         }
         
-        // === NHAT DO NHANH ===
-        if (text.equals("nhat")) {
+        // === NHAT DO NHANH / HUT VP ===
+        if (text.equals("nhat") || text.equals("hutvp")) {
             AutoPickup.toggle();
+            return true;
+        }
+        if (text.equals("hutda") || text.equals("nhatda")) {
+            AutoPickup.toggleHutDa();
+            return true;
+        }
+        if (text.equals("huttb") || text.equals("nhattb")) {
+            AutoPickup.toggleHutTrangBi();
             return true;
         }
         if (text.startsWith("nhat ")) {

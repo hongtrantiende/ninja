@@ -33,6 +33,25 @@ public class SplitPatcher {
                         }
                     }, 1100080, null);
                     var1.setElementAt(hutVp, i);
+
+                    // Nut bat tat Hut Da va Hut Trang Bi
+                    String labelDa = "H\u00fat \u0110\u00e1: " + (AutoPickup.isHutDa ? "ON" : "OFF");
+                    Command hutDa = new Command(labelDa, new IActionListener() {
+                        public void perform(int id, Object p) {
+                            AutoPickup.toggleHutDa();
+                        }
+                    }, 110008011, null);
+
+                    String labelTb = "H\u00fat Trang B\u1ecb: " + (AutoPickup.isHutTrangBi ? "ON" : "OFF");
+                    Command hutTb = new Command(labelTb, new IActionListener() {
+                        public void perform(int id, Object p) {
+                            AutoPickup.toggleHutTrangBi();
+                        }
+                    }, 110008012, null);
+
+                    var1.insertElementAt(hutTb, i + 1);
+                    var1.insertElementAt(hutDa, i + 1);
+                    i += 2;
                 }
                 // Nut "Tach" goc trong GameScr co idAction = 110244
                 if (cmd.idAction == 110244) {

@@ -131,8 +131,10 @@ public final class TsConfig implements CommandListener {
         form.append(tfGhostRange);
 
         // === Hut VP (Auto Pickup) ===
-        cgAutoPickup = new ChoiceGroup("H\u00fat VP (Nh\u1eb7t ALL to\u00e0n map)", Choice.MULTIPLE);
+        cgAutoPickup = new ChoiceGroup("H\u00fat VP (Auto Pickup)", Choice.MULTIPLE);
         cgAutoPickup.append("B\u1eadt H\u00fat VP", null);
+        cgAutoPickup.append("H\u00fat \u0110\u00e1 (N.Li\u1ec7u)", null);
+        cgAutoPickup.append("H\u00fat Trang B\u1ecb", null);
         form.append(cgAutoPickup);
 
         tfPickupScanInterval = new TextField("T\u1ed1c \u0111\u1ed9 qu\u00e9t VP (ms)", "", 10, TextField.NUMERIC);
@@ -177,6 +179,8 @@ public final class TsConfig implements CommandListener {
 
         // AutoPickup
         cgAutoPickup.setSelectedIndex(0, AutoPickup.isRunning);
+        cgAutoPickup.setSelectedIndex(1, AutoPickup.isHutDa);
+        cgAutoPickup.setSelectedIndex(2, AutoPickup.isHutTrangBi);
         tfPickupScanInterval.setString(String.valueOf(AutoPickup.SCAN_INTERVAL_MS));
         tfPickupGrabDelay.setString(String.valueOf(AutoPickup.GRAB_DELAY_MS));
         tfPickupGhostRange.setString(String.valueOf(AutoPickup.GHOST_RANGE));
@@ -298,6 +302,8 @@ public final class TsConfig implements CommandListener {
             // === AutoPickup ===
             boolean wasPickup = AutoPickup.isRunning;
             boolean pickupSelected = cgAutoPickup.isSelected(0);
+            AutoPickup.isHutDa = cgAutoPickup.isSelected(1);
+            AutoPickup.isHutTrangBi = cgAutoPickup.isSelected(2);
 
             try {
                 int v = safeParseInt(tfPickupScanInterval.getString(), -1);

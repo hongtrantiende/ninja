@@ -13,6 +13,10 @@ public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
+    // === TOGGLES LOAI VAT PHAM HUT ===
+    public static boolean isHutDa = true;       // Hut Da / Nguyen lieu (type 26)
+    public static boolean isHutTrangBi = true;  // Hut Trang bi (type 0-15)
+
     // === CONFIG DEFAULTS ===
     public static final int DEF_SCAN_INTERVAL_MS = 150;     // 150ms giua moi vong quet
     public static final int DEF_GRAB_DELAY_MS = 0;          // 0ms delay moi item khi hut
@@ -39,11 +43,25 @@ public class AutoPickup implements Runnable {
     public static void toggle() {
         if (isRunning) {
             stop();
-            GameScr.gameAC("T\u1eaft h\u00FAt VP (All)!");
+            GameScr.gameAC("T\u1eaft h\u00fat VP!");
         } else {
             start();
-            GameScr.gameAC("B\u1eadt h\u00FAt VP (All)!");
+            GameScr.gameAC("B\u1eadt h\u00fat VP!");
         }
+    }
+
+    /** Toggle hut Da */
+    public static void toggleHutDa() {
+        isHutDa = !isHutDa;
+        saveConfigToRMS();
+        GameScr.gameAC("H\u00fat \u0110\u00e1: " + (isHutDa ? "B\u1eacT" : "T\u1eaeT (B\u1ecf qua)"));
+    }
+
+    /** Toggle hut Trang Bi */
+    public static void toggleHutTrangBi() {
+        isHutTrangBi = !isHutTrangBi;
+        saveConfigToRMS();
+        GameScr.gameAC("H\u00fat Trang B\u1ecb: " + (isHutTrangBi ? "B\u1eacT" : "T\u1eaeT (B\u1ecf qua)"));
     }
 
     public static void start() {
@@ -86,12 +104,30 @@ public class AutoPickup implements Runnable {
     }
 
     /**
+     * Kiem tra xem item co phai la Da / Nguyen lieu khong (type == 26).
+     */
+    public static boolean isDa(ItemMap item) {
+        if (item == null || item.template == null) return false;
+        return item.template.type == 26;
+    }
+
+    /**
+     * Kiem tra xem item co phai la Trang bi khong (vu khi, trang phuc, trang suc... type 0..15).
+     */
+    public static boolean isTrangBi(ItemMap item) {
+        if (item == null || item.template == null) return false;
+        return item.template.gameAA();
+    }
+
+    /**
      * Kiem tra item co the nhat khong.
-     * Nhat ALL: khong loc, khong bo trang bi, chi bo item null hoac da nhat/bien mat (status == 2).
+     * Ho tro loc bo Da va Trang bi neu user tat trong cai dat.
      */
     private static boolean shouldPickup(ItemMap item) {
         if (item == null) return false;
         if (item.status == 2) return false;
+        if (!isHutDa && isDa(item)) return false;
+        if (!isHutTrangBi && isTrangBi(item)) return false;
         return true;
     }
 
@@ -208,10 +244,10 @@ public class AutoPickup implements Runnable {
 
     // ===================== RMS =====================
 
-    /** Luu config vao RMS. Format: "scanInterval;grabDelay;ghostRange" */
+    /** Luu config vao RMS. Format: "scanInterval;grabDelay;ghostRange;isHutDa;isHutTrangBi" */
     public static void saveConfigToRMS() {
         try {
-            String data = SCAN_INTERVAL_MS + ";" + GRAB_DELAY_MS + ";" + GHOST_RANGE;
+            String data = SCAN_INTERVAL_MS + ";" + GRAB_DELAY_MS + ";" + GHOST_RANGE + ";" + (isHutDa ? 1 : 0) + ";" + (isHutTrangBi ? 1 : 0);
             RMS.gameAA("auto_pickup_cfg", data);
         } catch (Exception e) {}
     }
@@ -221,9 +257,9 @@ public class AutoPickup implements Runnable {
         try {
             String data = RMS.gameAC("auto_pickup_cfg");
             if (data != null && data.length() > 0) {
-                int[] vals = new int[3];
+                int[] vals = new int[5];
                 int idx = 0, start = 0;
-                for (int i = 0; i <= data.length() && idx < 3; i++) {
+                for (int i = 0; i <= data.length() && idx < 5; i++) {
                     if (i == data.length() || data.charAt(i) == ';') {
                         vals[idx++] = Integer.parseInt(data.substring(start, i).trim());
                         start = i + 1;
@@ -244,6 +280,12 @@ public class AutoPickup implements Runnable {
                     if (GHOST_RANGE < 0) GHOST_RANGE = 0;
                     if (GHOST_RANGE > 9999) GHOST_RANGE = 9999;
                 }
+                if (idx >= 4) {
+                    isHutDa = (vals[3] == 1);
+                }
+                if (idx >= 5) {
+                    isHutTrangBi = (vals[4] == 1);
+                }
             }
         } catch (Exception e) {}
     }
@@ -253,5 +295,7 @@ public class AutoPickup implements Runnable {
         SCAN_INTERVAL_MS = DEF_SCAN_INTERVAL_MS;
         GRAB_DELAY_MS = DEF_GRAB_DELAY_MS;
         GHOST_RANGE = DEF_GHOST_RANGE;
+        isHutDa = true;
+        isHutTrangBi = true;
     }
 }
