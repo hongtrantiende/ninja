@@ -1,168 +1,205 @@
-# Architecture Map — Ninja School Modding
+# Kiến Trúc Hệ Thống (Architecture Map) — Ninja School JAR Modding
 
-## Core Game Classes (Obfuscated)
+> **Mục đích:** Tài liệu tham khảo kiến trúc toàn diện cho dự án mod `NinjaNamod.jar`.
+> Phản ánh chính xác cấu trúc game gốc (obfuscated classes), hệ thống mã nguồn mod trong `src/`, giao thức nhóm, cơ chế di chuyển/rời map và quy trình đóng gói JAR.
 
-### Code (Code.class / Code.java)
-- **`gameAB`** (`Auto`): Field chính quyết định auto đang chạy. Nếu != null → menu hiện "Tắt Auto".
-- **`gameAA(Auto)`**: Push auto vào stack (`gameAB = auto`).
-- **`gameAC()`**: Pop auto stack (`gameAB = gameAB.reAB`).
-- **`gameAF(String)`**: Handler lệnh chat từ user. Gọi từ GameScr → **ChatRouter.checkAll** → Code.gameAF (wrapped).
-- **`gameAH`** (`String`): Tên nhóm trưởng.
-- **`gameCC`** (`TanSat`): Instance TanSat singleton.
-- Chat handler nằm HOÀN TOÀN trong compiled Code.class. Code.java source chỉ chứa run(), party receiver, field declarations.
-- **⚠️ KHÔNG PATCH Code.class bytecode trực tiếp** — dùng Methodref Replacement qua GameScr (xem ChatRouter).
+---
 
-### Auto (Auto.class) — Abstract base
-- **`gameAK()`**: Abstract method — game loop gọi liên tục. BẮT BUỘC override.
-- **`gameAC()`**: Gọi khi auto dừng.
+## 1. Cấu Trúc Các Class Game Gốc (Obfuscated Classes)
+
+### `Code` (`Code.class` / `src/Code.java`)
+- **`gameAB`** (`Auto`): Con trỏ auto hiện tại. Nếu `gameAB != null` → menu chính hiện "Tắt Auto".
+- **`gameAA(Auto)`**: Đẩy auto vào stack (`gameAB = auto`).
+- **`gameAC()`**: Gỡ auto khỏi stack (`gameAB = gameAB.reAB`).
+- **`gameAF(String)`**: Xử lý lệnh chat từ người chơi. Đã được hook sang `ChatRouter.checkAll(String)` tại `GameScr.class`.
+- **`gameAH`** (`String`): Tên nhóm trưởng (Party Leader).
+- **`gameCC`** (`TanSat`): Instance singleton của chức năng Tàn Sát gốc.
+- **`gameAN()`**: Lệnh tự sát nhanh (gửi packet tự sát về làng).
+- **⚠️ Lưu ý:** KHÔNG bao giờ patch bytecode `Code.class` trực tiếp. Mọi lệnh chat mở rộng đều đi qua `ChatRouter`.
+
+### `Auto` (`Auto.class` / `src/Auto.java`)
+- Lớp trừu tượng (abstract base) cho mọi chế độ auto trong game.
+- **`gameAK()`**: Abstract method — được game loop gọi liên tục khi auto đang chạy.
+- **`gameAC()`**: Gọi khi auto kết thúc.
 - **`gameAD()`**: Gọi khi auto bắt đầu.
 - **`mapID`** (`int`): Map mục tiêu.
-- **`zoneID`** (`int`): Khu mục tiêu. `-2` = chế độ quét tất cả khu.
-- **`reAB`** (`Auto`): Auto trước đó trong stack (linked list).
-- **`gameAK`** (`static boolean`): Cờ static, dùng cho logic khác.
+- **`zoneID`** (`int`): Khu mục tiêu (`-2` = chế độ quét khu).
+- **`reAB`** (`Auto`): Tham chiếu đến auto trước đó trong stack (danh sách liên kết).
 
-### PkBoss (PkBoss.class)
-- Extends `Auto`. Constructor `PkBoss(mapID)` → set `zoneID = -2` (quét mode).
-- **`gameAK()` loop tự động:**
-  1. Chuyển map đến `mapID`
-  2. Quét tất cả khu khi `zoneID == -2`
-  3. Khi tìm boss → set `zoneID = TileMap.zoneID`, bắt đầu đánh
-  4. Gửi `Service.gameAK("pkm " + mapID + " " + zoneID + " " + templateId)` cho nhóm
-  5. Gửi `Service.gameAK("pkk " + zoneID)` cho nhóm
-  6. Khi xong gửi `"pke"` → `Code.gameAC()` pop auto stack
+### `PkBoss` (`PkBoss.class`)
+- Kế thừa từ `Auto`. Nguyên bản trong game được dùng để tự động dò và đánh boss.
+- **⚠️ Lưu ý quan trọng cho Modding:**
+  - Thành viên nhóm **KHÔNG** dùng `PkBoss` vì `PkBoss` tự động quét khu, đánh lan man và tự ý gửi packet `pkm`/`pkk`/`pke` gây xung đột.
+  - Thành viên nhóm sử dụng vòng lặp đánh tại chỗ riêng (`handleMemberLangCo`, `handleMemberLangTT`, `handleMemberNormalMap`).
+  - Quá trình quay về map cũ (`returnAndResume`) dùng trực tiếp `TileMap.GoMap(savedMap)` thay cho `PkBoss`.
 
-### Service (Service.class)
-- **`gI()`**: Singleton.
-- **`gameAK(String)`**: Gửi party chat message.
-- **`gameAF()`**: Gửi lệnh hồi sinh (về nhà).
-- **`gameAA(int, int)`**: KHÔNG phải chuyển khu! Đây là method khác.
+### `Service` (`Service.class`)
+- Singleton mạng gửi packet lên máy chủ:
+  - **`gI()`**: Lấy instance singleton.
+  - **`gameAK(String)`**: Gửi tin nhắn chat nhóm (party chat / pkm / pkk).
+  - **`gameAF()`**: Gửi lệnh hồi sinh về nhà.
+  - **`gameAL()`**: Hồi sinh bằng lượng tại chỗ.
+  - **`gameAH(int npcId)`**: Mở menu tương tác với NPC (ví dụ: NPC 7 ở Làng Cổ, NPC 47 ở Map VIP).
+  - **`gameAC(int npcId, int menuIdx, int subIdx)`**: Chọn dòng menu NPC.
+  - **`gameAQ(int itemMapId)`**: Gửi packet nhặt vật phẩm rơi trên đất.
+  - **`gameAA(int zoneId, int itemIndex)`**: Đổi khu vực.
 
-### TileMap (TileMap.class)
-- **`mapID`** (`short`): Map hiện tại.
+### `TileMap` (`TileMap.class`)
+- **`mapID`** (`short`): ID map hiện tại nhân vật đang đứng.
 - **`zoneID`** (`byte`): Khu hiện tại.
-- **`gameAF()`**: Refresh/reload map.
+- **`GoMap(int mapID)`**: Thuật toán tìm đường đi bộ chuyển map gốc của game.
+- **`isLangCo(int mapID)`**: Kiểm tra map có thuộc Làng Cổ hay không.
+- **`gameAF()`**: Làm mới/tải lại dữ liệu map.
+- **`vGo`** (`MyVector`): Danh sách cổng chuyển map (Waypoint).
+- **`gameAJ(int index)`**: Bước qua cổng chuyển map số `index`.
 
-### GameScr (GameScr.class)
-- **`gameAC(String)`**: Hiển thị chat message trên màn hình.
-- **`vParty`** (`MyVector`): Danh sách thành viên nhóm.
-- **`vMob`** (`MyVector`): Danh sách mob trên map hiện tại.
-- **`vItemMap`** (`MyVector`): Danh sách ItemMap (đồ rơi trên đất).
-- **`gameAB(int, int, int)`**: Mở menu (respawn dialog, etc).
-- **Chat call site (PATCHED):** `invokestatic ChatRouter.checkAll(String)Z` thay cho `Code.gameAF(String)Z` tại PC 46.
+### `GameScr` (`GameScr.class`)
+- **`gameAC(String)`**: Thông báo nổi chữ vàng trên màn hình.
+- **`vParty`** (`MyVector`): Danh sách thành viên trong nhóm.
+- **`vMob`** (`MyVector`): Danh sách quái vật trên map.
+- **`vItemMap`** (`MyVector`): Danh sách vật phẩm đang rơi trên đất.
+- **`gameAI(int npcId)`**: Tìm đối tượng `Npc` theo ID trong map.
 
-### ItemMap (ItemMap.class)
-- **`itemMapID`** (`int`): ID item trên map, dùng cho `Service.gI().gameAQ(itemMapID)` để nhặt.
-
-### Char (Char.class)
-- **`getMyChar()`**: Singleton nhân vật chính.
-- **`statusMe`**: Trạng thái. `14` = Kiệt sức (chết).
+### `Char` (`Char.class`)
+- **`getMyChar()`**: Singleton nhân vật người chơi hiện tại.
+- **`statusMe`**: Trạng thái (`14` = Kiệt sức/chết).
 - **`cHP`**: HP hiện tại.
-- **`clevel`**: Level nhân vật.
+- **`cx`, `cy`**: Tọa độ X, Y hiện tại.
 - **`cName`**: Tên nhân vật.
+- **`clevel`**: Cấp độ nhân vật.
 
-### Mob (Mob.class)
-- **`isBoss`** (`boolean`): Có phải boss không.
-- **`hp`** (`int`): HP hiện tại.
-- **`status`** (`int`): Trạng thái. `0` = chết.
-- **`templateId`** (`int`): ID template mob.
+---
 
-### GameCanvas (GameCanvas.class)
-- **`endDlg()`**: Đóng dialog popup.
+## 2. Bản Đồ Phân Loại Map & Quy Tắc Di Chuyển / Rời Map
 
-## Party Chat Protocol
-- **Leader gửi:** `Service.gI().gameAK(command)` 
-- **Member nhận:** Handler trong Code.java source dòng 2510+
-- **Commands:**
-  | Command | Format | Member Action |
-  |---------|--------|---------------|
-  | `ts` | `ts mapID zoneID templateId` | Bật TanSat nhóm |
-  | `pkm` | `pkm mapID` | Bật PkBoss(mapID) |
-  | `pkk` | `pkk zoneID` | Chuyển khu (set gameAB.zoneID) |
-  | `pke` | `pke` | Tắt PkBoss (Code.gameAC()) |
-  | `map` | `map mapID` | Set gameAB.mapID |
-  | `khu` | `khu zoneID` | Set gameAB.zoneID |
-  | `sts` | `sts` | Stanima command |
+Toàn bộ hệ thống di chuyển giữa các boss và quay về map train (`savedMap`) được quản lý tập trung bởi **`AutoSanBoss.exitCurrentMapIfNeeded(targetMap)`**:
 
-## Custom Mod Classes
-
-### AutoSanBoss (src/AutoSanBoss.java)
-- Implements `Runnable`, chạy thread riêng.
-- **Lệnh:** `tspkb` → `AutoSanBoss.toggle()`
-- **Flow:** Quét 4 loại boss → cho mỗi map: `Code.gameAA(new PkBoss(mapID))` → PkBoss tự quét + đánh → chờ xong → map tiếp. Xong 1 lượt quết → nghỉ 10 giây (`sleepSeconds(10)`) → lặp lại cho đến hết 40 phút.
-- **Party mode:** Auto-detect nhóm. Gửi `pkm` khi bật (members bật PkBoss). Gửi `pkm + pkk` khi tìm thấy boss. Gửi `pke` khi tắt. Tự động mời lại danh sách bạn bè (`autoInviteFriends()`) khi mất mạng vô lại hoặc party bị trống.
-- **Lệnh tách đồ lẻ:** `tach <số lượng>` / `tl <số lượng>` — Tách vật phẩm xếp chồng trong Tủ đồ / Hành trang thành từng món lẻ (số lượng 1) liên tục đúng số lần yêu cầu (ví dụ: `tach 30`).
-- **Lệnh thủ công khác:** `moinhom` / `mnb` — Tự động mời tất cả bạn bè trong `vFriend` vào nhóm.
-- **Force-boss:** `toggleSV/TG/VM/MN/ALL()` — `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`, `tspkball` (hoặc `all` - quét 17 map liên tục 24/24).
-- **Auto-reconnect:** `isDisconnected()` + `waitForReconnect(120s)` → restart PkBoss sau reconnect.
-- **grabAllItems():** Nhặt tất cả đồ rơi 30ms/item khi boss chết.
-- **Boss data:**
-  - Server: M63, giờ 12/18/20/22
-  - TheGioi: M65, giờ 11/17/19/21
-  - VDMQ: M141-143, giờ 6/13/19/23
-  - MapNgoai: 12 map {14,15,16,44,67,70,21,41,45,18,46,54}, giờ 1/4/7/10/13/16/19/22
-  - BossChua: M20, giờ 12/21
-  - Mỗi boss sống 40 phút (2400s)
-
-### SanBossHolder (src/SanBossHolder.java)
-- Extends `Auto`. 3 method rỗng: `gameAC()`, `gameAD()`, `gameAK()`.
-- Giữ `Code.gameAB != null` → menu hiện "Tắt Auto" khi PkBoss không active.
-
-### MultiSkillAttack (src/MultiSkillAttack.java)
-- AK multi-skill. Đã patch bytecode trong `Auto.class` gọi `attackMultiSkill()`.
-
-### ThongTinBoss (src/ThongTinBoss.java)
-- HUD overlay hiển thị lịch boss. Lệnh `ttb`.
-
-### InfoMe (src/InfoMe.java)
-- Hook `ThongTinBoss.paint(g)` vào game render loop.
-
-### ChatRouter (src/ChatRouter.java) — ⭐ KEY PATTERN
-- Wrapper thay thế `Code.gameAF(String)` trong GameScr call site.
-- **checkAll(String):** Check lệnh mở rộng TRƯỚC → fallback Code.gameAF() SAU.
-- Lệnh mở rộng: `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`, `nhat`.
-- **Intercept pattern:** `ts`/`tsn`/`ak` → gọi Code.gameAF gốc → auto bật/tắt AutoPickup.
-- **Thêm lệnh mới:** Chỉ cần thêm `if (text.equals("xxx"))` trong `checkAll()`.
-
-### AutoPickup (src/AutoPickup.java) — v2 Vacuum Mode
-- Implements `Runnable`, chạy thread riêng.
-- **toggle():** Bật/tắt hút VP, lệnh `nhat`. Hiện "Bật/Tắt hút VP!".
-- **start()/stop():** Gọi từ code. `start()` cũng bật `Code.gameAQ = true` (nhặt xa gốc).
-- **grabOnce():** Hút toàn bộ VP 1 lần. Blast → Tele → Blast → Repeat (15 vòng).
-- **blastPickup():** Gửi `Service.gI().gameAQ(itemMapID)` cho TẤT CẢ item, 5ms/item.
-- **teleToNearestItem():** Tele đến item gần nhất (`Char.gameAC` + set `cx/cy`), 25ms settle.
-- **Config:** `PICK_DELAY_MS=5`, `MOVE_DELAY_MS=25`, `SCAN_DELAY_MS=50`, `MAX_PASSES=15`.
-- **Feedback:** Hiện "Hút X/Y VP!" sau khi xong, về vị trí ban đầu.
-
-### NamMod (src/NamMod.java)
-- Class tạo Menu Tiện Ích riêng ("Nam Mod") mở từ nút Menu 3 gạch chính (`injectNamMod` trong `SplitPatcher`).
-- Chứa các tính năng: Toggle Săn Boss, Lịch Boss, các chế độ săn Săn Server/Thế Giới/VDMQ/MapNgoài/Tất cả, Nhặt nhanh, Mời nhóm, Tách đồ lẻ.
-
-- Gửi `Service.gI().gameAQ(item.itemMapID)` cho mỗi item.
-
-
-### Code (src/Code.java)
-- Source chứa: field declarations, `gameAA(Auto)`, `gameAC()`, party chat receiver (dòng 2510+), run() thread.
-- Chat handler lệnh user (`tspkb`, `tsn`, etc.) nằm trong COMPILED class, không trong source.
-- **⚠️ KHÔNG BAO GIỜ patch bytecode Code.class** — dùng ChatRouter pattern.
-
-## Build Pipeline V1 (PowerShell)
-```powershell
-# 1. Unpack original JAR
-Remove-Item -Recurse -Force 'build/unpacked' -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force 'build/unpacked' | Out-Null
-python -c "import zipfile,io; z=zipfile.ZipFile(io.BytesIO(open('build/Aeharuna_orig.jar','rb').read())); z.extractall('build/unpacked')"
-
-# 2. Create stubs + Compile
-# ... tạo stubs javax.microedition ...
-javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/AutoSanBoss.java src/SanBossHolder.java src/ThongTinBoss.java src/ShortcutHandler.java
-javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/ChatRouter.java
-
-# 3. Patch GameScr (methodref replacement — SAFE)
-python build/patch_gamescr.py build/unpacked/GameScr.class build/unpacked/GameScr.class
-
-# 4. Clean + Pack JAR
-Remove-Item -Recurse -Force 'build/unpacked/javax' -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force 'stubs' -ErrorAction SilentlyContinue
-Set-Location 'build/unpacked'
-jar cfm '../../Aeharuna.jar' 'META-INF/MANIFEST.MF' *.class *.txt *.png font map x1
 ```
+[Vị Trí Hiện Tại] ─────────── (Kiểm tra Target Map) ───────────► [Hành Động Rời Map]
+       │
+       ├── Làng Cổ (134-138) ──► Target Ngoài LC ──────► Ra M138 gọi NPC 7 về làng (KHÔNG tự sát)
+       │                      └── Target Trong LC ──────► Đi trực tiếp cổng hub M138
+       │
+       ├── Làng TT (162-165) ──► Target Ngoài LTT ─────► Tự sát về làng
+       │                      └── Target Trong LTT ─────► Đi trực tiếp
+       │
+       ├── VDMQ (139-148)    ──► Target CÙNG VDMQ ─────► KHÔNG tự sát, tự chạy qua (GoMap)
+       │                      └── Target NGOÀI VDMQ ────► Tự sát về làng rồi chạy tiếp
+       │
+       ├── Map Ngoài (Thường) ─► Target bất kỳ ─────────► KHÔNG tự sát, tự chạy thẳng (GoMap)
+       │
+       └── Map VIP (195,196,192) ► Target khác VIP ─────► Tự sát về làng gọi NPC 47
+```
+
+### Chi Tiết Từng Loại Map:
+
+| Loại Map | Dải Map ID | Cách Vào | Cách Rời Đi Chuẩn |
+| :--- | :--- | :--- | :--- |
+| **Làng Cổ** | `134 - 138` | Dùng Cổ Lệnh (ID 490/35/37) mua từ Shop 14 | Chạy về cổng M138 qua `returnToLangCoHub()`, tương tác **NPC 7 (Kojin)** chọn dòng 4 để về làng (**Tuyệt đối không tự sát**) |
+| **Làng Truyền Thuyết (LTT)** | `162 - 165` | Mua VP Làng TT (ID 833) Shop 14 slot 39 | **Tự sát về làng** (`finishLangTTAndExit()`) |
+| **Vùng Đất Ma Quỷ (VDMQ)** | `139 - 148` | Đi bộ từ Map 138/Kojin hoặc làng | - Nếu map đích **cũng thuộc VDMQ (139-148)**: **Tự chạy thẳng (không tự sát)**.<br>- Nếu map đích **ở ngoài VDMQ**: **Tự sát về làng** (`finishVDMQAndExit()`) |
+| **Map Ngoài / Thế Giới** | 14, 15, 16, 20, 21, 41, 44, 45, 46, 54, 63, 65, 67, 70... | Đi bộ chuyển map (`TileMap.GoMap`) | **Tự chạy thẳng** bằng `TileMap.GoMap`, không cần tự sát |
+| **Map VIP / Tu Luyện** | `192, 195, 196` | Qua NPC 47 ở thôn/làng | **Tự sát về làng** (`suicideAndEnsureAlive()`) |
+
+---
+
+## 3. Giao Thức Nhóm (Party Boss Protocol)
+
+Trưởng nhóm và thành viên giao tiếp thông qua tin nhắn Party Chat ẩn:
+
+| Lệnh Chat | Cú Pháp | Người Nhận | Hành Động Thực Hiện |
+| :--- | :--- | :--- | :--- |
+| `pkm <map> <zone>` | `pkm 140 5` | Thành viên | Nhận map và khu boss cùng lúc. Rời map hiện tại theo quy tắc an toàn, di chuyển đến map và đổi sang khu vực đó, sau đó vào vòng lặp đánh boss tại chỗ |
+| `pkm -4` | `pkm -4` | Thành viên | **Lưu trạng thái trước khi săn:** Lưu map train gốc (`savedMap`), khu (`savedZone`), tọa độ (`savedX`, `savedY`) vào RMS |
+| `pkm -5` / `pkm -6` | `pkm -5` | Thành viên | **Kết thúc săn boss:** Dừng đánh, kích hoạt cơ chế rời map hiện tại theo đúng quy tắc, quay về `savedMap` tiếp tục auto train |
+| `pkm -3` | `pkm -3` | Thành viên | Dừng hoàn toàn auto party của thành viên |
+| `pkm -2` | `pkm -2` | Thành viên | Chuyển thành viên sang chế độ treo boss |
+| `pkm -1` | `pkm -1` | Thành viên | Chuyển thành viên sang chế độ săn thường |
+| `ts` | `ts <map> <zone> <mob>`| Thành viên | Lệnh Tàn Sát nhóm gốc |
+
+---
+
+## 4. Các Module Mod Chính Trong `src/`
+
+### 🎯 `AutoSanBoss.java` — Điều phối Săn Boss
+- Quản lý luồng quét map của Trưởng nhóm (`huntBossType`, `pkBossOnMap`, `treoScanMap`).
+- Quản lý luồng nhận lệnh của Thành viên (`handleMemberLangCo`, `handleMemberLangTT`, `handleMemberNormalMap`, `handleMemberMapVIP`).
+- Hàm rời map an toàn trung tâm: **`exitCurrentMapIfNeeded(int targetMap)`**.
+- Cơ chế rời Làng Cổ chuẩn: **`finishLangCoAndExit()`** (qua NPC 7 tại M138).
+- Cơ chế rời VDMQ: **`finishVDMQAndExit()`**.
+- Tự động mời lại bạn bè khi mất nhóm: **`autoInviteFriends()`**.
+
+### ⏰ `AutoBossEvent.java` — Bộ Hẹn Giờ & Quản Lý Event Săn Boss
+- Chạy thread nền theo dõi chu kỳ spawn boss tự động:
+  - **Pre-spawn (30s trước giờ boss):** Trưởng nhóm chạy ra map đợi trước.
+  - **Lưu trạng thái farm (`saveLocalState` / `saveMemberState`):** Lưu map, khu, tọa độ X/Y của cả nhóm trước khi đi săn.
+  - **Quay về farm (`returnMemberState` / `returnAndResume`):** Sau khi quét hết lượt boss, điều phối cả nhóm rời map hiện tại đúng quy tắc và dùng `TileMap.GoMap` quay về map train gốc, đổi đúng khu, đi đến đúng tọa độ và bật lại Tàn Sát.
+
+### 🧭 `ChatRouter.java` — Cổng Điều Hướng Lệnh Chat
+- Hook thay thế trực tiếp call site của `Code.gameAF(String)` trong `GameScr.class`.
+- Tiếp nhận và điều hướng toàn bộ các lệnh chat mod:
+  - `tspkb`, `tspkball`, `tspkbsv`, `tspkbtg`, `tspkbvm`, `tspkbmn`.
+  - `pkm`, `pkk`, `pke`.
+  - `tach <n>`, `tl <n>` (tách đồ lẻ).
+  - `nhat` (hút vật phẩm).
+  - `moinhom`, `mnb`.
+
+### 🧹 `AutoPickup.java` — Hút Vật Phẩm Siêu Tốc
+- Chế độ vacuum nhặt đồ: gửi packet `Service.gI().gameAQ(itemMapID)` cực nhanh (5ms/item).
+- Hỗ trợ teleport nhặt xa và tự động quay về vị trí đứng ban đầu.
+
+### 📊 `ThongKe.java` / `EcoMode.java` / `InfoMe.java`
+- Hiển thị HUD thông tin số liệu khi treo máy (Yên, Xu, Lượng, EXP, thời gian săn boss).
+- Tích hợp chế độ EcoMode tiết kiệm pin và CPU cho giả lập/điện thoại.
+
+### 🎛️ `NamMod.java` & `SplitPatcher.java`
+- Tạo Menu Tiện Ích "Nam Mod" tích hợp ngay vào menu 3 gạch của game.
+- Mở nhanh các tính năng: Bật/tắt Săn Boss, Lịch Boss, Auto Bán Đồ, Mời nhóm, Tách đồ lẻ.
+
+---
+
+## 5. Quy Trình Build JAR Chuẩn (`NinjaNamod.jar`)
+
+> ⚠️ **TUÂN THỦ TUYỆT ĐỐI THEO `AGENTS.md`**
+
+1. **Khôi phục JAR gốc từ git:**
+   ```powershell
+   git checkout NinjaNamod.jar
+   ```
+2. **Unpack & Dọn sạch class cũ:**
+   ```powershell
+   Remove-Item -Recurse -Force build/unpacked -ErrorAction SilentlyContinue
+   New-Item -ItemType Directory -Force build/unpacked | Out-Null
+   Push-Location build/unpacked; jar xf ../../NinjaNamod.jar; Pop-Location
+   Get-ChildItem src/*.java | ForEach-Object {
+       $base = $_.BaseName
+       Remove-Item -Force "build/unpacked/$base.class" -ErrorAction SilentlyContinue
+       Remove-Item -Force "build/unpacked/$base`$*.class" -ErrorAction SilentlyContinue
+   }
+   ```
+3. **Biên dịch Java source:**
+   ```powershell
+   javac -encoding UTF-8 -source 8 -target 8 -cp "build/unpacked;stubs;src" -d build/unpacked src/*.java
+   ```
+4. **Chạy các patches bytecode:**
+   - `patch_class_j2me.py` (Hạ bytecode 52.0 → 45.3, gỡ StackMapTable).
+   - `patch_gamescr_hienexp.py` & `fix_gamescr_thongke.py` (Hook ThongKe.draaw).
+   - `patch_effectauto.py` (Tăng size mảng 20 → 100).
+   - `patch_hsluong_pos.py` (Căn chỉnh vị trí menu).
+   - Khôi phục `ChatManager.class` gốc từ `ban goc.jar`.
+5. **Xóa `javax/` stubs & Đóng gói bằng `jar uf` (Update ZIP):**
+   ```powershell
+   Push-Location build/unpacked
+   Remove-Item -Recurse -Force javax -ErrorAction SilentlyContinue
+   Remove-Item -Force Char.class.bak_effects -ErrorAction SilentlyContinue
+   Pop-Location
+   git checkout NinjaNamod.jar
+   $modClasses = Get-ChildItem build/unpacked/*.class | ForEach-Object { $_.Name }
+   Push-Location build/unpacked
+   jar uf ../../NinjaNamod.jar $modClasses
+   Pop-Location
+   ```
+6. **Copy ra thư mục Downloads:**
+   ```powershell
+   Copy-Item NinjaNamod.jar -Destination "$env:USERPROFILE\Downloads\NinjaNamod.jar" -Force
+   ```
