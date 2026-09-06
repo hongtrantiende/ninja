@@ -2448,11 +2448,14 @@ public class AutoSanBoss implements Runnable {
         try {
             Char myChar = Char.getMyChar();
             if (myChar == null || boss == null) return;
-            int groundY = TileMap.gameAD(boss.x, boss.y);
-            int targetY = (groundY > 0 && Math.abs(groundY - boss.y) <= 150) ? groundY : boss.y;
             int targetX = boss.x > myChar.cx ? (boss.x - 35) : (boss.x + 35);
             if (targetX < 20) targetX = boss.x;
             if (targetX > TileMap.pxw - 20) targetX = boss.x;
+            int groundY = TileMap.gameAD(targetX, boss.y);
+            if (groundY <= 0 || Math.abs(groundY - boss.y) > 150) {
+                groundY = TileMap.gameAD(boss.x, boss.y);
+            }
+            int targetY = (groundY > 0 && Math.abs(groundY - boss.y) <= 150) ? groundY : boss.y;
 
             Char.gameAC(targetX, targetY);
             myChar.cx = targetX;
@@ -3202,9 +3205,17 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = zone;
                 GameScr.gameAC("TSB: Boss M195 K" + bossZone + "!");
 
+                // Teleport thang den sat boss ngay lap tuc
+                Mob boss = findBossMob();
+                if (boss != null) {
+                    teleportToBoss(boss);
+                }
+
                 // 1. Ghost attack tu xa ngay lap tuc
                 if (isGhostAttack) {
                     doBossGhostAttack();
+                } else if (boss != null) {
+                    attackBossDirectly(boss);
                 }
 
                 // 2. Lao vao tan cong NGAY LAP TUC (0ms delay)
@@ -3255,6 +3266,10 @@ public class AutoSanBoss implements Runnable {
                         }
 
                         restoreDummyAuto();
+                        Mob bRespawn = findBossMob();
+                        if (bRespawn != null) {
+                            teleportToBoss(bRespawn);
+                        }
                         try {
                             PkBoss pk2 = new PkBoss(195);
                             pk2.zoneID = bossZone;
@@ -3263,6 +3278,8 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else if (bRespawn != null) {
+                            attackBossDirectly(bRespawn);
                         }
                         sleep(100);
                         continue;
@@ -3286,9 +3303,21 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
+                    Mob bLoop = findBossMob();
+                    if (bLoop != null) {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            int dist = Math.abs(me.cx - bLoop.x) + Math.abs(me.cy - bLoop.y);
+                            if (dist > 70) {
+                                teleportToBoss(bLoop);
+                            }
+                        }
+                    }
                     lockBossFocus();
                     if (isGhostAttack) {
                         doBossGhostAttack();
+                    } else if (bLoop != null) {
+                        attackBossDirectly(bLoop);
                     }
                     sleep(100);
                 }
@@ -3554,9 +3583,17 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = zone;
                 GameScr.gameAC("TSB: Boss M196 K" + bossZone + "!");
 
+                // Teleport thang den sat boss ngay lap tuc
+                Mob boss = findBossMob();
+                if (boss != null) {
+                    teleportToBoss(boss);
+                }
+
                 // 1. Ghost attack tu xa ngay lap tuc
                 if (isGhostAttack) {
                     doBossGhostAttack();
+                } else if (boss != null) {
+                    attackBossDirectly(boss);
                 }
 
                 // 2. Lao vao tan cong NGAY LAP TUC (0ms delay)
@@ -3607,6 +3644,10 @@ public class AutoSanBoss implements Runnable {
                         }
 
                         restoreDummyAuto();
+                        Mob bRespawn = findBossMob();
+                        if (bRespawn != null) {
+                            teleportToBoss(bRespawn);
+                        }
                         try {
                             PkBoss pk2 = new PkBoss(196);
                             pk2.zoneID = bossZone;
@@ -3615,6 +3656,8 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else if (bRespawn != null) {
+                            attackBossDirectly(bRespawn);
                         }
                         sleep(100);
                         continue;
@@ -3638,9 +3681,21 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
+                    Mob bLoop = findBossMob();
+                    if (bLoop != null) {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            int dist = Math.abs(me.cx - bLoop.x) + Math.abs(me.cy - bLoop.y);
+                            if (dist > 70) {
+                                teleportToBoss(bLoop);
+                            }
+                        }
+                    }
                     lockBossFocus();
                     if (isGhostAttack) {
                         doBossGhostAttack();
+                    } else if (bLoop != null) {
+                        attackBossDirectly(bLoop);
                     }
                     sleep(100);
                 }
@@ -3904,9 +3959,17 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = TileMap.zoneID;
                 GameScr.gameAC("TSB: Boss LC M" + mapID + " K" + bossZone + "!");
 
+                // Teleport thang den sat boss ngay lap tuc
+                Mob boss = findBossMob();
+                if (boss != null) {
+                    teleportToBoss(boss);
+                }
+
                 // 1. Ghost attack tu xa ngay lap tuc
                 if (isGhostAttack) {
                     doBossGhostAttack();
+                } else if (boss != null) {
+                    attackBossDirectly(boss);
                 }
 
                 // 2. Lao vao tan cong NGAY LAP TUC (0ms delay)
@@ -3957,6 +4020,10 @@ public class AutoSanBoss implements Runnable {
                         }
 
                         restoreDummyAuto();
+                        Mob bRespawn = findBossMob();
+                        if (bRespawn != null) {
+                            teleportToBoss(bRespawn);
+                        }
                         try {
                             PkBoss pk2 = new PkBoss(mapID);
                             pk2.zoneID = bossZone;
@@ -3965,6 +4032,8 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else if (bRespawn != null) {
+                            attackBossDirectly(bRespawn);
                         }
                         sleep(100);
                         continue;
@@ -3988,9 +4057,21 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
+                    Mob bLoop = findBossMob();
+                    if (bLoop != null) {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            int dist = Math.abs(me.cx - bLoop.x) + Math.abs(me.cy - bLoop.y);
+                            if (dist > 70) {
+                                teleportToBoss(bLoop);
+                            }
+                        }
+                    }
                     lockBossFocus();
                     if (isGhostAttack) {
                         doBossGhostAttack();
+                    } else if (bLoop != null) {
+                        attackBossDirectly(bLoop);
                     }
                     sleep(100);
                 }
@@ -4058,9 +4139,17 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = TileMap.zoneID;
                 GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + "!");
 
+                // Teleport thang den sat boss ngay lap tuc
+                Mob boss = findBossMob();
+                if (boss != null) {
+                    teleportToBoss(boss);
+                }
+
                 // 1. Ghost attack danh xa ngay lap tuc + lock focus
                 if (isGhostAttack) {
                     doBossGhostAttack();
+                } else if (boss != null) {
+                    attackBossDirectly(boss);
                 }
 
                 // 2. Lao vao tan cong NGAY LAP TUC (0ms delay)
@@ -4108,6 +4197,10 @@ public class AutoSanBoss implements Runnable {
                         }
 
                         restoreDummyAuto();
+                        Mob bRespawn = findBossMob();
+                        if (bRespawn != null) {
+                            teleportToBoss(bRespawn);
+                        }
                         try {
                             PkBoss pk2 = new PkBoss(mapID);
                             pk2.zoneID = bossZone;
@@ -4116,6 +4209,8 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else if (bRespawn != null) {
+                            attackBossDirectly(bRespawn);
                         }
                         sleep(100);
                         continue;
@@ -4139,9 +4234,21 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
+                    Mob bLoop = findBossMob();
+                    if (bLoop != null) {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            int dist = Math.abs(me.cx - bLoop.x) + Math.abs(me.cy - bLoop.y);
+                            if (dist > 70) {
+                                teleportToBoss(bLoop);
+                            }
+                        }
+                    }
                     lockBossFocus();
                     if (isGhostAttack) {
                         doBossGhostAttack();
+                    } else if (bLoop != null) {
+                        attackBossDirectly(bLoop);
                     }
                     sleep(100);
                 }
@@ -4206,9 +4313,12 @@ public class AutoSanBoss implements Runnable {
                     if (curZoneBoss != null && !treoMode && !isDead()) {
                         memberTargetMap = TileMap.mapID;
                         memberTargetZone = TileMap.zoneID;
+                        teleportToBoss(curZoneBoss);
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else {
+                            attackBossDirectly(curZoneBoss);
                         }
                         if (!isGhostAttack) {
                             if (Code.gameAB instanceof PkBoss) {
@@ -4251,9 +4361,12 @@ public class AutoSanBoss implements Runnable {
                                 Mob boss = findBossMob();
                                 if (boss != null) {
                                     memberTargetZone = TileMap.zoneID;
+                                    teleportToBoss(boss);
                                     lockBossFocus();
                                     if (isGhostAttack) {
                                         doBossGhostAttack();
+                                    } else {
+                                        attackBossDirectly(boss);
                                     }
                                 }
                                 int effectiveZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
@@ -4822,8 +4935,16 @@ public class AutoSanBoss implements Runnable {
                 int bossZone = TileMap.zoneID;
                 GameScr.gameAC("TSB: Boss LTT M" + mapID + " K" + bossZone + "!");
 
+                // Teleport thang den sat boss ngay lap tuc
+                Mob boss = findBossMob();
+                if (boss != null) {
+                    teleportToBoss(boss);
+                }
+
                 if (isGhostAttack) {
                     doBossGhostAttack();
+                } else if (boss != null) {
+                    attackBossDirectly(boss);
                 }
 
                 try {
@@ -4870,6 +4991,10 @@ public class AutoSanBoss implements Runnable {
                         }
 
                         restoreDummyAuto();
+                        Mob bRespawn = findBossMob();
+                        if (bRespawn != null) {
+                            teleportToBoss(bRespawn);
+                        }
                         try {
                             PkBoss pk2 = new PkBoss(mapID);
                             pk2.zoneID = bossZone;
@@ -4878,6 +5003,8 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         if (isGhostAttack) {
                             doBossGhostAttack();
+                        } else if (bRespawn != null) {
+                            attackBossDirectly(bRespawn);
                         }
                         sleep(100);
                         continue;
@@ -4900,9 +5027,21 @@ public class AutoSanBoss implements Runnable {
                         }
                     }
 
+                    Mob bLoop = findBossMob();
+                    if (bLoop != null) {
+                        Char me = Char.getMyChar();
+                        if (me != null) {
+                            int dist = Math.abs(me.cx - bLoop.x) + Math.abs(me.cy - bLoop.y);
+                            if (dist > 70) {
+                                teleportToBoss(bLoop);
+                            }
+                        }
+                    }
                     lockBossFocus();
                     if (isGhostAttack) {
                         doBossGhostAttack();
+                    } else if (bLoop != null) {
+                        attackBossDirectly(bLoop);
                     }
                     sleep(100);
                 }

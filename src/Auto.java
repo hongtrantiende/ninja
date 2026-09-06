@@ -895,17 +895,19 @@ public abstract class Auto {
                     if (var6 == null || var1 != -1 && var6.templateId != var1 || !Auto.gameAC(var6.levelBoss, var2)) {
                         return;
                     }
-                    if (!(var26.template.type != 1 && var26.template.type != 3 || Res.abs(var3.cx - var6.xFirst) <= var26.dx + 30 && Res.abs(var3.cy - var6.yFirst) <= var26.dy + 30)) {
-                        // Teleport truc tiep den quai de danh neu con ngoai tam thay vi bo target va dung im
-                        int groundY = TileMap.gameAD(var6.xFirst, var6.yFirst);
-                        int targetY = (groundY > 0 && Math.abs(groundY - var6.yFirst) <= 150) ? groundY : var6.yFirst;
+                    int targetMobX = var6.isBoss ? var6.x : var6.xFirst;
+                    int targetMobY = var6.isBoss ? var6.y : var6.yFirst;
+                    if (!(var26.template.type != 1 && var26.template.type != 3 || Res.abs(var3.cx - targetMobX) <= var26.dx + 30 && Res.abs(var3.cy - targetMobY) <= var26.dy + 30)) {
+                        // Teleport truc tiep den quai/boss de danh neu con ngoai tam thay vi bo target va dung im
+                        int groundY = TileMap.gameAD(targetMobX, targetMobY);
+                        int targetY = (groundY > 0 && Math.abs(groundY - targetMobY) <= 150) ? groundY : targetMobY;
                         try {
-                            Char.gameAC(var6.xFirst, targetY);
-                            var3.cx = var6.xFirst;
+                            Char.gameAC(targetMobX, targetY);
+                            var3.cx = targetMobX;
                             var3.cy = targetY;
-                            Service.gI().gameAC(var6.xFirst, targetY);
+                            Service.gI().gameAC(targetMobX, targetY);
                         } catch (Exception e) {}
-                        if (Res.abs(var3.cx - var6.xFirst) > var26.dx + 60 || Res.abs(var3.cy - var6.yFirst) > var26.dy + 60) {
+                        if (Res.abs(var3.cx - targetMobX) > var26.dx + 60 || Res.abs(var3.cy - targetMobY) > var26.dy + 60) {
                             var3.mobFocus = null;
                             var6 = null;
                             return;
