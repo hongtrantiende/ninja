@@ -2866,7 +2866,12 @@ implements Runnable {
                             return;
                         }
                         Auto var7 = gameAB instanceof PkBoss ? Code.gameAB.reAB : gameAB;
-                        PkBoss pBoss = new PkBoss(Integer.parseInt(var5[1]));
+                        int pkmMap = Integer.parseInt(var5[1]);
+                        // Parse zone tu pkm neu co (format: pkm mapID zoneID)
+                        if (var5.length >= 3) {
+                            try { AutoSanBoss.memberTargetZone = Integer.parseInt(var5[2]); } catch (Exception ez) {}
+                        }
+                        PkBoss pBoss = new PkBoss(pkmMap);
                         pBoss.reAB = var7;
                         if (AutoSanBoss.memberTargetZone >= 0) {
                             pBoss.zoneID = AutoSanBoss.memberTargetZone;

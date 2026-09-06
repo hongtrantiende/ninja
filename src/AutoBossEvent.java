@@ -29,7 +29,6 @@ public final class AutoBossEvent implements Runnable {
 
     /** Thoi diem bat dau san boss (ms) & Timeout toi da 6 phut */
     public static long eventStartTime = 0L;
-    public static final long MAX_EVENT_DURATION_MS = 360000L; // 6 phut
 
     static {
         loadConfigFromRMS();
@@ -943,11 +942,6 @@ public final class AutoBossEvent implements Runnable {
         // === Luot 1: Quet TAT CA boss active theo HUNT_PRIORITY + goi ae fang boss ===
         while (isEnabled && inEvent) {
             if (AutoSanBoss.consumeEventRoundCompleted()) break;
-            // Kiem tra timeout 6 phut
-            if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
-                GameScr.gameAC("TSBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 \u0111\u1ed9ng k\u1ebft th\u00fac \u0111\u1ec3 v\u1ec1 map TS!");
-                break;
-            }
             // Neu AutoSanBoss da dung (disconnect/error) -> thoat luot
             if (!AutoSanBoss.isRunning) {
                 GameScr.gameAC("TSBoss: AutoSanBoss d\u1eebng, k\u1ebft th\u00fac l\u01b0\u1ee3t");
@@ -986,11 +980,7 @@ public final class AutoBossEvent implements Runnable {
             GameScr.gameAC("TSBoss: Leader qu\u00e9t l\u01b0\u1ee3t " + (round + 2) + "/" + (extraRounds + 1) + "...");
             while (isEnabled && inEvent) {
                 if (AutoSanBoss.consumeEventRoundCompleted()) break;
-                // Kiem tra timeout 6 phut
-                if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
-                    GameScr.gameAC("TSBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 \u0111\u1ed9ng k\u1ebft th\u00fac \u0111\u1ec3 v\u1ec1 map TS!");
-                    break;
-                }
+
                 if (!AutoSanBoss.isRunning) break;
                 if (isDisconnected()) {
                     if (!waitForReconnect()) { finishEvent(false); return; }
@@ -1002,9 +992,7 @@ public final class AutoBossEvent implements Runnable {
                 }
                 sleep(500L);
             }
-            if (eventStartTime > 0 && (System.currentTimeMillis() - eventStartTime > MAX_EVENT_DURATION_MS)) {
-                break;
-            }
+
         }
 
         // Xong tat ca luot -> ve TS

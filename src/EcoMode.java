@@ -123,11 +123,9 @@ public class EcoMode {
                 huntSec = (System.currentTimeMillis() - AutoSanBoss.huntStartTime) / 1000L;
             }
             if (huntSec < 0) huntSec = 0;
-            long remainHuntSec = 360L - huntSec;
-            if (remainHuntSec < 0) remainHuntSec = 0;
             int hm = (int)(huntSec / 60);
             int hs = (int)(huntSec % 60);
-            String huntTimeStr = (hm > 0 ? hm + "p" : "") + hs + "s/6p";
+            String huntTimeStr = hm + "p" + hs + "s";
 
             // Xac dinh trang thai Auto hien tai
             String autoState = "T\u1ef1 \u0111\u1ed9ng";
@@ -146,7 +144,7 @@ public class EcoMode {
             if (AutoBossEvent.isEnabled) {
                 String pName = AutoBossEvent.priorityName();
                 if (AutoBossEvent.inEvent) {
-                    tsBossLine = "TS Boss: \u0110ang s\u0103n [" + pName + "] (c\u00f2n " + remainHuntSec + "s/6p)";
+                    tsBossLine = "TS Boss: \u0110ang s\u0103n [" + pName + "] (" + huntTimeStr + ")";
                 } else {
                     int secLeft = AutoBossEvent.getSecondsTillNextForPriority();
                     if (secLeft > 0 && secLeft <= AutoBossEvent.PRE_SPAWN_SECONDS) {

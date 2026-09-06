@@ -18,7 +18,6 @@ public class AutoSanBoss implements Runnable {
     public static boolean treoMode = false; // true = tim boss nhung khong danh, chi goi nhom roi dung cho
     public static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
     public static long huntStartTime = 0L;
-    public static final long MAX_HUNT_DURATION_MS = 360000L; // 6 phut
     private static Thread thread;
     private static Thread memberMoveThread;
     public static int memberTargetZone = -1;
@@ -1195,14 +1194,46 @@ public class AutoSanBoss implements Runnable {
                         return;
                     }
 
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LC M" + targetMap + " K" + TileMap.zoneID);
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LC M" + targetMap + " K" + targetZone);
+                    restoreDummyAuto();
+                    // Vong lap danh boss tai cho - khong dung PkBoss
+                    while (isRunning && !Thread.currentThread().isInterrupted()) {
+                        if (isDead()) {
+                            respawnFast();
+                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
+                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
+                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
+                                if (isDead()) respawnFast();
+                            }
+                            if (TileMap.mapID != targetMap) break;
+                            if (TileMap.zoneID != targetZone) {
+                                doChangeZone(targetZone);
+                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
+                            }
+                            sleep(1000L);
+                            continue;
+                        }
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
+                            continue;
+                        }
+                        if (TileMap.mapID != targetMap) break;
+                        if (TileMap.zoneID != targetZone) {
+                            doChangeZone(targetZone);
+                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
+                        }
+                        lockBossFocus();
+                        if (isGhostAttack) doBossGhostAttack();
+                        if (!hasBossOnCurrentMap() && !isDead()) {
+                            sleep(3000L);
+                            if (!hasBossOnCurrentMap() && !isDead()) {
+                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                break;
+                            }
+                        }
+                        sleep(500L);
                     }
-                    PkBoss pk = new PkBoss(targetMap);
-                    pk.zoneID = targetZone;
-                    Code.gameAA(pk);
+                    restoreDummyAuto();
                 } catch (Exception e) {}
             }
         });
@@ -1254,14 +1285,46 @@ public class AutoSanBoss implements Runnable {
                         return;
                     }
 
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LTT M" + targetMap + " K" + TileMap.zoneID);
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LTT M" + targetMap + " K" + targetZone);
+                    restoreDummyAuto();
+                    // Vong lap danh boss tai cho - khong dung PkBoss
+                    while (isRunning && !Thread.currentThread().isInterrupted()) {
+                        if (isDead()) {
+                            respawnFast();
+                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
+                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
+                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
+                                if (isDead()) respawnFast();
+                            }
+                            if (TileMap.mapID != targetMap) break;
+                            if (TileMap.zoneID != targetZone) {
+                                doChangeZone(targetZone);
+                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
+                            }
+                            sleep(1000L);
+                            continue;
+                        }
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
+                            continue;
+                        }
+                        if (TileMap.mapID != targetMap) break;
+                        if (TileMap.zoneID != targetZone) {
+                            doChangeZone(targetZone);
+                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
+                        }
+                        lockBossFocus();
+                        if (isGhostAttack) doBossGhostAttack();
+                        if (!hasBossOnCurrentMap() && !isDead()) {
+                            sleep(3000L);
+                            if (!hasBossOnCurrentMap() && !isDead()) {
+                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                break;
+                            }
+                        }
+                        sleep(500L);
                     }
-                    PkBoss pk = new PkBoss(targetMap);
-                    pk.zoneID = targetZone;
-                    Code.gameAA(pk);
+                    restoreDummyAuto();
                 } catch (Exception e) {}
             }
         });
@@ -1326,14 +1389,46 @@ public class AutoSanBoss implements Runnable {
                         return;
                     }
 
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss VIP M" + targetMap + " K" + TileMap.zoneID);
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss VIP M" + targetMap + " K" + targetZone);
+                    restoreDummyAuto();
+                    // Vong lap danh boss tai cho - khong dung PkBoss
+                    while (isRunning && !Thread.currentThread().isInterrupted()) {
+                        if (isDead()) {
+                            respawnFast();
+                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
+                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
+                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
+                                if (isDead()) respawnFast();
+                            }
+                            if (TileMap.mapID != targetMap) break;
+                            if (TileMap.zoneID != targetZone) {
+                                doChangeZone(targetZone);
+                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
+                            }
+                            sleep(1000L);
+                            continue;
+                        }
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
+                            continue;
+                        }
+                        if (TileMap.mapID != targetMap) break;
+                        if (TileMap.zoneID != targetZone) {
+                            doChangeZone(targetZone);
+                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
+                        }
+                        lockBossFocus();
+                        if (isGhostAttack) doBossGhostAttack();
+                        if (!hasBossOnCurrentMap() && !isDead()) {
+                            sleep(3000L);
+                            if (!hasBossOnCurrentMap() && !isDead()) {
+                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                break;
+                            }
+                        }
+                        sleep(500L);
                     }
-                    PkBoss pk = new PkBoss(targetMap);
-                    pk.zoneID = targetZone;
-                    Code.gameAA(pk);
+                    restoreDummyAuto();
                 } catch (Exception e) {}
             }
         });
@@ -1395,14 +1490,46 @@ public class AutoSanBoss implements Runnable {
                         return;
                     }
 
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss M" + targetMap + " K" + TileMap.zoneID);
-                    lockBossFocus();
-                    if (isGhostAttack) {
-                        doBossGhostAttack();
+                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss M" + targetMap + " K" + targetZone);
+                    restoreDummyAuto();
+                    // Vong lap danh boss tai cho - khong dung PkBoss
+                    while (isRunning && !Thread.currentThread().isInterrupted()) {
+                        if (isDead()) {
+                            respawnFast();
+                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
+                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
+                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
+                                if (isDead()) respawnFast();
+                            }
+                            if (TileMap.mapID != targetMap) break;
+                            if (TileMap.zoneID != targetZone) {
+                                doChangeZone(targetZone);
+                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
+                            }
+                            sleep(1000L);
+                            continue;
+                        }
+                        if (isDisconnected()) {
+                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
+                            continue;
+                        }
+                        if (TileMap.mapID != targetMap) break;
+                        if (TileMap.zoneID != targetZone) {
+                            doChangeZone(targetZone);
+                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
+                        }
+                        lockBossFocus();
+                        if (isGhostAttack) doBossGhostAttack();
+                        if (!hasBossOnCurrentMap() && !isDead()) {
+                            sleep(3000L);
+                            if (!hasBossOnCurrentMap() && !isDead()) {
+                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
+                                break;
+                            }
+                        }
+                        sleep(500L);
                     }
-                    PkBoss pk = new PkBoss(targetMap);
-                    pk.zoneID = targetZone;
-                    Code.gameAA(pk);
+                    restoreDummyAuto();
                 } catch (Exception e) {}
             }
         });
@@ -1516,14 +1643,6 @@ public class AutoSanBoss implements Runnable {
      */
     public static boolean checkStillRunning() {
         if (!isRunning) return false;
-        if (huntStartTime > 0 && (System.currentTimeMillis() - huntStartTime > MAX_HUNT_DURATION_MS)) {
-            GameScr.gameAC("SanBoss: Qu\u00e1 6 ph\u00fat s\u0103n boss, t\u1ef1 ng\u1eaft \u0111\u1ec3 v\u1ec1 map TS!");
-            stop();
-            if (AutoBossEvent.getSavedMap() > 0) {
-                AutoBossEvent.returnMemberState();
-            }
-            return false;
-        }
         return true;
     }
 
@@ -2187,9 +2306,7 @@ public class AutoSanBoss implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    sendPartyCommand("pkm " + mapID);
-                    Thread.sleep(400L);
-                    sendPartyCommand("pkk " + bossZone);
+                    sendPartyCommand("pkm " + mapID + " " + bossZone);
                 } catch (Exception e) {}
             }
         }).start();
@@ -2946,7 +3063,6 @@ public class AutoSanBoss implements Runnable {
                     GameScr.gameAC("TSB: Boss M195 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     BossLog.recordBossKill(TYPE_MAPVIP, 195, bossZone, deathCount);
                     grabAllItems();
-                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();
@@ -3299,7 +3415,6 @@ public class AutoSanBoss implements Runnable {
                     GameScr.gameAC("TSB: Boss M196 K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     BossLog.recordBossKill(TYPE_MAPVIP2, 196, bossZone, deathCount);
                     grabAllItems();
-                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();
@@ -3650,7 +3765,6 @@ public class AutoSanBoss implements Runnable {
                     GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     BossLog.recordBossKill(TYPE_LANGCO, mapID, bossZone, deathCount);
                     grabAllItems();
-                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();
@@ -3812,7 +3926,6 @@ public class AutoSanBoss implements Runnable {
                     GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     BossLog.recordBossKill(getBossTypeFromMap(mapID), mapID, bossZone, deathCount);
                     grabAllItems();
-                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();
@@ -4564,7 +4677,6 @@ public class AutoSanBoss implements Runnable {
                     GameScr.gameAC("TSB: Boss M" + mapID + " K" + bossZone + " \u0111\u00e3 ch\u1ebft!");
                     BossLog.recordBossKill(TYPE_LANGTT, mapID, bossZone, deathCount);
                     grabAllItems();
-                    sendPartyCommand("pkm -6");
                     return true;
                 }
             restoreDummyAuto();

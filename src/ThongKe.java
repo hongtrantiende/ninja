@@ -212,9 +212,8 @@ public class ThongKe {
                 if (AutoBossEvent.inEvent) {
                     long huntSec = (AutoBossEvent.eventStartTime > 0) ? (System.currentTimeMillis() - AutoBossEvent.eventStartTime) / 1000L : 0L;
                     if (huntSec < 0) huntSec = 0L;
-                    long remainHuntSec = 360L - huntSec;
-                    if (remainHuntSec < 0) remainHuntSec = 0L;
-                    cachedLine4 = "TS Boss: \u0110ang s\u0103n [" + pName + "] (M" + TileMap.mapID + " K" + TileMap.zoneID + " - c\u00f2n " + remainHuntSec + "s/6p" + bossKillStr + ")";
+                    int hMin4 = (int)(huntSec / 60); int hSec4 = (int)(huntSec % 60);
+                    cachedLine4 = "TS Boss: \u0110ang s\u0103n [" + pName + "] (M" + TileMap.mapID + " K" + TileMap.zoneID + " - " + hMin4 + "p" + hSec4 + "s" + bossKillStr + ")";
                 } else {
                     int secLeft = AutoBossEvent.getSecondsTillNextForPriority();
                     if (secLeft > 0 && secLeft <= AutoBossEvent.PRE_SPAWN_SECONDS) {
