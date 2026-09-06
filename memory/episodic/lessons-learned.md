@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## 2026-09-06: Triệt Để Lỗi Tự Sát Nhiều Lần Khi Trở Về Map Cũ Sau Khi Săn Boss
+- **Nguyên nhân bug:**
+  1. `AutoSanBoss.exitCurrentMapIfNeeded(targetMap)`: Điều kiện `if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)`. Nếu `AutoVipMap.isEnabled` được lưu trong RMS từ trước, nó biến MỌI MAP (kể cả Map Ngoài như 14, 42 hoặc VDMQ) thành Map VIP → gọi `suicideAndEnsureAlive()` ngay lập tức.
+  2. `AutoBossEvent.returnAndResume()`: Tương tự, `if (map == 196 || (AutoVipMap.isEnabled && AutoVipMap.targetMapID == 196))` ép `isNpcMap = true` bất kể map đích thực sự là gì. Khiến nhân vật chạy theo logic NPC VIP, gọi thêm 1 lần tự sát `suicideAndEnsureAlive()` nữa để về thôn gặp NPC 47.
+  3. Lời gọi trùng lặp: `exitCurrentMapIfNeeded(savedMap)` bị gọi ở luồng gọi (`returnMemberState()`, `finishEvent()`) rồi lại bị gọi tiếp lần nữa bên trong luồng con `returnAndResume()`.
+  4. Fallback tự sát mù quáng trong travel loop: Đoạn code `if (TileMap.mapID != map) { Code.gameAN(); ... }` tự động tự sát nếu quá 30 lần thử, vi phạm quy tắc không tự sát ở Map Ngoài và trong VDMQ.
+- **Quy tắc vàng:**
+  1. Tuyệt đối KHÔNG gán cờ cấu hình tĩnh (`AutoVipMap.isEnabled`, `AutoTuLuyen.isEnabled`) vào hàm kiểm tra ID map runtime `exitCurrentMapIfNeeded`. Chỉ so sánh trực tiếp ID map `curMap == 195 || curMap == 196 || curMap == 192`.
+  2. `exitCurrentMapIfNeeded(targetMap)` chỉ chạy DUY NHẤT 1 lần bên trong background thread của `returnAndResume()`.
+  3. Tuyệt đối KHÔNG dùng fallback tự sát trong vòng lặp travel `TileMap.GoMap(map)`. Tăng số lần thử lên 50 lần, đóng dialog trước khi GoMap.
+
+
 ## 2026-09-06: Boss Death Detection Timing — Mob Data Chưa Load Sau Respawn
 - **Nguyên nhân bug:** Sau khi bị boss đánh chết → hồi sinh → navigateToMap → doChangeZone, mob data từ server cần 1.5-3 giây để load đầy đủ. Các method `pkBossOnMap`, `pkLangCoMap`, `pkLangTTMap`, `pkBossMapVIP`, `pkBossMapVIP2` đều có vòng lặp `wm < 10` (1s) quá ngắn + boss dead check `sleep(300)` quá nhanh → `hasBossOnCurrentMap()` trả false → bot break sớm tưởng boss chết.
 - **Quy tắc vàng:**
