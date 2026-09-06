@@ -222,8 +222,8 @@ public final class AutoBossEvent implements Runnable {
                             continue;
                         }
 
-                        // Lay ngay khu hien tai va goi TV qua NGAY (khong delay 5s doi khu)
-                        int curZone = TileMap.zoneID;
+                        // Quet tim khu (mo phong scan khu that de xem co che)
+                        int curZone = simulateScanZones(targetMap, testType);
 
                         // Goi TV qua map va khu nay dung
                         GameScr.gameAC("TSBoss Test: G\u1eb7p boss M" + targetMap + " K" + curZone + "! G\u1ecdi TV qua...");
@@ -259,6 +259,42 @@ public final class AutoBossEvent implements Runnable {
                 }
             }
         }).start();
+    }
+
+    /**
+     * Quet tim khu mo phong: doi qua 2-3 khu thuc su tren game,
+     * neu gap boss that thi dung ngay, neu khong thi dung o khu cuoi de gia lap gap boss.
+     */
+    private static int simulateScanZones(int targetMap, int testType) {
+        int[] scanZones;
+        if (testType == TEST_LANG_TT) {
+            scanZones = new int[]{0, 1, 2};
+        } else if (testType == TEST_LANG_CO) {
+            scanZones = new int[]{0, 2, 4};
+        } else if (testType == TEST_VDMQ) {
+            scanZones = new int[]{2, 5, 8};
+        } else {
+            scanZones = new int[]{3, 6, 9};
+        }
+
+        int selectedZone = TileMap.zoneID;
+        for (int i = 0; i < scanZones.length && inEvent && isEnabled; i++) {
+            int z = scanZones[i];
+            if (TileMap.zoneID != z) {
+                GameScr.gameAC("TSB Test: Qu\u00e9t M" + targetMap + " K" + z + "...");
+                AutoSanBoss.doChangeZone(z);
+                for (int w = 0; w < 12 && TileMap.zoneID != z; w++) {
+                    sleep(100L);
+                }
+            }
+            selectedZone = TileMap.zoneID;
+            if (AutoSanBoss.hasBossOnCurrentMap()) {
+                GameScr.gameAC("TSB Test: Boss th\u1eadt t\u1ea1i M" + targetMap + " K" + selectedZone + "!");
+                break;
+            }
+            sleep(400L);
+        }
+        return selectedZone;
     }
 
     public static void testRealHunt1Map() {
