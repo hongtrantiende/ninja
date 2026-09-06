@@ -222,12 +222,7 @@ public final class AutoBossEvent implements Runnable {
                             continue;
                         }
 
-                        // Chon 1 khu bat ky (khu 3, 5, 7...)
-                        int targetZone = 3 + (mIdx * 2);
-                        if (TileMap.zoneID != targetZone) {
-                            Auto.gameAA(targetZone);
-                            for (int z = 0; z < 50 && TileMap.zoneID != targetZone; z++) sleep(100L);
-                        }
+                        // Lay ngay khu hien tai va goi TV qua NGAY (khong delay 5s doi khu)
                         int curZone = TileMap.zoneID;
 
                         // Goi TV qua map va khu nay dung
