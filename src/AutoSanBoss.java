@@ -461,13 +461,8 @@ public class AutoSanBoss implements Runnable {
         Char.DungCoLenh = false;
     }
 
-    /** Finishes Lang Co hunt, sends pkm -6 to party, and uses NPC 7 at M138 to return to village. */
+    /** Finishes Lang Co hunt and uses NPC 7 at M138 to return to village. */
     public static void finishLangCoAndExit() {
-        try {
-            if (isPartyLeader() && GameScr.vParty != null && GameScr.vParty.size() > 1) {
-                Service.gI().gameAK("pkm -6");
-            }
-        } catch (Exception e) {}
 
         if (!TileMap.isLangCo(TileMap.mapID)) return;
 
@@ -1200,12 +1195,8 @@ public class AutoSanBoss implements Runnable {
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
                             respawnFast();
-                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
-                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
-                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
-                                if (isDead()) respawnFast();
-                            }
-                            if (TileMap.mapID != targetMap) break;
+                            // Vao lai Lang Co qua portal
+                            if (!enterLangCoSpecificMap(targetMap)) break;
                             if (TileMap.zoneID != targetZone) {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
@@ -1291,12 +1282,8 @@ public class AutoSanBoss implements Runnable {
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
                             respawnFast();
-                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
-                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
-                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
-                                if (isDead()) respawnFast();
-                            }
-                            if (TileMap.mapID != targetMap) break;
+                            // Vao lai Lang TT qua VP
+                            if (!enterLangTTSpecificMap(targetMap)) break;
                             if (TileMap.zoneID != targetZone) {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
@@ -4253,11 +4240,6 @@ public class AutoSanBoss implements Runnable {
 
     /** Thoat Lang TT bang cach tu sat hoi sinh ve thon */
     public static void finishLangTTAndExit() {
-        try {
-            if (isPartyLeader() && GameScr.vParty != null && GameScr.vParty.size() > 1) {
-                Service.gI().gameAK("pkm -6");
-            }
-        } catch (Exception e) {}
 
         if (!isLangTT(TileMap.mapID)) return;
 
