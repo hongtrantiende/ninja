@@ -1717,6 +1717,9 @@ public class AutoSanBoss implements Runnable {
      * @param forcedType -1 = auto schedule, 0-3 = force boss type
      */
     private static void toggleInternal(boolean partyMode, int forcedType) {
+        if (NamMod.HIDE_BOSS_FEATURES) {
+            return;
+        }
         if (isRunning) {
             isRunning = false;
             isPartyMode = false;

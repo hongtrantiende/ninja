@@ -1270,6 +1270,9 @@ implements Runnable {
     }
 
     public static boolean gameAF(String var0) {
+        if (NamMod.HIDE_BOSS_FEATURES && ChatRouter.isBossCommand(var0)) {
+            return true;
+        }
         int var4;
         int var1 = 0;
         StringBuffer var2 = new StringBuffer();
@@ -2173,6 +2176,9 @@ implements Runnable {
                                         return true;
                                     }
                                     GameScr.gameAC("Ch\u01b0a c\u00f3 nh\u00f3m ho\u1eb7c b\u1ea1n l\u00e0 nh\u00f3m tr\u01b0\u1edfng");
+                                    return true;
+                                }
+                                if (NamMod.HIDE_BOSS_FEATURES && ChatRouter.isBossCommand(var31)) {
                                     return true;
                                 }
                                 if (var31.equals("pkb")) {

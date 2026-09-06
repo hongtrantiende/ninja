@@ -140,12 +140,37 @@ public class ChatRouter {
         AutoSanBoss.stopPartyBoss();
     }
 
+    public static boolean isBossCommand(String t) {
+        if (t == null) return false;
+        t = t.toLowerCase().trim();
+        if (t.startsWith("/")) t = t.substring(1).trim();
+        if (t.equals("pkb") || t.startsWith("pkb") || t.equals("pkk") || t.startsWith("pkk")
+            || t.equals("pkm") || t.startsWith("pkm") || t.equals("pke") || t.startsWith("pke")
+            || t.equals("tspkb") || t.startsWith("tspkb") || t.equals("sb") || t.equals("sanboss")
+            || t.equals("lichboss") || t.equals("tb") || t.equals("lb") || t.equals("ttb")
+            || t.equals("bossradar") || t.equals("radar") || t.equals("radarboss") || t.equals("rboss")
+            || t.equals("all") || t.equals("vm") || t.equals("langco") || t.equals("langtt")
+            || t.startsWith("tsboss") || t.startsWith("test")
+            || t.startsWith("treo") || t.startsWith("tstreo")
+            || t.equals("gb") || t.startsWith("gb") || t.equals("ghostboss")
+            || t.equals("moinhom") || t.equals("mnb") || t.equals("mn")
+            || t.startsWith("tl") || t.startsWith("tach")) {
+            return true;
+        }
+        return false;
+    }
+
     /**
-     * Thay the Code.gameAF(String) - check lenh mo rong TRUOC, fallback goc SAU.
+     * Entry point thay the Code.gameAF.
      * CUNG SIGNATURE: (Ljava/lang/String;)Z
      */
     public static boolean checkAll(String text) {
         if (text == null) return false;
+
+        // Neu o che do share (HIDE_BOSS_FEATURES = true): CHAN TOAN BO cac lenh chat san boss
+        if (NamMod.HIDE_BOSS_FEATURES && isBossCommand(text)) {
+            return true;
+        }
 
         // === GHOST BOSS: danh boss vo hinh ===
         if (text.equals("gb") || text.equals("ghostboss")) {

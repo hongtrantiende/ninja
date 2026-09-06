@@ -37,6 +37,9 @@ public final class AutoBossEvent implements Runnable {
     private AutoBossEvent() {}
 
     public static void toggle() {
+        if (NamMod.HIDE_BOSS_FEATURES) {
+            return;
+        }
         if (isEnabled) {
             isEnabled = false;
             if (inEvent) finishEvent(true);
@@ -52,6 +55,9 @@ public final class AutoBossEvent implements Runnable {
 
     /** Chon loai nao thi bat luon, an lai loai dang bat thi tat. */
     public static void togglePriority(int p) {
+        if (NamMod.HIDE_BOSS_FEATURES) {
+            return;
+        }
         if (isEnabled && eventPriority == p) {
             // Dang bat cung loai -> tat
             isEnabled = false;
