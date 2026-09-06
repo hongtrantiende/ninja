@@ -1,5 +1,14 @@
 # Lessons Learned
 
+## 2026-09-06: Boss Death Detection Timing — Mob Data Chưa Load Sau Respawn
+- **Nguyên nhân bug:** Sau khi bị boss đánh chết → hồi sinh → navigateToMap → doChangeZone, mob data từ server cần 1.5-3 giây để load đầy đủ. Các method `pkBossOnMap`, `pkLangCoMap`, `pkLangTTMap`, `pkBossMapVIP`, `pkBossMapVIP2` đều có vòng lặp `wm < 10` (1s) quá ngắn + boss dead check `sleep(300)` quá nhanh → `hasBossOnCurrentMap()` trả false → bot break sớm tưởng boss chết.
+- **Quy tắc vàng:**
+  1. Mob wait sau respawn phải ≥ 3 giây (`wm < 30` × 100ms) để server kịp gửi mob data.
+  2. Boss dead check phải **adaptive**: dùng timestamp `lastDeathTime` để phân biệt "vừa mới chết hồi sinh" (chờ 5s) vs "boss thật sự chết" (chờ 500ms). Polling mỗi 100ms + break sớm nếu boss xuất hiện.
+  3. Pattern chuẩn cho 9 boss fight loops: `long lastDeathTime = 0L` + `lastDeathTime = System.currentTimeMillis()` sau `deathCount++` + `boolean recentDeath = (System.currentTimeMillis() - lastDeathTime) < 10000L` trong boss dead check.
+  4. Khi fix pattern lặp lại ở nhiều nơi (9 loops), dùng Python script batch-replace thay vì sửa tay — đảm bảo đồng bộ 100%.
+
+
 ## 2026-09-04: Xử Lý Hộp Thoại Xác Nhận "Có" / "Đồng ý" (Dialog / MsgDlg) và Namespace Conflict lcdui.Command
 - **Nguyên nhân bug Ô 3 ("Đồng ý/Có") không hoạt động:**
   - Hộp thoại xác nhận NPC ("Bạn có chắc chắn muốn...?", Yes/No) là các modal dialog hiển thị qua `GameCanvas.currentDialog` / `GameCanvas.msgdlg`.

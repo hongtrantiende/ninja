@@ -43,6 +43,7 @@ public class ChatRouter {
     /** Nhan pkm tu truong nhom; xu ly chuyen map va danh boss cho thanh vien. */
     public static void startPartyBoss(Auto auto) {
         if (auto == null) return;
+        AutoSanBoss.syncPartyLeaderName();
 
         if (auto.mapID == -6 || auto.mapID == -5) {
             Char.MuaCoLenh = false;
@@ -84,30 +85,9 @@ public class ChatRouter {
 
         // === Map thuong (VDMQ, Map Ngoai...) ===
         if (auto.mapID > 0) {
-            Char.MuaCoLenh = false;
-            Char.DungCoLenh = false;
-            if (TileMap.isLangCo(TileMap.mapID)) {
-                AutoSanBoss.finishLangCoAndExit();
-            }
-            if (AutoSanBoss.isLangTT(TileMap.mapID)) {
-                AutoSanBoss.finishLangTTAndExit();
-            }
-
-            int curMap = TileMap.mapID;
-            if (curMap != auto.mapID && (curMap == 192 || curMap == 195 || curMap == 196 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)) {
-                try { Code.gameAN(); } catch (Exception e) {}
-                try { Thread.sleep(800L); } catch (InterruptedException e) {}
-                if (Char.getMyChar().statusMe != 14 && Char.getMyChar().cHP > 0) {
-                    try { Service.gI().gameAE(); } catch (Exception e) {}
-                    try { Thread.sleep(800L); } catch (InterruptedException e) {}
-                }
-                respawnQuick();
-            }
-
-            AutoSanBoss.memberTargetMap = auto.mapID;
             AutoSanBoss.startPartyMember();
-            LockGame.gameBK();
-            Code.gameAA(auto);
+            AutoSanBoss.handleMemberNormalMap(auto.mapID);
+            return;
         }
     }
 
@@ -220,18 +200,15 @@ public class ChatRouter {
             AutoSanBoss.toggleLangCo();
             return true;
         }
+        if (text.equals("tspkblangtt") || text.equals("langtt")) {
+            AutoSanBoss.toggleLangTT();
+            return true;
+        }
         if (text.equals("tspkbtg")) {
             AutoSanBoss.toggleTheGioi();
             return true;
         }
-        if (text.equals("tspkbmv") || text.equals("mv")) {
-            AutoSanBoss.toggleMapVIP();
-            return true;
-        }
-        if (text.equals("tspkbmv2") || text.equals("mv2")) {
-            AutoSanBoss.toggleMapVIP2();
-            return true;
-        }
+
         if (text.equals("tstreo") || text.equals("treo")) {
             AutoSanBoss.toggleTreo();
             return true;
@@ -248,18 +225,15 @@ public class ChatRouter {
             AutoSanBoss.toggleTreoLangCo();
             return true;
         }
+        if (text.equals("treolangtt")) {
+            AutoSanBoss.toggleTreoLangTT();
+            return true;
+        }
         if (text.equals("treotg")) {
             AutoSanBoss.toggleTreoTheGioi();
             return true;
         }
-        if (text.equals("treomv")) {
-            AutoSanBoss.toggleTreoMapVIP();
-            return true;
-        }
-        if (text.equals("treomv2")) {
-            AutoSanBoss.toggleTreoMapVIP2();
-            return true;
-        }
+
         
         // === TS PRO: ts + gb all mode ===
         if (text.equals("tsp") || text.equals("tspro")) {

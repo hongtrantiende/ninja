@@ -23,10 +23,7 @@ public final class NamMod implements IActionListener {
 
     private static final int HIDE_ITEM_DROP = 120122;
     private static final int TS_VIP_MAP = 120123;
-    private static final int TS_TU_LUYEN = 120124;
     private static final int BOSS_LANG_CO = 120125;
-    private static final int BOSS_MAP_VIP = 120126;
-    private static final int BOSS_MAP_VIP2 = 120127;
     private static final int BOSS_LANG_TT = 120138;
     private static final int TS_BOSS_LTT = 120139;
 
@@ -95,7 +92,6 @@ public final class NamMod implements IActionListener {
 
         // === Tiện ích Khác ===
         items.addElement(command("MAP VIP SC: " + onOff(AutoVipMap.isEnabled && AutoVipMap.targetMapID == 190), TS_VIP_MAP));
-        items.addElement(command("TS Tu Luy\u1ec7n: " + onOff(AutoTuLuyen.isEnabled), TS_TU_LUYEN));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
 
         // === Exploit / Test ===
@@ -214,12 +210,7 @@ public final class NamMod implements IActionListener {
             case BOSS_LANG_TT:
                 AutoSanBoss.toggleLangTT();
                 return;
-            case BOSS_MAP_VIP:
-                AutoSanBoss.toggleMapVIP();
-                return;
-            case BOSS_MAP_VIP2:
-                AutoSanBoss.toggleMapVIP2();
-                return;
+
             case HUT_VP:
                 AutoPickup.toggle();
                 return;
@@ -238,9 +229,7 @@ public final class NamMod implements IActionListener {
             case TS_VIP_MAP:
                 AutoVipMap.toggle();
                 return;
-            case TS_TU_LUYEN:
-                AutoTuLuyen.toggle();
-                return;
+
             case MOI_NHOM:
                 AutoSanBoss.autoInviteFriends();
                 return;

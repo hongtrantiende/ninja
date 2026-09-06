@@ -2558,7 +2558,18 @@ implements Runnable {
     public static void gameAB(String var0, String var1) {
         boolean var16;
         ChatTab var2;
-        if (Char.DanhNhom && gameAH != null && var0.equals(gameAH) && !Char.getMyChar().cName.equals(gameAH)) {
+        boolean isLeaderMsg = false;
+        try {
+            if (GameScr.vParty != null && GameScr.vParty.size() > 0) {
+                Party first = (Party) GameScr.vParty.firstElement();
+                if (first != null && first.name != null && first.name.equals(var0)) {
+                    isLeaderMsg = true;
+                    gameAH = first.name;
+                }
+            }
+        } catch (Exception e) {}
+
+        if ((isLeaderMsg || (Char.DanhNhom && gameAH != null && var0.equals(gameAH))) && !Char.getMyChar().cName.equals(var0)) {
             Code.gameAD(var0, var1);
         }
         if ((var2 = ChatManager.gameAD().gameAA(var0)) == null) {
@@ -2639,7 +2650,18 @@ implements Runnable {
     }
 
     public static void gameAD(String var0, String var1) {
-        if (Char.DanhNhom && gameAH != null && var0.equals(gameAH) && !Char.getMyChar().cName.equals(gameAH)) {
+        boolean isLeaderMsg = false;
+        try {
+            if (GameScr.vParty != null && GameScr.vParty.size() > 0) {
+                Party first = (Party) GameScr.vParty.firstElement();
+                if (first != null && first.name != null && first.name.equals(var0)) {
+                    isLeaderMsg = true;
+                    gameAH = first.name;
+                }
+            }
+        } catch (Exception e) {}
+
+        if ((isLeaderMsg || (Char.DanhNhom && gameAH != null && var0.equals(gameAH))) && !Char.getMyChar().cName.equals(var0)) {
             String[] var5 = Code.gameAC(var1, " ");
             try {
                 if (var5[0].equals("dcvt")) {
@@ -2831,6 +2853,14 @@ implements Runnable {
                     }
                 } else {
                     if (var5[0].equals("pkm")) {
+                        try {
+                            if (GameScr.vParty != null && GameScr.vParty.size() > 1) {
+                                Party first = (Party) GameScr.vParty.firstElement();
+                                if (first != null && first.name != null) {
+                                    Code.gameAH = first.name;
+                                }
+                            }
+                        } catch (Exception e) {}
                         if (gameAB == gameCE) {
                             Code.gameCE.mapID = Integer.parseInt(var5[1]);
                             return;
@@ -2838,14 +2868,23 @@ implements Runnable {
                         Auto var7 = gameAB instanceof PkBoss ? Code.gameAB.reAB : gameAB;
                         PkBoss pBoss = new PkBoss(Integer.parseInt(var5[1]));
                         pBoss.reAB = var7;
+                        if (AutoSanBoss.memberTargetZone >= 0) {
+                            pBoss.zoneID = AutoSanBoss.memberTargetZone;
+                        }
                         ChatRouter.startPartyBoss(pBoss);
                         return;
                     }
                     if (var5[0].equals("pkk")) {
-                        if (gameAB instanceof PkBoss || gameAB == gameCE) {
-                            ChatRouter.setPartyBossZone(Integer.parseInt(var5[1]));
-                            return;
-                        }
+                        try {
+                            int zone = Integer.parseInt(var5[1]);
+                            ChatRouter.setPartyBossZone(zone);
+                            if (gameAB instanceof PkBoss) {
+                                ((PkBoss) gameAB).zoneID = zone;
+                            } else if (gameAB == gameCE) {
+                                Code.gameCE.zoneID = zone;
+                            }
+                        } catch (Exception e) {}
+                        return;
                     } else if (var5[0].equals("pke")) {
                         if (gameAB instanceof PkBoss) {
                             ChatRouter.stopPartyBoss();

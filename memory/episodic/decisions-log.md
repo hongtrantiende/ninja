@@ -1,5 +1,63 @@
 # Decisions Log
 
+## 2026-09-06 (Session 31): Fix Bot Tưởng Boss Đã Chết Sau Respawn & Xóa PkBoss Map VIP / TS Tu Luyện
+- **Vấn đề 1:** Khi bị boss đánh chết → hồi sinh → quay lại map boss, bot xác nhận boss đã chết quá sớm (chỉ 300ms) trước khi server kịp gửi mob data → bỏ qua boss đang săn.
+- **Nguyên nhân gốc:**
+  1. Mob wait sau respawn chỉ 1 giây (`wm < 10` × 100ms) — quá ngắn, server chưa kịp gửi mob data.
+  2. Boss dead check chỉ `sleep(300)` rồi kiểm tra lại — vẫn quá sớm → `hasBossOnCurrentMap()` = false → bot tưởng boss chết → break vòng lặp.
+- **Giải pháp 1 — Adaptive Boss Death Confirmation:**
+  1. Tăng mob wait từ 1s → 3s (`wm < 10` → `wm < 30`) ở tất cả 9 boss fight loops.
+  2. Thêm `long lastDeathTime = 0L` theo dõi timestamp chết gần nhất.
+  3. Thay `sleep(300)` bằng vòng lặp polling adaptive:
+     - Nếu `(currentTimeMillis() - lastDeathTime) < 10000L` (chết trong 10s gần): chờ tối đa 5s (50 × 100ms).
+     - Bình thường (boss thật sự chết): chờ tối đa 500ms (5 × 100ms).
+     - Break sớm nếu `hasBossOnCurrentMap()` trả true.
+  4. Script Python batch-replace 9 boss fight loops × 4 fixes = 36 replacements.
+- **Vấn đề 2:** User yêu cầu xóa tính năng PkBoss Map VIP 1 (M195) / Map VIP 2 (M196) và TS Tu Luyện khỏi menu.
+- **Giải pháp 2 — Xóa routing & menu items:**
+  1. `src/NamMod.java`: Xóa constants `BOSS_MAP_VIP`, `BOSS_MAP_VIP2`, `TS_TU_LUYEN`; xóa menu item "TS Tu Luyện"; xóa case handlers.
+  2. `src/ChatRouter.java`: Xóa lệnh chat `tspkbmv`, `mv`, `tspkbmv2`, `mv2`, `treomv`, `treomv2`; xóa routing Map VIP trong `startPartyBoss`.
+  3. `src/AutoSanBoss.java`: Xóa routing `pkBossMapVIP()` và `treoScanMapVIP()` trong `pkBossOnMap` và `treoScanMap`. Giữ dead code methods (an toàn, không ảnh hưởng).
+- **Build:** Compile thành công, J2ME patches applied (76 classes), JAR 1.39 MB → `Downloads\NinjaNamod.jar`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/NamMod.java`, `src/ChatRouter.java`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`, `memory/episodic/lessons-learned.md`.
+
+## 2026-09-06 (Session 30): Fix Lỗi Thành Viên Không Vào Map Boss Hoặc Không Đánh Boss Khi Được Trưởng Nhóm Gọi (pkm/pkk)
+- **Vấn đề:** Khi trưởng nhóm gặp boss và gọi thành viên vào đánh (qua lệnh party `pkm` và `pkk`), thành viên không biết đường vào map; hoặc khi người chơi tự đưa thành viên vào map thì nhân vật cũng đứng im không đánh boss.
+- **Nguyên nhân cốt lõi:**
+  1. **Lỗi `Code.gameAH == null` chặn tin nhắn Trưởng nhóm trong `Code.java`:**
+     - Trong `Code.gameAB(var0, var1)` và `Code.gameAD(var0, var1)`, game kiểm tra `if (Char.DanhNhom && gameAH != null && var0.equals(gameAH))`.
+     - Nếu người chơi lập nhóm nhưng chưa từng gõ `sn` (lưu nhóm), biến `Code.gameAH` luôn là `null`.
+     - Vì `gameAH == null`, toàn bộ tin nhắn chat nhóm từ Trưởng nhóm (`pkm`, `pkk`, `pke`...) đều bị DROP NGAY TỪ CỔNG VÀO! Thành viên hoàn toàn không nhận được lệnh và không biết đường vào map!
+  2. **Lỗi `zoneID == -2` trong `PkBoss.class` khiến thành viên đứng im nhìn boss:**
+     - Khi thành viên vào map, nếu chưa nhận kịp packet `pkk` từ Trưởng nhóm thì `memberTargetZone` là `-1`.
+     - Khi tạo `new PkBoss(targetMap)`, mặc định `zoneID` là `-2`.
+     - Bytecode `PkBoss.gameAK()` quy định: nếu là thành viên (`iload_3 = 0`) mà `zoneID == -2`, bot lập tức `return` (đứng im bất động, không gọi `gameAM()`). Dù người chơi có tự đưa thành viên vào tận nơi đứng cạnh boss thì bot cũng không đánh!
+  3. **Lỗi nhận diện vai trò trong bytecode `PkBoss`:** Nếu `Code.gameAH == null`, `PkBoss` tưởng thành viên là Trưởng nhóm nên tự đổi khu 29 -> 0 rồi tự hủy auto.
+  4. **Map VIP (195, 196) không có đường đi bộ:** `ChatRouter` cũ gọi `TileMap.GoMap(195)` dẫn đến kẹt tại chỗ do map VIP không có liên kết tilemap thông thường.
+  5. **Vòng lặp `isMember` trong `AutoSanBoss.java` thụ động:** Chỉ có code hỗ trợ Làng Cổ và Làng TT, bỏ rơi Map Ngoài/VDMQ/VIP, không tự động nhận diện boss đang ở cùng khu để đánh.
+- **Giải pháp & Chi tiết triển khai:**
+  1. `src/Code.java`:
+     - Tự động nhận diện Trưởng nhóm từ `GameScr.vParty`: Nếu người gửi `var0` trùng tên với phần tử đầu tiên của `GameScr.vParty`, tự động gán `gameAH = var0` và cho phép `Code.gameAD(var0, var1)` xử lý lệnh ngay lập tức mà không cần gõ `sn`.
+     - Bỏ điều kiện lọc `gameAB instanceof PkBoss` khi nhận `pkk`.
+     - Khi nhận `pkm`: đồng bộ `Code.gameAH`, nếu `memberTargetZone >= 0` thì gán luôn vào `pBoss.zoneID`.
+  2. `src/ChatRouter.java`:
+     - Đồng bộ `Code.gameAH = leaderName` ngay khi nhận `pkm`.
+     - Chuyển hướng Map VIP (195/196) sang `AutoSanBoss.handleMemberMapVIP(targetMap)`.
+     - Chuyển hướng Map thường sang `AutoSanBoss.handleMemberNormalMap(targetMap)`.
+  3. `src/AutoSanBoss.java`:
+     - Chuyển `enterMapVIP()`, `enterMapVIP2()` và `lockBossFocus()` thành `public static`.
+     - Bổ sung `syncPartyLeaderName()`, `handleMemberMapVIP()`, `handleMemberNormalMap()`.
+     - Cập nhật cả 4 hàm di chuyển thành viên (`handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`, `handleMemberNormalMap`): Nếu `memberTargetZone < 0` mà thấy boss ở khu hiện tại (`findBossMob() != null`), gán `memberTargetZone = TileMap.zoneID`. Luôn gán `pk.zoneID = targetZone` (không bao giờ để `-2`!).
+     - Nâng cấp vòng lặp `isMember` trong `run()`:
+       + Tự động quét boss sống ở khu hiện tại (`curZoneBoss = findBossMob()`): Nếu có boss, lập tức gán `memberTargetMap = TileMap.mapID`, `memberTargetZone = TileMap.zoneID`, `Code.gameAB.zoneID = TileMap.zoneID`, khóa mục tiêu (`lockBossFocus()`) và xả skill tấn công tức thì (`doBossGhostAttack()`) kể cả khi người chơi tự đưa vào map hộ!
+       + Tự động di chuyển vào tất cả các loại map (Làng Cổ, Làng TT, VIP, Map Ngoài, VDMQ).
+       + Tự động đổi đúng khu của boss (`doChangeZone(memberTargetZone)`).
+       + Tự động hồi sinh nhanh (`respawnFast()`).
+  4. Biên dịch & Đóng gói:
+     - Chạy `python do_build.py`: Biên dịch Java 8 target 8, patch CLDC 1.1 version 45.3, gỡ StackMapTable, đóng gói `Aeharuna.jar` và `NinjaNamod.jar` (1,385,904 bytes).
+     - Sao chép sang `$env:USERPROFILE\Downloads\NinjaNamod.jar`.
+- **Files thay đổi:** `src/Code.java`, `src/ChatRouter.java`, `src/AutoSanBoss.java`, `NinjaNamod.jar`, `Aeharuna.jar`, `memory/episodic/decisions-log.md`.
+
 ## 2026-09-05 (Session 29): Fix Thành Viên Nhóm Bật Tàn Sát (ts) Không Đánh Khi Đã Có Nhóm (addn/sn)
 - **Vấn đề:** Khi có nhóm (dùng `addn` và `sn`), nếu trưởng nhóm chat `tsn` thì thành viên đánh bình thường, nhưng nếu thành viên nhóm tự bật `ts` (Tàn Sát cá nhân) thì nhân vật đứng im không đánh quái.
 - **Nguyên nhân:**
@@ -1100,3 +1158,25 @@ Boss tồn tại: 40 phút (2400 giây)
      - Bổ sung kiểm tra thoát Làng TT trong `returnMemberState()`: nếu thành viên đang ở Làng TT thì gọi `finishLangTTAndExit()` và `ensureAlive()`.
   4. Đã build và đóng gói thành công `NinjaNamod.jar` và `Aeharuna.jar` (1,381,107 bytes) tại `/storage/emulated/0/Download/`.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `src/AutoBossEvent.java`, `Aeharuna.jar`, `NinjaNamod.jar`
+
+## 2026-09-06: Sửa Lỗi Săn Boss Làng Truyền Thuyết Không Sử Dụng Vật Phẩm Vào Map
+- **Hiện tượng:** Khi chạy Săn Boss Làng Truyền Thuyết (M162-165) hoặc Treo Làng TT, bot không sử dụng vé/vật phẩm trong hành trang để vào map, nhân vật đứng yên và sau đó báo thất bại.
+- **Nguyên nhân cốt lõi:**
+  1. **Gọi sai gói tin mạng (`Service.gameAC` opcode 108 thay vì `useItem` opcode 11)**:
+     - Trong `ensureInLangTT()`, code gọi `Service.gI().gameAC((byte) bagIdx)`.
+     - Bytecode cho thấy `gameAC(int)` gửi opcode 108 lên server (không phải opcode dùng item). Trong giao thức Ninja School J2ME, opcode dùng item trong túi là opcode 11 (`Service.gI().useItem(int indexUI)`).
+     - Hơn nữa `bagIdx` là chỉ số mảng nội bộ (0..29), trong khi server cần `item.indexUI`. Do đó server hoàn toàn không nhận diện được hành vi sử dụng vật phẩm của người chơi.
+  2. **Thiếu cơ chế Retry & Đồng bộ Map (`TileMap.gameAF()`)**:
+     - Làng TT chỉ gửi 1 lần duy nhất, không gọi `TileMap.gameAF()` và không có vòng lặp retry.
+  3. **Tìm item bị giới hạn cứng ID 833**:
+     - `findLangTTItem()` chỉ tìm ID 833, nếu server có vật phẩm Làng TT tên khác hoặc mang ID khác sẽ không nhận diện được.
+- **Giải pháp:**
+  1. `src/AutoSanBoss.java`:
+     - Sửa `findLangTTItem()`: tìm theo cả ID 833 và fallback theo tên item (`template.name` chứa "truyền thuyết" / "truyen thuyet").
+     - Sửa `ensureInLangTT()`: Chuyển hoàn toàn sang `Service.gI().useItem(item.indexUI)` kèm `TileMap.gameAF()`, thêm vòng lặp retry 3 lần và fallback mua số lượng 2 nếu chưa có item trong túi.
+     - Thêm `toggleTreoLangTT()`.
+  2. `src/ChatRouter.java`:
+     - Thêm các lệnh chat nhanh: `langtt`, `tspkblangtt`, `treolangtt`.
+  3. Đã biên dịch Java 8 target 8, hạ version bytecode 45.3, gỡ StackMapTable, build và đóng gói thành công `NinjaNamod.jar` và `Aeharuna.jar` (1,382,353 bytes), tự động sao chép sang thư mục `Downloads`.
+- **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`
+
