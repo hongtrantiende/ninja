@@ -1248,3 +1248,38 @@ Boss tồn tại: 40 phút (2400 giây)
   3. Đã biên dịch, patch J2ME 45.3 thành công 0 lỗi, xuất file `NinjaNamod.jar` và `Aeharuna.jar` vào `/storage/emulated/0/Download/`.
 - **Files:** `src/AutoSanBoss.java`, `src/ChatRouter.java`, `Aeharuna.jar`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`
 
+## 2026-09-06 (Session 34): Đồng Bộ Teleport Tức Thì Tới Boss & Đánh Boss Cho Cả Trưởng Nhóm Và Thành Viên Nhóm (Tất Cả Chế Độ Săn Boss)
+- **Hiện tượng & Báo cáo:**
+  - Người chơi phát hiện thành viên nhóm khi thấy boss thì di chuyển/tele ra boss rất chậm, "dịch dịch từng khúc rồi cứ thế dịch đến khi ra chỗ boss", không tele thẳng ra boss để đánh luôn trông rất ảo.
+  - Người chơi yêu cầu kiểm tra kỹ toàn bộ cả CHỦ NHÓM (Leader) và THÀNH VIÊN NHÓM (Member) xem có bị không để xử lý dứt điểm.
+- **Nguyên nhân gốc (Root Cause):**
+  1. Trong `doBossGhostAttack()` trước đây có vòng lặp nhích từng bước `step = 60px` và gọi `Char.gameAC(nextX, nextY)` (chỉ cập nhật tọa độ client, không gửi gói tin lên server). Trên các map rộng hàng nghìn pixel, bot phải lặp 15-25 bước nhảy nhích dần khiến nhân vật giật cục/dịch từng khúc mất 8-12 giây.
+  2. Khi `isGhostAttack == false`, bot phụ thuộc hoàn toàn vào `PkBoss.gameAK()` / `Auto.java`. Tuy nhiên code cũ trong `Auto.java` đọc tọa độ xuất phát của quái (`xFirst`, `yFirst`) thay vì tọa độ thực thời gian thực (`x`, `y` của Boss), đồng thời khi ngoài tầm đánh thì chỉ bỏ target (`mobFocus = null`) mà không chủ động teleport.
+  3. Cả trưởng nhóm và thành viên ở các vòng lặp đánh boss (khi vừa vào khu phát hiện boss, sau khi hồi sinh quay lại khu, và trong loop duy trì đánh khi boss bay ra xa) đều thiếu lệnh teleport trực tiếp đến boss.
+- **Giải pháp triệt để:**
+  1. **Xây dựng 2 hàm cốt lõi chuẩn trong `AutoSanBoss.java`:**
+     - `teleportToBoss(Mob boss)`: Tính toán mặt đất chính xác qua `TileMap.gameAD`, đặt nhân vật đứng cạnh boss cách 35px, cập nhật tọa độ client `Char.gameAC(targetX, targetY)` và gửi packet vị trí tức thì lên server `Service.gI().gameAC(targetX, targetY)`. 0 delay, 1 phát ăn ngay.
+     - `attackBossDirectly(Mob boss)`: Ghim target `mobFocus = boss`, chọn skill đánh mạnh nhất và gửi ngay packet tấn công `Service.gI().gameAA(...)` kết hợp FastAttack.
+  2. **Loại bỏ bước nhích 60px trong Ghost Attack:**
+     - Thay thế toàn bộ đoạn code nhảy `step = 60` trong `doBossGhostAttack()` bằng `teleportToBoss(boss)`.
+  3. **Áp dụng đồng bộ cho THÀNH VIÊN NHÓM (Member):**
+     - Cập nhật cả 4 handler di chuyển: `handleMemberNormalMap`, `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`.
+     - Vừa đặt chân vào khu boss: `teleportToBoss(boss)` ngay lập tức.
+     - Trong vòng lặp đánh: Nếu khoảng cách tới boss > 70px -> tự động `teleportToBoss(bLoop)` bám sát boss liên tục.
+     - Sau khi hồi sinh quay lại khu: `teleportToBoss(bRespawn)` lập tức.
+     - Cập nhật cả luồng `run()` của member (khi member tự vào khu có sẵn boss).
+  4. **Áp dụng đồng bộ cho CHỦ NHÓM (Leader):**
+     - Cập nhật toàn bộ 5 chế độ săn của trưởng nhóm:
+       - `pkBossOnMap` (Map Ngoài & VDMQ)
+       - `scanLangCoZones` (Làng Cổ)
+       - `scanLangTTZones` (Làng Truyền Thuyết)
+       - `pkBossMapVIP` (Map VIP 1 - M195)
+       - `pkBossMapVIP2` (Map VIP 2 - M196)
+     - Cả 5 chế độ đều: (1) Teleport tức thì khi phát hiện boss, (2) Teleport lại ngay sau khi chết hồi sinh quay về khu, (3) Teleport bám sát trong loop nếu boss bay ra xa > 70px, (4) Đánh thẳng vào boss với `attackBossDirectly(boss)` khi `!isGhostAttack`.
+  5. **Cải tiến `Auto.java`:**
+     - Tại `Auto.java` (dòng 898-912): Thay `xFirst`/`yFirst` bằng `var6.isBoss ? var6.x : var6.xFirst` và `var6.isBoss ? var6.y : var6.yFirst`. Khi ngoài tầm đánh, chủ động teleport tới quái/boss thay vì bỏ target đứng im.
+  6. **Đóng gói & Phân phối:**
+     - Biên dịch Java 8 target 8, downgrade bytecode J2ME 45.3 (77 classes), đóng gói `NinjaNamod.jar` và `Aeharuna.jar` chuyển sang `/storage/emulated/0/Download/`.
+- **Files:** `src/AutoSanBoss.java`, `src/Auto.java`, `Aeharuna.jar`, `NinjaNamod.jar`, `memory/episodic/decisions-log.md`
+
+
