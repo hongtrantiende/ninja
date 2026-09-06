@@ -2881,6 +2881,10 @@ implements Runnable {
                                 }
                             }
                         } catch (Exception e) {}
+                        if (var0 != null && !var0.equals(Char.getMyChar().cName)) {
+                            Code.gameAH = var0;
+                        }
+                        AutoSanBoss.isPartyMemberMode = true;
                         if (gameAB == gameCE) {
                             Code.gameCE.mapID = Integer.parseInt(var5[1]);
                             return;
@@ -2911,10 +2915,8 @@ implements Runnable {
                         } catch (Exception e) {}
                         return;
                     } else if (var5[0].equals("pke")) {
-                        if (gameAB instanceof PkBoss) {
-                            ChatRouter.stopPartyBoss();
-                            return;
-                        }
+                        ChatRouter.stopPartyBoss();
+                        return;
                     } else if (gameAB != null) {
                         if (var5[0].equals("map")) {
                             Code.gameAB.mapID = Integer.parseInt(var5[1]);

@@ -15,6 +15,7 @@ import java.util.TimeZone;
 public class AutoSanBoss implements Runnable {
     public static boolean isRunning = false;
     public static boolean isPartyMode = false;
+    public static boolean isPartyMemberMode = false;
     public static boolean treoMode = false; // true = tim boss nhung khong danh, chi goi nhom roi dung cho
     public static int forcedBossType = -1; // -1 = auto schedule, 0-3 = force loai boss cu the
     public static long huntStartTime = 0L;
@@ -35,6 +36,7 @@ public class AutoSanBoss implements Runnable {
     }
 
     public static boolean isPartyMember() {
+        if (isPartyMemberMode) return true;
         try {
             Char myChar = Char.getMyChar();
             if (myChar != null && GameScr.vParty != null && GameScr.vParty.size() > 1) {
@@ -1124,6 +1126,7 @@ public class AutoSanBoss implements Runnable {
 
     /** Bat che do thanh vien thuong khi nhan pkm -1. */
     public static void startPartyMember() {
+        isPartyMemberMode = true;
         if (!isRunning) {
             treoMode = false;
             toggleInternal(true, -1);
@@ -1132,6 +1135,7 @@ public class AutoSanBoss implements Runnable {
 
     /** Ep thanh vien ve che do DANH khi nhan pkm -1. */
     public static void startPartyMemberNormal() {
+        isPartyMemberMode = true;
         treoMode = false;
         if (!isRunning) {
             toggleInternal(true, -1);
@@ -1140,6 +1144,7 @@ public class AutoSanBoss implements Runnable {
 
     /** Dung han AutoSanBoss thanh vien khi nhan pkm -3. */
     public static void stopPartyMemberFully() {
+        isPartyMemberMode = false;
         if (Code.gameAB instanceof PkBoss) {
             try { Code.gameAC(); } catch (Exception e) {}
         }
@@ -1153,6 +1158,7 @@ public class AutoSanBoss implements Runnable {
 
     /** Bat che do thanh vien TREO khi nhan pkm -2. */
     public static void startPartyMemberTreo() {
+        isPartyMemberMode = true;
         if (!isRunning) {
             treoMode = true;
             toggleInternal(true, -1);
@@ -1215,7 +1221,7 @@ public class AutoSanBoss implements Runnable {
     public static void prepareMemberForMap(int targetMap) {
         memberTargetMap = targetMap;
         if (Code.gameAB instanceof PkBoss) {
-            Code.gameAB.mapID = targetMap;
+            try { Code.gameAC(); } catch (Exception e) {}
         }
         if (dummyAuto == null) {
             dummyAuto = new SanBossHolder();
@@ -1227,6 +1233,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien vao Lang Co theo lenh pkm tu truong nhom.
      */
     public static void handleMemberLangCo(final int targetMap) {
+        isPartyMemberMode = true;
         prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
@@ -1275,6 +1282,7 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         attackBossDirectly(boss);
                     }
+                    boolean bossEverSeen = (boss != null);
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1288,6 +1296,7 @@ public class AutoSanBoss implements Runnable {
                             sleep(500L);
                             boss = findBossMob();
                             if (boss != null) {
+                                bossEverSeen = true;
                                 teleportToBoss(boss);
                                 lockBossFocus();
                                 attackBossDirectly(boss);
@@ -1299,12 +1308,16 @@ public class AutoSanBoss implements Runnable {
                             continue;
                         }
                         if (TileMap.mapID != targetMap) break;
+                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
+                            targetZone = memberTargetZone;
+                        }
                         if (TileMap.zoneID != targetZone) {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
                         boss = findBossMob();
                         if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            bossEverSeen = true;
                             Char me = Char.getMyChar();
                             if (me != null) {
                                 int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
@@ -1315,7 +1328,7 @@ public class AutoSanBoss implements Runnable {
                             lockBossFocus();
                             attackBossDirectly(boss);
                         }
-                        if (!hasBossOnCurrentMap() && !isDead()) {
+                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
@@ -1326,10 +1339,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300L);
                     }
                     memberTargetZone = -1;
-                    if (Code.gameAB instanceof PkBoss) {
-                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
-                        Code.gameAB = dummyAuto;
-                    }
+                    memberTargetMap = -1;
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1341,6 +1351,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien vao Lang TT theo lenh pkm tu truong nhom.
      */
     public static void handleMemberLangTT(final int targetMap) {
+        isPartyMemberMode = true;
         prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
@@ -1389,6 +1400,7 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         attackBossDirectly(boss);
                     }
+                    boolean bossEverSeen = (boss != null);
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1402,6 +1414,7 @@ public class AutoSanBoss implements Runnable {
                             sleep(500L);
                             boss = findBossMob();
                             if (boss != null) {
+                                bossEverSeen = true;
                                 teleportToBoss(boss);
                                 lockBossFocus();
                                 attackBossDirectly(boss);
@@ -1413,12 +1426,16 @@ public class AutoSanBoss implements Runnable {
                             continue;
                         }
                         if (TileMap.mapID != targetMap) break;
+                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
+                            targetZone = memberTargetZone;
+                        }
                         if (TileMap.zoneID != targetZone) {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
                         boss = findBossMob();
                         if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            bossEverSeen = true;
                             Char me = Char.getMyChar();
                             if (me != null) {
                                 int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
@@ -1429,7 +1446,7 @@ public class AutoSanBoss implements Runnable {
                             lockBossFocus();
                             attackBossDirectly(boss);
                         }
-                        if (!hasBossOnCurrentMap() && !isDead()) {
+                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
@@ -1440,10 +1457,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300L);
                     }
                     memberTargetZone = -1;
-                    if (Code.gameAB instanceof PkBoss) {
-                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
-                        Code.gameAB = dummyAuto;
-                    }
+                    memberTargetMap = -1;
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1467,6 +1481,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien vao Map VIP (M195/196) theo lenh pkm tu truong nhom.
      */
     public static void handleMemberMapVIP(final int targetMap) {
+        isPartyMemberMode = true;
         prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
@@ -1519,6 +1534,7 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         attackBossDirectly(boss);
                     }
+                    boolean bossEverSeen = (boss != null);
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1536,6 +1552,7 @@ public class AutoSanBoss implements Runnable {
                             sleep(500L);
                             boss = findBossMob();
                             if (boss != null) {
+                                bossEverSeen = true;
                                 teleportToBoss(boss);
                                 lockBossFocus();
                                 attackBossDirectly(boss);
@@ -1547,12 +1564,16 @@ public class AutoSanBoss implements Runnable {
                             continue;
                         }
                         if (TileMap.mapID != targetMap) break;
+                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
+                            targetZone = memberTargetZone;
+                        }
                         if (TileMap.zoneID != targetZone) {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
                         boss = findBossMob();
                         if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            bossEverSeen = true;
                             Char me = Char.getMyChar();
                             if (me != null) {
                                 int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
@@ -1563,7 +1584,7 @@ public class AutoSanBoss implements Runnable {
                             lockBossFocus();
                             attackBossDirectly(boss);
                         }
-                        if (!hasBossOnCurrentMap() && !isDead()) {
+                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
@@ -1574,10 +1595,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300L);
                     }
                     memberTargetZone = -1;
-                    if (Code.gameAB instanceof PkBoss) {
-                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
-                        Code.gameAB = dummyAuto;
-                    }
+                    memberTargetMap = -1;
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1589,6 +1607,7 @@ public class AutoSanBoss implements Runnable {
      * Thanh vien di toi Map thuong / VDMQ theo lenh pkm tu truong nhom.
      */
     public static void handleMemberNormalMap(final int targetMap) {
+        isPartyMemberMode = true;
         prepareMemberForMap(targetMap);
         syncPartyLeaderName();
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
@@ -1647,6 +1666,7 @@ public class AutoSanBoss implements Runnable {
                         lockBossFocus();
                         attackBossDirectly(boss);
                     }
+                    boolean bossEverSeen = (boss != null);
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
                         if (isDead()) {
@@ -1664,6 +1684,7 @@ public class AutoSanBoss implements Runnable {
                             sleep(500L);
                             boss = findBossMob();
                             if (boss != null) {
+                                bossEverSeen = true;
                                 teleportToBoss(boss);
                                 lockBossFocus();
                                 attackBossDirectly(boss);
@@ -1675,12 +1696,16 @@ public class AutoSanBoss implements Runnable {
                             continue;
                         }
                         if (TileMap.mapID != targetMap) break;
+                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
+                            targetZone = memberTargetZone;
+                        }
                         if (TileMap.zoneID != targetZone) {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
                         boss = findBossMob();
                         if (boss != null && boss.hp > 0 && boss.status != 0) {
+                            bossEverSeen = true;
                             Char me = Char.getMyChar();
                             if (me != null) {
                                 int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
@@ -1691,7 +1716,7 @@ public class AutoSanBoss implements Runnable {
                             lockBossFocus();
                             attackBossDirectly(boss);
                         }
-                        if (!hasBossOnCurrentMap() && !isDead()) {
+                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
                             sleep(1500L);
                             if (!hasBossOnCurrentMap() && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
@@ -1702,10 +1727,7 @@ public class AutoSanBoss implements Runnable {
                         sleep(300L);
                     }
                     memberTargetZone = -1;
-                    if (Code.gameAB instanceof PkBoss) {
-                        if (dummyAuto == null) dummyAuto = new SanBossHolder();
-                        Code.gameAB = dummyAuto;
-                    }
+                    memberTargetMap = -1;
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
@@ -1723,6 +1745,7 @@ public class AutoSanBoss implements Runnable {
         if (isRunning) {
             isRunning = false;
             isPartyMode = false;
+            isPartyMemberMode = false;
             treoMode = false;
             forcedBossType = -1;
             if (Code.gameAB == dummyAuto) {
@@ -1739,6 +1762,9 @@ public class AutoSanBoss implements Runnable {
             GameScr.gameAC("T\u1eaft T\u1ef1 S\u0103n Boss!");
         } else {
             isRunning = true;
+            if (!partyMode) {
+                isPartyMemberMode = false;
+            }
             huntStartTime = System.currentTimeMillis();
             isPartyMode = partyMode;
             forcedBossType = forcedType;
@@ -1763,17 +1789,19 @@ public class AutoSanBoss implements Runnable {
             // Gui pkm va moi ban be vao nhom
             if (partyMode) {
                 boolean isLeader = false;
-                try {
-                    Char myChar = Char.getMyChar();
-                    if (GameScr.vParty != null && GameScr.vParty.size() > 0) {
-                        Party first = (Party) GameScr.vParty.firstElement();
-                        if (first != null && myChar != null && first.charId == myChar.charID) {
-                            isLeader = true;
+                if (!isPartyMemberMode) {
+                    try {
+                        Char myChar = Char.getMyChar();
+                        if (GameScr.vParty != null && GameScr.vParty.size() > 0) {
+                            Party first = (Party) GameScr.vParty.firstElement();
+                            if (first != null && myChar != null && first.charId == myChar.charID) {
+                                isLeader = true;
+                            }
+                        } else {
+                            isLeader = true; // Chua co nhom -> Tu moi (se thanh nhom truong)
                         }
-                    } else {
-                        isLeader = true; // Chua co nhom -> Tu moi (se thanh nhom truong)
-                    }
-                } catch (Exception e) {}
+                    } catch (Exception e) {}
+                }
                 
                 if (isLeader && !eventHuntMode) {
                     // Moi ban be / thanh vien chua co trong nhom (KHONG roi nhom hien tai)
@@ -1789,6 +1817,7 @@ public class AutoSanBoss implements Runnable {
     public static void stop() {
         if (isRunning) {
             isRunning = false;
+            isPartyMemberMode = false;
             huntStartTime = 0L;
             isPartyMode = false;
             treoMode = false;
@@ -2174,6 +2203,15 @@ public class AutoSanBoss implements Runnable {
                 returnToLangCoHub();
             }
             if (TileMap.mapID == 138) {
+                if (TileMap.vGo != null && TileMap.vGo.size() > 0) {
+                    Waypoint wp = (Waypoint) TileMap.vGo.elementAt(0);
+                    if (wp != null) {
+                        Char.gameAE(wp.minX, wp.minY);
+                        Char.getMyChar().cx = wp.minX;
+                        Char.getMyChar().cy = wp.minY;
+                        Service.gI().gameAC(wp.minX, wp.minY);
+                    }
+                }
                 try {
                     TileMap.gameAJ(0);
                     TileMap.gameAF();
@@ -2570,6 +2608,15 @@ public class AutoSanBoss implements Runnable {
 
             // Tu M138: di den cong exit (gameAJ = 1 neck duy nhat)
             GameScr.gameAC("TSB: Neck M" + targetMap + " (l\u1ea7n " + (retry + 1) + ")");
+            if (TileMap.vGo != null && TileMap.vGo.size() > 0) {
+                Waypoint wp = (Waypoint) TileMap.vGo.elementAt(0);
+                if (wp != null) {
+                    Char.gameAE(wp.minX, wp.minY);
+                    Char.getMyChar().cx = wp.minX;
+                    Char.getMyChar().cy = wp.minY;
+                    Service.gI().gameAC(wp.minX, wp.minY);
+                }
+            }
             try {
                 TileMap.gameAJ(0);
                 TileMap.gameAF();
@@ -4190,21 +4237,22 @@ public class AutoSanBoss implements Runnable {
                 restoreDummyAuto();
 
                 // Kiem tra xem co phai la thanh vien nhom (khong phai truong nhom) hay khong
-                boolean isMember = false;
-                try {
-                    Char myChar = Char.getMyChar();
-                    if (myChar != null && GameScr.vParty.size() > 1) {
-                        Party first = (Party) GameScr.vParty.firstElement();
-                        if (first != null && first.charId != myChar.charID) {
-                            isMember = true;
-                        }
-                    }
-                } catch (Exception e) {}
+                boolean isMember = isPartyMemberMode || isPartyMember();
 
                 if (isMember) {
                     syncPartyLeaderName();
 
-                    // Kiem tra neu o khu hien tai co boss (ho tro nguoi choi tu vao map/khu ho hoac boss ngay truoc mat)
+                    // Neu memberMoveThread dang xu ly chuyen map / danh boss, giu nhip cho TV va tiep tuc
+                    if (memberMoveThread != null && memberMoveThread.isAlive()) {
+                        restoreDummyAuto();
+                        if (isDead()) {
+                            respawnFast();
+                        }
+                        sleep(1000L);
+                        continue;
+                    }
+
+                    // Kiem tra neu o khu hien tai co boss (ho tro nguoi choi tu vao map/khu hoac boss ngay truoc mat)
                     Mob curZoneBoss = findBossMob();
                     if (curZoneBoss != null && !treoMode && !isDead()) {
                         memberTargetMap = TileMap.mapID;
@@ -4212,21 +4260,11 @@ public class AutoSanBoss implements Runnable {
                         teleportToBoss(curZoneBoss);
                         lockBossFocus();
                         attackBossDirectly(curZoneBoss);
-                        if (Code.gameAB instanceof PkBoss) {
-                            Code.gameAB.mapID = TileMap.mapID;
-                            Code.gameAB.zoneID = TileMap.zoneID;
-                        } else {
-                            PkBoss pk = new PkBoss(TileMap.mapID);
-                            pk.zoneID = TileMap.zoneID;
-                            Code.gameAA(pk);
-                        }
+                        restoreDummyAuto();
                     } else if (memberTargetMap > 0) {
                         // 1. Neu chua o dung map boss -> Di chuyen toi map
                         if (TileMap.mapID != memberTargetMap) {
-                            if (Code.gameAB instanceof PkBoss) {
-                                Code.gameAB.mapID = memberTargetMap;
-                                restoreDummyAuto();
-                            }
+                            restoreDummyAuto();
                             if (memberMoveThread == null || !memberMoveThread.isAlive()) {
                                 if (memberTargetMap >= 134 && memberTargetMap <= 137) {
                                     handleMemberLangCo(memberTargetMap);
@@ -4253,17 +4291,7 @@ public class AutoSanBoss implements Runnable {
                                     lockBossFocus();
                                     attackBossDirectly(boss);
                                 }
-                                int effectiveZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                                if (!(Code.gameAB instanceof PkBoss)) {
-                                    PkBoss pk = new PkBoss(memberTargetMap);
-                                    pk.zoneID = effectiveZone;
-                                    Code.gameAA(pk);
-                                } else {
-                                    Code.gameAB.mapID = memberTargetMap;
-                                    if (Code.gameAB.zoneID != effectiveZone) {
-                                        Code.gameAB.zoneID = effectiveZone;
-                                    }
-                                }
+                                restoreDummyAuto();
                             }
                         }
                     }
@@ -4273,10 +4301,7 @@ public class AutoSanBoss implements Runnable {
                         respawnFast();
                     }
 
-                    // === TREO MODE cho thanh vien ===
-                    if (treoMode && Code.gameAB instanceof PkBoss) {
-                        GameScr.gameAC("TREO: \u0110ang di t\u1edbi map/khu boss...");
-                    }
+                    restoreDummyAuto();
                     sleep(1000L);
                     continue;
                 }

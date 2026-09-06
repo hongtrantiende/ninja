@@ -46,6 +46,7 @@ public class ChatRouter {
         if (AutoSanBoss.isPartyLeader()) {
             return; // Truong nhom khong thuc thi lenh pkm do chinh minh gui!
         }
+        AutoSanBoss.isPartyMemberMode = true;
         AutoSanBoss.syncPartyLeaderName();
 
         if (auto.mapID == -6 || auto.mapID == -5) {

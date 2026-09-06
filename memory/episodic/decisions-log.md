@@ -1,5 +1,36 @@
 # Decisions Log
 
+## 2026-09-06 (Session 34): Sửa Triệt Để Lỗi Thành Viên Săn Boss Làng Cổ Tự Bỏ Nhóm, Chạy Lung Tung Và Bật Chế Độ Săn Boss Đơn
+- **Vấn đề:** Khi trưởng nhóm gọi đánh boss ở Làng Cổ (ví dụ map 136, lệnh `pkm 136`), thành viên không đánh boss trưởng nhóm gọi mà chạy lung tung, tự tìm boss ở map khác, tự thoát chế độ săn boss nhóm rồi tự vào chế độ săn boss đơn ("tự thoát chế độ săn boss nhóm r tự vào chế độ săn boss của nó rất ảo").
+- **Nguyên nhân cốt lõi:**
+  1. *Lỗi nhận diện vai trò trong `AutoSanBoss.run()`*: `isMember` trước đây kiểm tra theo `GameScr.vParty.size() > 1`. Khi qua cổng hoặc chuyển map (đặc biệt vào M138 Làng Cổ), packet party chưa đồng bộ tức thì, `isMember` bị `false` trong tích tắc, làm thread chính rơi khỏi nhánh thành viên và rơi xuống `huntBossType()`. Kết quả: thành viên gọi `finishLangCoAndExit()`, bỏ Làng Cổ, chạy ra VDMQ/Map Ngoài và tự săn boss như một trưởng nhóm mới.
+  2. *Khởi tạo nhầm `PkBoss` trong luồng thành viên*: Code cũ trong `AutoSanBoss.run()` và `handleMember...` vẫn còn khởi tạo `new PkBoss(...)`. Khi `PkBoss` chạy, hàm `PkBoss.gameAK()` phát hiện không khớp leader name nên tự quét 30 khu từ 29 về 0, kéo thành viên rời khỏi khu boss, sau 30 khu gửi lệnh `pke` và gọi `Code.gameAC()` làm ngắt toàn bộ auto.
+  3. *Tự động out nhóm trong `Controller.class` (Bytecode 13885)*: Khi có packet party mới, nếu `Code.gameAH != null` mà khác tên leader trong party, `Controller.class` tự động gửi packet rời nhóm `Service.gI().gameAT()`.
+  4. *Delay đi bộ qua cổng M138 Làng Cổ*: `TileMap.gameAJ(0)` chỉ gửi packet `gameAC` sau 10ms mà không dịch chuyển tức thì tới Waypoint 0, khiến việc chuyển từ M138 sang M134-137 bị nghẽn timeout.
+  5. *Boss chưa kịp load bị phán đã chết*: Trong vòng lặp đánh boss của thành viên, nếu mạng trễ boss chưa kịp render ở tích tắc đầu tiên, bot check `!hasBossOnCurrentMap()` lập tức break vòng lặp và thông báo "boss đã chết".
+- **Giải pháp:**
+  1. **Flag kiên cố `isPartyMemberMode`**:
+     - Thêm biến `public static boolean isPartyMemberMode = false;`.
+     - Cập nhật `isPartyMember()` trả về `true` ngay khi `isPartyMemberMode` bật.
+     - Bật cờ này ngay khi nhận lệnh `pkm` trong `Code.gameAD` và `ChatRouter.startPartyBoss`.
+     - Chỉ hạ cờ khi nhận `pke` hoặc người dùng chủ động tắt auto.
+  2. **Tách biệt luồng trong `AutoSanBoss.run()`**:
+     - Kiểm tra `isMember = isPartyMemberMode || isPartyMember();`.
+     - Nếu `memberMoveThread` đang chạy: chỉ giữ nhịp sống và `continue;`, tuyệt đối không can thiệp.
+     - Xóa bỏ 100% việc tạo `PkBoss` trong luồng thành viên; toàn bộ đều dùng `SanBossHolder` (`restoreDummyAuto()`) và tấn công trực tiếp bằng `teleportToBoss` + `attackBossDirectly`.
+     - Nhánh thành viên kết thúc bằng `sleep(1000L); continue;` vô điều kiện, bảo đảm không bao giờ rơi xuống logic săn boss đơn / trưởng nhóm.
+  3. **Đồng bộ tên trưởng nhóm và fix out nhóm**:
+     - Trong `Code.gameAD` khi nhận lệnh `pkm`: đồng bộ ngay tên người gửi `var0` vào `Code.gameAH` nếu người gửi khác tên nhân vật mình.
+     - Trong `pke`: bỏ điều kiện `gameAB instanceof PkBoss` để thành viên luôn tiếp nhận lệnh kết thúc từ trưởng nhóm.
+  4. **Teleport tức thì qua cổng M138 Làng Cổ**:
+     - Trong cả `enterLangCoSpecificMap` và `navigateToLangCoMap`: teleport thẳng nhân vật tới Waypoint 0 trước khi gọi `TileMap.gameAJ(0)`.
+  5. **Chống báo boss chết ảo (`bossEverSeen`)**:
+     - Chỉ xác nhận boss đã chết khi `bossEverSeen == true && !hasBossOnCurrentMap()`, loại bỏ tình trạng vừa vào map boss chưa kịp gửi dữ liệu đã tưởng boss chết.
+- **Build & Verify:**
+  - Chạy `python do_build.py` hoàn thành với mã 0, downgrade bytecode 45.3 cho 79 class files.
+  - Đóng gói thành công `Aeharuna.jar` và `NinjaNamod.jar` (1.395.497 bytes), tự động copy ra `/storage/emulated/0/Download/`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/Code.java`, `src/ChatRouter.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
 ## 2026-09-06 (Session 33): Nâng Cấp Thành Viên Nhóm Teleport Tức Thì Đến Sát Cạnh Boss, Xóa Bỏ Dịch Từng Khúc 60px Chậm Chạp
 - **Vấn đề:** Thành viên nhóm khi vào map boss di chuyển ra boss rất chậm, "dịch dịch chuyển từng khúc rồi cứ thế dịch đến khi ra chỗ boss chứ không tele ra boss đánh luôn trông ảo lắm".
 - **Nguyên nhân cốt lõi:**
