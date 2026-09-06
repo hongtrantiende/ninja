@@ -48,6 +48,9 @@ public final class NamMod implements IActionListener {
     private static final int AUTO_BOSS_NOTICE = 120170;
     private static final int TS_XA = 120185;
 
+    // Che do ban share: An toan bo menu va tinh nang San Boss
+    public static boolean HIDE_BOSS_FEATURES = false;
+
     private static final NamMod INSTANCE = new NamMod();
 
     private NamMod() {
@@ -56,28 +59,31 @@ public final class NamMod implements IActionListener {
     public static void open() {
         MyVector items = new MyVector();
 
-        // === Săn Boss (ấn vào mở sub-menu) ===
-        String bossLabel = "S\u0103n Boss";
-        if (AutoSanBoss.isRunning) {
-            int f = AutoSanBoss.forcedBossType;
-            bossLabel += ": ON (" + (f == -1 ? "Auto" : f == AutoSanBoss.TYPE_ALL ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : f == 2 ? "LC" : f == 5 ? "LTT" : "?") + ")";
-        } else {
-            bossLabel += ": OFF";
+        // === SÄƒn Boss (áº¥n vÃ o má»Ÿ sub-menu) â€” áº¨n khi báº­t HIDE_BOSS_FEATURES ===
+        if (!HIDE_BOSS_FEATURES) {
+            String bossLabel = "S\u0103n Boss";
+            if (AutoSanBoss.isRunning) {
+                int f = AutoSanBoss.forcedBossType;
+                bossLabel += ": ON (" + (f == -1 ? "Auto" : f == AutoSanBoss.TYPE_ALL ? "All" : f == 0 ? "VDMQ" : f == 1 ? "MN" : f == 2 ? "LC" : f == 5 ? "LTT" : "?") + ")";
+            } else {
+                bossLabel += ": OFF";
+            }
+            bossLabel += " \u25b8";
+            items.addElement(command(bossLabel, BOSS_MENU));
+            String tsLabel = "TS \u01b0u ti\u00ean Boss: " + onOff(AutoBossEvent.isEnabled);
+            if (AutoBossEvent.isEnabled) tsLabel += " (" + AutoBossEvent.priorityName() + ")";
+            tsLabel += " \u25b8";
+            items.addElement(command(tsLabel, TS_BOSS_MENU));
+            // Cai dat San Boss
+            int disCount = AutoSanBoss.disabledMaps.size();
+            String cfgLabel = "C\u00e0i \u0111\u1eb7t S\u0103n Boss";
+            if (disCount > 0) cfgLabel += " (" + disCount + " map t\u1eaft)";
+            cfgLabel += " \u25b8";
+            items.addElement(command(cfgLabel, CFG_BOSS_MENU));
+            items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
         }
-        bossLabel += " \u25b8";
-        items.addElement(command(bossLabel, BOSS_MENU));
-        String tsLabel = "TS \u01b0u ti\u00ean Boss: " + onOff(AutoBossEvent.isEnabled);
-        if (AutoBossEvent.isEnabled) tsLabel += " (" + AutoBossEvent.priorityName() + ")";
-        tsLabel += " \u25b8";
-        items.addElement(command(tsLabel, TS_BOSS_MENU));
-        // Cai dat San Boss
-        int disCount = AutoSanBoss.disabledMaps.size();
-        String cfgLabel = "C\u00e0i \u0111\u1eb7t S\u0103n Boss";
-        if (disCount > 0) cfgLabel += " (" + disCount + " map t\u1eaft)";
-        cfgLabel += " \u25b8";
-        items.addElement(command(cfgLabel, CFG_BOSS_MENU));
-        items.addElement(command("L\u1ecbch Boss: " + onOff(ThongTinBoss.isEnable), LICH_BOSS));
-        // === Hút VP & Tiện ích ===
+
+        // === HÃºt VP & Tiá»‡n Ã­ch ===
         items.addElement(command("H\u00FAt VP: " + onOff(AutoPickup.isRunning), HUT_VP));
         items.addElement(command("\u1ea8n VP r\u01a1i: " + onOff(Code.hideItemDrop), HIDE_ITEM_DROP));
 
@@ -86,17 +92,17 @@ public final class NamMod implements IActionListener {
             : "OFF";
         items.addElement(command("Auto Level: " + lvStatus, AUTO_LEVEL));
 
-        // === Cài đặt Tàn Sát ===
+        // === CÃ i Ä‘áº·t TÃ n SÃ¡t ===
         items.addElement(command("C\u00e0i \u0111\u1eb7t T\u00e0n S\u00e1t \u25b8", CFG_TS_MENU));
         items.addElement(command("T\u00e0n S\u00e1t Xa: " + onOff(AutoTsXa.isRunning), TS_XA));
 
-        // === Cài đặt Bán VP ===
+        // === CÃ i Ä‘áº·t BÃ¡n VP ===
         String banVpStatus = AutoBanVP.isEnabled
             ? "ON (SL>=" + AutoBanVP.threshold + (AutoBanVP.sellMode == AutoBanVP.MODE_ONE ? " - 1 c\u00e1i" : " - T\u1ea5t") + ")"
             : "OFF";
         items.addElement(command("C\u00e0i \u0111\u1eb7t B\u00e1n VP: " + banVpStatus + " \u25b8", CFG_BAN_VP_MENU));
 
-        // === Tiện ích Khác ===
+        // === Tiá»‡n Ã­ch KhÃ¡c ===
         items.addElement(command("MAP VIP SC: " + onOff(AutoVipMap.isEnabled && AutoVipMap.targetMapID == 190), TS_VIP_MAP));
         items.addElement(command("M\u1eddi nh\u00f3m", MOI_NHOM));
 
@@ -156,18 +162,22 @@ public final class NamMod implements IActionListener {
     public void perform(int id, Object parameter) {
         switch (id) {
             case BOSS_MENU:
+                if (HIDE_BOSS_FEATURES) return;
                 openBossMenu();
                 return;
             case CFG_BOSS_MENU:
+                if (HIDE_BOSS_FEATURES) return;
                 BossConfig.select();
                 return;
             case CFG_TS_MENU:
                 TsConfig.select();
                 return;
             case AUTO_BOSS:
+                if (HIDE_BOSS_FEATURES) return;
                 AutoSanBoss.toggle();
                 return;
             case TS_BOSS_MENU:
+                if (HIDE_BOSS_FEATURES) return;
                 openTsBossMenu();
                 return;
             case TS_BOSS_DEFAULT:
@@ -217,6 +227,7 @@ public final class NamMod implements IActionListener {
                 return;
 
             case LICH_BOSS:
+                if (HIDE_BOSS_FEATURES) return;
                 ThongTinBoss.toggle();
                 return;
             case BOSS_VDMQ:

@@ -176,103 +176,104 @@ public class ChatRouter {
             }
         }
 
-        if (text.equals("radarboss") || text.equals("rboss")) {
-            BossRadar.toggle();
-            return true;
-        }
+        if (!NamMod.HIDE_BOSS_FEATURES) {
+            if (text.equals("bossradar") || text.equals("radar")) {
+                BossRadar.toggle();
+                return true;
+            }
 
-        if (text.equals("tsbosstest") || text.equals("testboss")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
-            return true;
-        }
-        if (text.equals("testmn")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
-            return true;
-        }
-        if (text.equals("testvm") || text.equals("testvdmq")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_VDMQ);
-            return true;
-        }
-        if (text.equals("testlc") || text.equals("testlangco")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_CO);
-            return true;
-        }
-        if (text.equals("testltt") || text.equals("testlangtt")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_TT);
-            return true;
-        }
-        if (text.equals("testvip")) {
-            AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_VIP);
-            return true;
-        }
-        if (text.equals("tsboss")) {
-            AutoBossEvent.toggle();
-            return true;
-        }
-        if (text.equals("tsbosstg")) {
-            AutoBossEvent.togglePriority(3);
-            return true;
-        }
-        if (text.equals("tsbossmv")) {
-            AutoBossEvent.togglePriority(6);
-            return true;
-        }
-        if (text.equals("tsbossmv2")) {
-            AutoBossEvent.togglePriority(7);
-            return true;
-        }
+            if (text.equals("tsbosstest") || text.equals("testboss")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
+                return true;
+            }
+            if (text.equals("testmn")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_NGOAI);
+                return true;
+            }
+            if (text.equals("testvm") || text.equals("testvdmq")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_VDMQ);
+                return true;
+            }
+            if (text.equals("testlc") || text.equals("testlangco")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_CO);
+                return true;
+            }
+            if (text.equals("testltt") || text.equals("testlangtt")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_LANG_TT);
+                return true;
+            }
+            if (text.equals("testvip")) {
+                AutoBossEvent.testMapType(AutoBossEvent.TEST_MAP_VIP);
+                return true;
+            }
+            if (text.equals("tsboss")) {
+                AutoBossEvent.toggle();
+                return true;
+            }
+            if (text.equals("tsbosstg")) {
+                AutoBossEvent.togglePriority(3);
+                return true;
+            }
+            if (text.equals("tsbossmv")) {
+                AutoBossEvent.togglePriority(6);
+                return true;
+            }
+            if (text.equals("tsbossmv2")) {
+                AutoBossEvent.togglePriority(7);
+                return true;
+            }
 
-        // === FORCE BOSS COMMANDS ===
-        if (text.equals("tspkball") || text.equals("all")) {
-            AutoSanBoss.toggleALL();
-            return true;
-        }
-        if (text.equals("tspkbvm") || text.equals("vm")) {
-            AutoSanBoss.toggleVM();
-            return true;
-        }
-        if (text.equals("tspkbmn")) {
-            AutoSanBoss.toggleMN();
-            return true;
-        }
-        if (text.equals("tspkblangco") || text.equals("langco")) {
-            AutoSanBoss.toggleLangCo();
-            return true;
-        }
-        if (text.equals("tspkblangtt") || text.equals("langtt")) {
-            AutoSanBoss.toggleLangTT();
-            return true;
-        }
-        if (text.equals("tspkbtg")) {
-            AutoSanBoss.toggleTheGioi();
-            return true;
-        }
+            // === FORCE BOSS COMMANDS ===
+            if (text.equals("tspkball") || text.equals("all")) {
+                AutoSanBoss.toggleALL();
+                return true;
+            }
+            if (text.equals("tspkbvm") || text.equals("vm")) {
+                AutoSanBoss.toggleVM();
+                return true;
+            }
+            if (text.equals("tspkbmn")) {
+                AutoSanBoss.toggleMN();
+                return true;
+            }
+            if (text.equals("tspkblangco") || text.equals("langco")) {
+                AutoSanBoss.toggleLangCo();
+                return true;
+            }
+            if (text.equals("tspkblangtt") || text.equals("langtt")) {
+                AutoSanBoss.toggleLangTT();
+                return true;
+            }
+            if (text.equals("tspkbtg")) {
+                AutoSanBoss.toggleTheGioi();
+                return true;
+            }
 
-        if (text.equals("tstreo") || text.equals("treo")) {
-            AutoSanBoss.toggleTreo();
-            return true;
+            if (text.equals("tstreo") || text.equals("treo")) {
+                AutoSanBoss.toggleTreo();
+                return true;
+            }
+            if (text.equals("treovm")) {
+                AutoSanBoss.toggleTreoVM();
+                return true;
+            }
+            if (text.equals("treomn")) {
+                AutoSanBoss.toggleTreoMN();
+                return true;
+            }
+            if (text.equals("treolangco")) {
+                AutoSanBoss.toggleTreoLangCo();
+                return true;
+            }
+            if (text.equals("treolangtt")) {
+                AutoSanBoss.toggleTreoLangTT();
+                return true;
+            }
+            if (text.equals("treotg")) {
+                AutoSanBoss.toggleTheGioi();
+                return true;
+            }
         }
-        if (text.equals("treovm")) {
-            AutoSanBoss.toggleTreoVM();
-            return true;
-        }
-        if (text.equals("treomn")) {
-            AutoSanBoss.toggleTreoMN();
-            return true;
-        }
-        if (text.equals("treolangco")) {
-            AutoSanBoss.toggleTreoLangCo();
-            return true;
-        }
-        if (text.equals("treolangtt")) {
-            AutoSanBoss.toggleTreoLangTT();
-            return true;
-        }
-        if (text.equals("treotg")) {
-            AutoSanBoss.toggleTreoTheGioi();
-            return true;
-        }
-
         
         // === TS PRO: ts + gb all mode ===
         if (text.equals("tsp") || text.equals("tspro")) {

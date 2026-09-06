@@ -204,30 +204,34 @@ public class ThongKe {
             // Dong 3b: Dem va cap nhat vat pham hanh trang (PTL 545, CTT 454, TTS 455, TTT 456, TTC 457)
             updateItemCounts(myChar);
 
-            // Dong 4: TS Boss Uu Tien & Dem nguoc san boss & Boss da ha
-            int totalBoss = BossLog.getTotalKills();
-            String bossKillStr = totalBoss > 0 ? " | H\u1ea1: " + totalBoss : "";
-            if (AutoBossEvent.isEnabled) {
-                String pName = AutoBossEvent.priorityName();
-                if (AutoBossEvent.inEvent) {
-                    long huntSec = (AutoBossEvent.eventStartTime > 0) ? (System.currentTimeMillis() - AutoBossEvent.eventStartTime) / 1000L : 0L;
-                    if (huntSec < 0) huntSec = 0L;
-                    int hMin4 = (int)(huntSec / 60); int hSec4 = (int)(huntSec % 60);
-                    cachedLine4 = "TS Boss: \u0110ang s\u0103n [" + pName + "] (M" + TileMap.mapID + " K" + TileMap.zoneID + " - " + hMin4 + "p" + hSec4 + "s" + bossKillStr + ")";
-                } else {
-                    int secLeft = AutoBossEvent.getSecondsTillNextForPriority();
-                    if (secLeft > 0 && secLeft <= AutoBossEvent.PRE_SPAWN_SECONDS) {
-                        cachedLine4 = "TS Boss: Chu\u1ea9n b\u1ecb [" + pName + "] (c\u00f2n " + secLeft + "s" + bossKillStr + ")";
-                    } else if (secLeft > AutoBossEvent.PRE_SPAWN_SECONDS && secLeft < Integer.MAX_VALUE) {
-                        int m = secLeft / 60;
-                        int s = secLeft % 60;
-                        cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Boss t\u1edbi: " + (m > 0 ? m + "p" : "") + s + "s" + bossKillStr + ")";
-                    } else {
-                        cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Ch\u1edd boss..." + bossKillStr + ")";
-                    }
-                }
+            // Dong 4: TS Boss Uu Tien & Dem nguoc san boss & Boss da ha (An khi share)
+            if (NamMod.HIDE_BOSS_FEATURES) {
+                cachedLine4 = null;
             } else {
-                cachedLine4 = "TS Boss: T\u1eaft" + (totalBoss > 0 ? " (\u0110\u00e3 h\u1ea1 " + totalBoss + " boss)" : "");
+                int totalBoss = BossLog.getTotalKills();
+                String bossKillStr = totalBoss > 0 ? " | H\u1ea1: " + totalBoss : "";
+                if (AutoBossEvent.isEnabled) {
+                    String pName = AutoBossEvent.priorityName();
+                    if (AutoBossEvent.inEvent) {
+                        long huntSec = (AutoBossEvent.eventStartTime > 0) ? (System.currentTimeMillis() - AutoBossEvent.eventStartTime) / 1000L : 0L;
+                        if (huntSec < 0) huntSec = 0L;
+                        int hMin4 = (int)(huntSec / 60); int hSec4 = (int)(huntSec % 60);
+                        cachedLine4 = "TS Boss: \u0110ang s\u0103n [" + pName + "] (M" + TileMap.mapID + " K" + TileMap.zoneID + " - " + hMin4 + "p" + hSec4 + "s" + bossKillStr + ")";
+                    } else {
+                        int secLeft = AutoBossEvent.getSecondsTillNextForPriority();
+                        if (secLeft > 0 && secLeft <= AutoBossEvent.PRE_SPAWN_SECONDS) {
+                            cachedLine4 = "TS Boss: Chu\u1ea9n b\u1ecb [" + pName + "] (c\u00f2n " + secLeft + "s" + bossKillStr + ")";
+                        } else if (secLeft > AutoBossEvent.PRE_SPAWN_SECONDS && secLeft < Integer.MAX_VALUE) {
+                            int m = secLeft / 60;
+                            int s = secLeft % 60;
+                            cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Boss t\u1edbi: " + (m > 0 ? m + "p" : "") + s + "s" + bossKillStr + ")";
+                        } else {
+                            cachedLine4 = "TS Boss: B\u1eadt [" + pName + "] (Ch\u1edd boss..." + bossKillStr + ")";
+                        }
+                    }
+                } else {
+                    cachedLine4 = "TS Boss: T\u1eaft" + (totalBoss > 0 ? " (\u0110\u00e3 h\u1ea1 " + totalBoss + " boss)" : "");
+                }
             }
 
             // Dong 5: Dem nguoc Tu Sat khi dung im qua lau & Vi tri check
