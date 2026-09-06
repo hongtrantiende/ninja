@@ -13,9 +13,9 @@ public class AutoPickup implements Runnable {
     public static boolean isRunning = false;
     private static Thread thread;
 
-    // === TOGGLES LOAI VAT PHAM HUT ===
-    public static boolean isHutDa = true;       // Hut Da / Nguyen lieu (type 26)
-    public static boolean isHutTrangBi = true;  // Hut Trang bi (type 0-15)
+    // === TOGGLES LOAI VAT PHAM HUT (Mac dinh LUON TAT, khi can tu bat) ===
+    public static boolean isHutDa = false;       // Hut Da / Nguyen lieu (type 26)
+    public static boolean isHutTrangBi = false;  // Hut Trang bi (type 0-15)
 
     // === CONFIG DEFAULTS ===
     public static final int DEF_SCAN_INTERVAL_MS = 150;     // 150ms giua moi vong quet
@@ -282,9 +282,13 @@ public class AutoPickup implements Runnable {
                 }
                 if (idx >= 4) {
                     isHutDa = (vals[3] == 1);
+                } else {
+                    isHutDa = false;
                 }
                 if (idx >= 5) {
                     isHutTrangBi = (vals[4] == 1);
+                } else {
+                    isHutTrangBi = false;
                 }
             }
         } catch (Exception e) {}
@@ -295,7 +299,7 @@ public class AutoPickup implements Runnable {
         SCAN_INTERVAL_MS = DEF_SCAN_INTERVAL_MS;
         GRAB_DELAY_MS = DEF_GRAB_DELAY_MS;
         GHOST_RANGE = DEF_GHOST_RANGE;
-        isHutDa = true;
-        isHutTrangBi = true;
+        isHutDa = false;
+        isHutTrangBi = false;
     }
 }
