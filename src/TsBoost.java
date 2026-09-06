@@ -21,7 +21,7 @@ public class TsBoost implements Runnable {
     // === CONFIG (co the chinh sua, luu RMS) ===
     private static final int DEF_ATTACK_DELAY_MS = 200;
     private static final int DEF_IDLE_DELAY_MS = 500;
-    private static final int DEF_MAX_ATTACK_RANGE = 400;
+    private static final int DEF_MAX_ATTACK_RANGE = 50;
     private static final int DEF_SKILL_RESELECT_MS = 15000;
     private static final int DEF_MAX_MOB_PER_ATTACK = 6;
     private static final int DEF_COOLDOWN_MS = 1500;  // 1.5s cooldown per mob
@@ -86,6 +86,9 @@ public class TsBoost implements Runnable {
                     ATTACK_DELAY_MS = vals[0];
                     IDLE_DELAY_MS = vals[1];
                     MAX_ATTACK_RANGE = vals[2];
+                    if (MAX_ATTACK_RANGE == 400) {
+                        MAX_ATTACK_RANGE = DEF_MAX_ATTACK_RANGE;
+                    }
                     SKILL_RESELECT_MS = vals[3];
                     MAX_MOB_PER_ATTACK = vals[4];
                 }
