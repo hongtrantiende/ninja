@@ -1152,6 +1152,7 @@ public class AutoSanBoss implements Runnable {
         memberTargetZone = -1;
         if (memberMoveThread != null && memberMoveThread.isAlive()) {
             try { memberMoveThread.interrupt(); } catch (Exception e) {}
+            memberMoveThread = null;
         }
         stop();
     }
@@ -1815,22 +1816,24 @@ public class AutoSanBoss implements Runnable {
     }
 
     public static void stop() {
-        if (isRunning) {
-            isRunning = false;
-            isPartyMemberMode = false;
-            huntStartTime = 0L;
-            isPartyMode = false;
-            treoMode = false;
-            forcedBossType = -1;
-            eventHuntTypes = null;
-            memberTargetMap = -1;
-            memberTargetZone = -1;
-            if (Code.gameAB == dummyAuto) {
-                Code.gameAB = null;
-            }
-            dummyAuto = null;
-            // Khong can gui pke vi thao tac nay co the la tat ca nhan
+        isRunning = false;
+        isPartyMemberMode = false;
+        huntStartTime = 0L;
+        isPartyMode = false;
+        treoMode = false;
+        forcedBossType = -1;
+        eventHuntTypes = null;
+        memberTargetMap = -1;
+        memberTargetZone = -1;
+        if (Code.gameAB == dummyAuto) {
+            Code.gameAB = null;
         }
+        dummyAuto = null;
+        if (thread != null && thread.isAlive()) {
+            try { thread.interrupt(); } catch (Exception e) {}
+            thread = null;
+        }
+        // Khong can gui pke vi thao tac nay co the la tat ca nhan
     }
 
     /**
@@ -1851,9 +1854,7 @@ public class AutoSanBoss implements Runnable {
      * Hoac qua 6 phut san boss -> tu ngat de tranh treo vo han.
      */
     public static boolean checkStillRunning() {
-        if (isRunning) return true;
-        if (AutoBossEvent.inEvent || AutoBossEvent.isEnabled) return true;
-        return false;
+        return isRunning;
     }
 
     /**

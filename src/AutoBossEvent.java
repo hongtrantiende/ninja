@@ -371,7 +371,10 @@ public final class AutoBossEvent implements Runnable {
         new Thread(new Runnable() {
             public void run() {
                 GameScr.gameAC("TSBoss: K\u00edch ho\u1ea1t s\u0103n boss " + priorityName() + " ngay l\u1eadp t\u1ee9c!");
-                lastWindowKey = -1;
+                int curKey = currentWindowKey();
+                if (curKey >= 0) {
+                    lastWindowKey = curKey;
+                }
                 beginLeaderEvent();
             }
         }).start();
@@ -995,6 +998,10 @@ public final class AutoBossEvent implements Runnable {
     }
 
     private static void beginLeaderEvent() {
+        int curKey = currentWindowKey();
+        if (curKey >= 0) {
+            lastWindowKey = curKey;
+        }
         saveLocalState();
         pauseLeaderAndWaitStable();
         inEvent = true;
@@ -1110,7 +1117,6 @@ public final class AutoBossEvent implements Runnable {
                 if (!waitForReconnect()) { finishEvent(false); return; }
                 // Reconnect ok nhung AutoSanBoss da chet -> ket thuc event, cho trigger lai
                 if (!AutoSanBoss.isRunning) {
-                    lastWindowKey = -1;
                     finishEvent(false);
                     return;
                 }
@@ -1121,7 +1127,6 @@ public final class AutoBossEvent implements Runnable {
         if (!isEnabled || !inEvent) { finishEvent(false); return; }
         // Neu AutoSanBoss da chet (disconnect/loi) -> ket thuc som, reset key de trigger lai
         if (!AutoSanBoss.isRunning) {
-            lastWindowKey = -1;
             finishEvent(false);
             return;
         }
@@ -1144,7 +1149,6 @@ public final class AutoBossEvent implements Runnable {
                 if (isDisconnected()) {
                     if (!waitForReconnect()) { finishEvent(false); return; }
                     if (!AutoSanBoss.isRunning) {
-                        lastWindowKey = -1;
                         finishEvent(false);
                         return;
                     }
@@ -1215,6 +1219,7 @@ public final class AutoBossEvent implements Runnable {
         final int targetX = savedX;
         final int targetY = savedY;
         final Auto oldAuto = savedAuto;
+        savedAuto = null;
         inEvent = false;
 
         // GIU NGUYEN savedMap, savedZone trong RMS de phong crash/disconnect tiep

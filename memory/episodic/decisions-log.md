@@ -1,5 +1,28 @@
 # Decisions Log
 
+## 2026-09-07 (Session 35): Sửa Triệt Để Lỗi Chế Độ Săn Boss Ưu Tiên Xong 1 Lượt Về Map TS Bị Bật Lại Săn Boss Trưởng Nhóm (Vòng Lặp Chạy Ra Boss Rồi Về TS)
+- **Vấn đề:** Khi bật "TS Boss Ưu Tiên", sau khi quét/đánh xong 1 lượt (ví dụ Làng TT) và quay về map gốc tàn sát, bot lại khôi phục lại chế độ săn boss của nhóm trưởng, khiến nhân vật cứ chạy ra map boss rồi chạy về map gốc TS rồi lại chạy ra map boss trong vòng lặp vô tận.
+- **Nguyên nhân cốt lõi:**
+  1. *Hàm `AutoSanBoss.checkStillRunning()` bị hack sai*: Trước đây có dòng `if (AutoBossEvent.inEvent || AutoBossEvent.isEnabled) return true;`. Khi người dùng bật "TS Boss Ưu Tiên" (`isEnabled = true`), `checkStillRunning()` LUÔN trả về `true` bất kể `AutoSanBoss.stop()` hay `stopEventHunt()` đã đặt `isRunning = false`.
+  2. *Luồng zombie `AutoSanBoss.run()` không bao giờ chết*: Vì `checkStillRunning()` luôn true, vòng lặp `while (checkStillRunning())` trong luồng `AutoSanBoss` không bao giờ dừng. Khi hết lượt săn, `stop()` reset `forcedBossType = -1`, luồng zombie này thức dậy, rơi vào nhánh mặc định `// === CHE DO TU DONG: Quet theo lich spawn ===` (chính là chế độ săn boss tự động của trưởng nhóm!). Nó thấy boss (như Làng TT) vẫn trong khung giờ active nên lập tức gọi `huntBossType` chạy ngược ra map boss ngay khi nhân vật vừa về map gốc TS!
+  3. *Lỗi reset `lastWindowKey = -1` trong `AutoBossEvent`*: Tại các nhánh thoát sớm/lỗi (dòng 1113, 1124, 1147) và trong `triggerImmediate()`, code gán `lastWindowKey = -1`. Khi kết thúc lượt săn và về map gốc (`inEvent = false`), `AutoBossEvent.run()` thấy `key != lastWindowKey` (-1) vẫn thỏa mãn vì khung giờ boss vẫn đang diễn ra, nên lập tức gọi lại `beginLeaderEvent()`, tạo thành vòng lặp kích hoạt liên tục.
+  4. *Luồng thread `AutoSanBoss` không bị ngắt khi `stop()`*: `AutoSanBoss.stop()` trước đây không gọi `thread.interrupt()`, khiến luồng ngủ trong `sleepSeconds(10)` rồi tiếp tục chạy vòng lặp mới.
+- **Giải pháp:**
+  1. **Khôi phục tính chuẩn xác cho `checkStillRunning()`**:
+     - Sửa thành `public static boolean checkStillRunning() { return isRunning; }`.
+     - Khi `isRunning = false` (đã dừng auto), mọi vòng lặp trong `AutoSanBoss.run()` và các hàm di chuyển lập tức dừng lại và thoát thread hoàn toàn.
+  2. **Dừng triệt để luồng trong `AutoSanBoss.stop()` & `stopPartyMemberFully()`**:
+     - Trong `stop()`: đặt vô điều kiện `isRunning = false;` cùng các cờ liên quan, đồng thời gọi `thread.interrupt(); thread = null;` để đánh thức và kết thúc luồng ngay lập tức.
+     - Trong `stopPartyMemberFully()`: interrupt và null hóa `memberMoveThread`.
+  3. **Khắc phục vòng lặp kích hoạt lại trong `AutoBossEvent`**:
+     - Trong `beginLeaderEvent()` & `triggerImmediate()`: ghi nhận `lastWindowKey = curKey` ngay khi bắt đầu event.
+     - Xóa bỏ việc gán `lastWindowKey = -1` tại các dòng 1113, 1124, 1147 khi kết thúc lượt hoặc bot dừng, đảm bảo không bao giờ kích hoạt lại cùng 1 khung giờ boss đã săn xong.
+     - Reset `savedAuto = null;` trong `returnAndResume()` để tránh tái sử dụng auto cũ không mong muốn.
+- **Build & Verify:**
+  - Chạy `python do_build.py` thành công mã 0, downgrade bytecode 45.3 cho 79 class files.
+  - File `.jar` được cập nhật tại `/root/ninja/Aeharuna.jar`, `NinjaNamod.jar` và `/storage/emulated/0/Download/`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `src/AutoBossEvent.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
 ## 2026-09-06 (Session 34): Sửa Triệt Để Lỗi Thành Viên Săn Boss Làng Cổ Tự Bỏ Nhóm, Chạy Lung Tung Và Bật Chế Độ Săn Boss Đơn
 - **Vấn đề:** Khi trưởng nhóm gọi đánh boss ở Làng Cổ (ví dụ map 136, lệnh `pkm 136`), thành viên không đánh boss trưởng nhóm gọi mà chạy lung tung, tự tìm boss ở map khác, tự thoát chế độ săn boss nhóm rồi tự vào chế độ săn boss đơn ("tự thoát chế độ săn boss nhóm r tự vào chế độ săn boss của nó rất ảo").
 - **Nguyên nhân cốt lõi:**
