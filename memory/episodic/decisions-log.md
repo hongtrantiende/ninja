@@ -1,5 +1,33 @@
 # Decisions Log
 
+## 2026-09-07 (Session 36): Sửa Triệt Để Lỗi Thành Viên Săn Boss Bị Boss Đánh Chết Không Tự Vào Lại Đúng Map Boss
+- **Vấn đề:** Khi đi săn boss cùng nhóm, nếu trưởng nhóm bị boss đánh chết thì vẫn tự hồi sinh và quay lại map boss bình thường, nhưng nếu thành viên nhóm bị boss đánh chết thì không tự vào lại đúng map boss mà đứng kẹt ở làng hoặc thoát khỏi auto săn boss.
+- **Nguyên nhân cốt lõi:**
+  1. *Lệnh `if (TileMap.mapID != targetMap) break;` làm đứt vòng lặp*: Khi thành viên bị boss đánh chết và hồi sinh về làng (`respawnFast()`), `isDead()` trở về `false` và vị trí đứng là ở làng (`TileMap.mapID != targetMap`). Cả 4 hàm thành viên cũ (`handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`, `handleMemberNormalMap`) đều kiểm tra `if (TileMap.mapID != targetMap) break;` ngay sau nhịp hồi sinh, làm luồng đánh boss lập tức `break` và thoát khỏi vòng lặp.
+  2. *Reset `memberTargetMap = -1` quá sớm*: Khi thoát vòng lặp, code cũ gán `memberTargetMap = -1; memberTargetZone = -1;`, khiến luồng chính `AutoSanBoss.run()` mất dấu map boss mục tiêu và không thể tự kích hoạt lại việc di chuyển đến map boss.
+  3. *Race condition giữa `AutoSanBoss.run()` và `memberMoveThread`*: Trong `AutoSanBoss.run()`, khi `memberMoveThread.isAlive()`, luồng chính vẫn gọi `if (isDead()) respawnFast();`. Khi thành viên chết, luồng chính hồi sinh nhân vật về làng trước khi `memberMoveThread` kịp phát hiện, khiến `memberMoveThread` chỉ thấy `TileMap.mapID != targetMap` và lập tức `break`.
+  4. *Cơ chế quay lại map boss bị phân mảnh và lỗi*:
+     - Map VIP: code cũ gọi `TileMap.GoMap(195)` (lỗi 100% vì Map VIP không có đường đi bộ, phải qua NPC 47).
+     - Map Ngoài / VDMQ: code cũ dùng vòng lặp `GoMap` chỉ chờ tối đa 3s (`nw < 30`), không đủ thời gian đi qua nhiều map từ làng, dẫn đến timeout và `break`.
+     - Thiếu cơ chế chờ nạp mob (3s) và adaptive boss death confirmation (`recentDeath`), dẫn đến việc vừa quay lại map boss chưa kịp nhận dữ liệu từ server đã phán đoán "Boss đã chết" và thoát.
+- **Giải pháp:**
+  1. **Hợp nhất logic điều phối thành viên vào `handleMemberBoss(targetMap)`**:
+     - Cả 4 hàm `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberMapVIP`, `handleMemberNormalMap` đều ủy thác xử lý qua `handleMemberBoss(targetMap)`.
+     - Chuẩn hóa điều kiện kiểm tra giống Trưởng Nhóm: `if (isDead() || TileMap.mapID != targetMap)`. Khi chết hoặc bị đưa về làng, lập tức gọi `respawnFast()` và dùng `navigateToMap(targetMap)` để đưa nhân vật trở lại đúng map boss bất kể là Làng Cổ, Làng TT, Map VIP, Map Ngoài hay VDMQ.
+     - Sau khi về map, đổi đúng khu `targetZone` và chờ nạp mob tối đa 3s (`wm < 30`).
+     - Tích hợp **Adaptive Boss Death Confirmation** (kiểm tra timestamp `lastDeathTime`, nếu chết trong vòng 10s gần nhất thì chờ tối đa 5s xác nhận, tránh báo boss chết ảo).
+     - Chỉ reset `memberTargetMap = -1` và `memberTargetZone = -1` khi boss đã THỰC SỰ chết.
+  2. **Khắc phục race condition trong `AutoSanBoss.run()`**:
+     - Bỏ `if (isDead()) respawnFast();` trong nhánh `memberMoveThread.isAlive()`, trao toàn quyền xử lý sống/chết và tái gia nhập map cho `memberMoveThread`.
+     - Trong fallback `else if (memberTargetMap > 0)`: gọi trực tiếp `handleMemberBoss(memberTargetMap)` nếu luồng di chuyển chưa chạy.
+  3. **Mở rộng dải map trong `navigateToMap`**:
+     - Hỗ trợ Làng Cổ `mapID >= 134 && mapID <= 138`.
+     - Hỗ trợ Làng TT `mapID >= 162 && mapID <= 165`.
+- **Build & Verify:**
+  - Chạy `python3 do_build.py` hoàn thành với mã 0, downgrade 76 class files version 45.3.
+  - Đóng gói thành công `NinjaNamod.jar` và `Aeharuna.jar` (1.392.865 bytes), tự động sao chép sang `/storage/emulated/0/Download/`.
+- **Files thay đổi:** `src/AutoSanBoss.java`, `memory/episodic/decisions-log.md`, `Aeharuna.jar`, `NinjaNamod.jar`.
+
 ## 2026-09-07 (Session 35): Sửa Triệt Để Lỗi Chế Độ Săn Boss Ưu Tiên Xong 1 Lượt Về Map TS Bị Bật Lại Săn Boss Trưởng Nhóm (Vòng Lặp Chạy Ra Boss Rồi Về TS)
 - **Vấn đề:** Khi bật "TS Boss Ưu Tiên", sau khi quét/đánh xong 1 lượt (ví dụ Làng TT) và quay về map gốc tàn sát, bot lại khôi phục lại chế độ săn boss của nhóm trưởng, khiến nhân vật cứ chạy ra map boss rồi chạy về map gốc TS rồi lại chạy ra map boss trong vòng lặp vô tận.
 - **Nguyên nhân cốt lõi:**

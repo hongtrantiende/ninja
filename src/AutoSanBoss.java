@@ -1230,242 +1230,6 @@ public class AutoSanBoss implements Runnable {
         Code.gameAB = dummyAuto;
     }
 
-    /**
-     * Thanh vien vao Lang Co theo lenh pkm tu truong nhom.
-     */
-    public static void handleMemberLangCo(final int targetMap) {
-        isPartyMemberMode = true;
-        prepareMemberForMap(targetMap);
-        syncPartyLeaderName();
-        if (memberMoveThread != null && memberMoveThread.isAlive()) {
-            try { memberMoveThread.interrupt(); } catch (Exception e) {}
-        }
-        memberMoveThread = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    exitCurrentMapIfNeeded(targetMap);
-
-                    GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng C\u1ed5 M" + targetMap + "...");
-                    if (!enterLangCoSpecificMap(targetMap)) {
-                        GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c L\u00e0ng C\u1ed5 M" + targetMap);
-                        return;
-                    }
-
-                    for (int w = 0; w < 10 && memberTargetZone < 0; w++) {
-                        sleep(100L);
-                    }
-                    if (memberTargetZone < 0 && findBossMob() != null) {
-                        memberTargetZone = TileMap.zoneID;
-                    }
-                    int targetZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                    if (TileMap.zoneID != targetZone) {
-                        doChangeZone(targetZone);
-                        for (int w = 0; w < 20 && TileMap.zoneID != targetZone; w++) {
-                            sleep(100L);
-                        }
-                    }
-
-                    if (treoMode) {
-                        restoreDummyAuto();
-                        GameScr.gameAC("TSB-TV: Treo t\u1ea1i LC M" + targetMap + " K" + TileMap.zoneID);
-                        return;
-                    }
-
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LC M" + targetMap + " K" + targetZone);
-                    restoreDummyAuto();
-                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
-                    Mob boss = null;
-                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
-                        sleep(100L);
-                    }
-                    if (boss != null) {
-                        teleportToBoss(boss);
-                        lockBossFocus();
-                        attackBossDirectly(boss);
-                    }
-                    boolean bossEverSeen = (boss != null);
-                    // Vong lap danh boss tai cho - khong dung PkBoss
-                    while (isRunning && !Thread.currentThread().isInterrupted()) {
-                        if (isDead()) {
-                            respawnFast();
-                            // Vao lai Lang Co qua portal
-                            if (!enterLangCoSpecificMap(targetMap)) break;
-                            if (TileMap.zoneID != targetZone) {
-                                doChangeZone(targetZone);
-                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
-                            }
-                            sleep(500L);
-                            boss = findBossMob();
-                            if (boss != null) {
-                                bossEverSeen = true;
-                                teleportToBoss(boss);
-                                lockBossFocus();
-                                attackBossDirectly(boss);
-                            }
-                            continue;
-                        }
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
-                            continue;
-                        }
-                        if (TileMap.mapID != targetMap) break;
-                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
-                            targetZone = memberTargetZone;
-                        }
-                        if (TileMap.zoneID != targetZone) {
-                            doChangeZone(targetZone);
-                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
-                        }
-                        boss = findBossMob();
-                        if (boss != null && boss.hp > 0 && boss.status != 0) {
-                            bossEverSeen = true;
-                            Char me = Char.getMyChar();
-                            if (me != null) {
-                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
-                                if (dist > 70) {
-                                    teleportToBoss(boss);
-                                }
-                            }
-                            lockBossFocus();
-                            attackBossDirectly(boss);
-                        }
-                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
-                            sleep(1500L);
-                            if (!hasBossOnCurrentMap() && !isDead()) {
-                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
-                                grabAllItems();
-                                break;
-                            }
-                        }
-                        sleep(300L);
-                    }
-                    memberTargetZone = -1;
-                    memberTargetMap = -1;
-                    restoreDummyAuto();
-                } catch (Exception e) {}
-            }
-        });
-        memberMoveThread.start();
-    }
-
-    /**
-     * Thanh vien vao Lang TT theo lenh pkm tu truong nhom.
-     */
-    public static void handleMemberLangTT(final int targetMap) {
-        isPartyMemberMode = true;
-        prepareMemberForMap(targetMap);
-        syncPartyLeaderName();
-        if (memberMoveThread != null && memberMoveThread.isAlive()) {
-            try { memberMoveThread.interrupt(); } catch (Exception e) {}
-        }
-        memberMoveThread = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    exitCurrentMapIfNeeded(targetMap);
-
-                    GameScr.gameAC("TSB-TV: V\u00e0o L\u00e0ng TT M" + targetMap + "...");
-                    if (!enterLangTTSpecificMap(targetMap)) {
-                        GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c L\u00e0ng TT M" + targetMap);
-                        return;
-                    }
-
-                    for (int w = 0; w < 10 && memberTargetZone < 0; w++) {
-                        sleep(100L);
-                    }
-                    if (memberTargetZone < 0 && findBossMob() != null) {
-                        memberTargetZone = TileMap.zoneID;
-                    }
-                    int targetZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                    if (TileMap.zoneID != targetZone) {
-                        doChangeZone(targetZone);
-                        for (int w = 0; w < 20 && TileMap.zoneID != targetZone; w++) {
-                            sleep(100L);
-                        }
-                    }
-
-                    if (treoMode) {
-                        restoreDummyAuto();
-                        GameScr.gameAC("TSB-TV: Treo t\u1ea1i LTT M" + targetMap + " K" + TileMap.zoneID);
-                        return;
-                    }
-
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss LTT M" + targetMap + " K" + targetZone);
-                    restoreDummyAuto();
-                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
-                    Mob boss = null;
-                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
-                        sleep(100L);
-                    }
-                    if (boss != null) {
-                        teleportToBoss(boss);
-                        lockBossFocus();
-                        attackBossDirectly(boss);
-                    }
-                    boolean bossEverSeen = (boss != null);
-                    // Vong lap danh boss tai cho - khong dung PkBoss
-                    while (isRunning && !Thread.currentThread().isInterrupted()) {
-                        if (isDead()) {
-                            respawnFast();
-                            // Vao lai Lang TT qua VP
-                            if (!enterLangTTSpecificMap(targetMap)) break;
-                            if (TileMap.zoneID != targetZone) {
-                                doChangeZone(targetZone);
-                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
-                            }
-                            sleep(500L);
-                            boss = findBossMob();
-                            if (boss != null) {
-                                bossEverSeen = true;
-                                teleportToBoss(boss);
-                                lockBossFocus();
-                                attackBossDirectly(boss);
-                            }
-                            continue;
-                        }
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
-                            continue;
-                        }
-                        if (TileMap.mapID != targetMap) break;
-                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
-                            targetZone = memberTargetZone;
-                        }
-                        if (TileMap.zoneID != targetZone) {
-                            doChangeZone(targetZone);
-                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
-                        }
-                        boss = findBossMob();
-                        if (boss != null && boss.hp > 0 && boss.status != 0) {
-                            bossEverSeen = true;
-                            Char me = Char.getMyChar();
-                            if (me != null) {
-                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
-                                if (dist > 70) {
-                                    teleportToBoss(boss);
-                                }
-                            }
-                            lockBossFocus();
-                            attackBossDirectly(boss);
-                        }
-                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
-                            sleep(1500L);
-                            if (!hasBossOnCurrentMap() && !isDead()) {
-                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
-                                grabAllItems();
-                                break;
-                            }
-                        }
-                        sleep(300L);
-                    }
-                    memberTargetZone = -1;
-                    memberTargetMap = -1;
-                    restoreDummyAuto();
-                } catch (Exception e) {}
-            }
-        });
-        memberMoveThread.start();
-    }
-
     /** Dong bo ten truong nhom vao Code.gameAH de PkBoss nhan dien dung vai tro thanh vien */
     public static void syncPartyLeaderName() {
         try {
@@ -1479,9 +1243,12 @@ public class AutoSanBoss implements Runnable {
     }
 
     /**
-     * Thanh vien vao Map VIP (M195/196) theo lenh pkm tu truong nhom.
+     * Xu ly tong quat cho thanh vien nhom vao map boss bat ky (Lang Co, Lang TT, VIP, Map Ngoai, VDMQ):
+     * - Su dung navigateToMap ho tro day du tat ca cac loai map.
+     * - Tu dong hoi sinh ve lang va vao lai dung map neu bi boss danh chet.
+     * - Ap dung co che mob wait 3s va adaptive death check giong Truong Nhom de khong bao boss chet ao.
      */
-    public static void handleMemberMapVIP(final int targetMap) {
+    public static void handleMemberBoss(final int targetMap) {
         isPartyMemberMode = true;
         prepareMemberForMap(targetMap);
         syncPartyLeaderName();
@@ -1491,146 +1258,9 @@ public class AutoSanBoss implements Runnable {
         memberMoveThread = new Thread(new Runnable() {
             public void run() {
                 try {
-                    exitCurrentMapIfNeeded(targetMap);
-
-                    GameScr.gameAC("TSB-TV: V\u00e0o Map VIP M" + targetMap + "...");
-                    boolean entered = false;
-                    if (targetMap == 195) entered = enterMapVIP();
-                    else if (targetMap == 196) entered = enterMapVIP2();
-
-                    if (!entered) {
-                        GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o \u0111\u01b0\u1ee3c VIP M" + targetMap);
-                        return;
-                    }
-
-                    for (int w = 0; w < 10 && memberTargetZone < 0; w++) {
-                        sleep(100L);
-                    }
-                    if (memberTargetZone < 0 && findBossMob() != null) {
-                        memberTargetZone = TileMap.zoneID;
-                    }
-                    int targetZone = memberTargetZone >= 0 ? memberTargetZone : TileMap.zoneID;
-                    if (TileMap.zoneID != targetZone) {
-                        doChangeZone(targetZone);
-                        for (int w = 0; w < 20 && TileMap.zoneID != targetZone; w++) {
-                            sleep(100L);
-                        }
-                    }
-
-                    if (treoMode) {
-                        restoreDummyAuto();
-                        GameScr.gameAC("TSB-TV: Treo t\u1ea1i VIP M" + targetMap + " K" + TileMap.zoneID);
-                        return;
-                    }
-
-                    GameScr.gameAC("TSB-TV: \u0110\u00e1nh boss VIP M" + targetMap + " K" + targetZone);
-                    restoreDummyAuto();
-                    // Cho server nap mob (toi da 2s, ngat som ngay khi thay boss)
-                    Mob boss = null;
-                    for (int wm = 0; wm < 20 && (boss = findBossMob()) == null; wm++) {
-                        sleep(100L);
-                    }
-                    if (boss != null) {
-                        teleportToBoss(boss);
-                        lockBossFocus();
-                        attackBossDirectly(boss);
-                    }
-                    boolean bossEverSeen = (boss != null);
-                    // Vong lap danh boss tai cho - khong dung PkBoss
-                    while (isRunning && !Thread.currentThread().isInterrupted()) {
-                        if (isDead()) {
-                            respawnFast();
-                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
-                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
-                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
-                                if (isDead()) respawnFast();
-                            }
-                            if (TileMap.mapID != targetMap) break;
-                            if (TileMap.zoneID != targetZone) {
-                                doChangeZone(targetZone);
-                                for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
-                            }
-                            sleep(500L);
-                            boss = findBossMob();
-                            if (boss != null) {
-                                bossEverSeen = true;
-                                teleportToBoss(boss);
-                                lockBossFocus();
-                                attackBossDirectly(boss);
-                            }
-                            continue;
-                        }
-                        if (isDisconnected()) {
-                            if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
-                            continue;
-                        }
-                        if (TileMap.mapID != targetMap) break;
-                        if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
-                            targetZone = memberTargetZone;
-                        }
-                        if (TileMap.zoneID != targetZone) {
-                            doChangeZone(targetZone);
-                            for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
-                        }
-                        boss = findBossMob();
-                        if (boss != null && boss.hp > 0 && boss.status != 0) {
-                            bossEverSeen = true;
-                            Char me = Char.getMyChar();
-                            if (me != null) {
-                                int dist = Math.abs(me.cx - boss.x) + Math.abs(me.cy - boss.y);
-                                if (dist > 70) {
-                                    teleportToBoss(boss);
-                                }
-                            }
-                            lockBossFocus();
-                            attackBossDirectly(boss);
-                        }
-                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
-                            sleep(1500L);
-                            if (!hasBossOnCurrentMap() && !isDead()) {
-                                GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
-                                grabAllItems();
-                                break;
-                            }
-                        }
-                        sleep(300L);
-                    }
-                    memberTargetZone = -1;
-                    memberTargetMap = -1;
-                    restoreDummyAuto();
-                } catch (Exception e) {}
-            }
-        });
-        memberMoveThread.start();
-    }
-
-    /**
-     * Thanh vien di toi Map thuong / VDMQ theo lenh pkm tu truong nhom.
-     */
-    public static void handleMemberNormalMap(final int targetMap) {
-        isPartyMemberMode = true;
-        prepareMemberForMap(targetMap);
-        syncPartyLeaderName();
-        if (memberMoveThread != null && memberMoveThread.isAlive()) {
-            try { memberMoveThread.interrupt(); } catch (Exception e) {}
-        }
-        memberMoveThread = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    exitCurrentMapIfNeeded(targetMap);
-
-                    GameScr.gameAC("TSB-TV: \u0110i t\u1edbi M" + targetMap + "...");
-                    for (int attempt = 0; attempt < 30 && checkStillRunning() && TileMap.mapID != targetMap; attempt++) {
-                        if (isDead()) respawnFast();
-                        if (TileMap.mapID == targetMap) break;
-                        try { TileMap.GoMap(targetMap); } catch (Exception e) {}
-                        for (int w = 0; w < 30 && checkStillRunning() && TileMap.mapID != targetMap; w++) {
-                            sleep(100);
-                            if (isDead()) break;
-                        }
-                    }
-
-                    if (TileMap.mapID != targetMap) {
+                    GameScr.gameAC("TSB-TV: \u0110\u1ebfn M" + targetMap + " \u0111\u00e1nh boss...");
+                    // 1. Di chuyen den map boss lan dau (dung navigateToMap ho tro tat ca cac loai map)
+                    if (!navigateToMap(targetMap)) {
                         GameScr.gameAC("TSB-TV: Kh\u00f4ng \u0111\u1ebfn \u0111\u01b0\u1ee3c M" + targetMap);
                         return;
                     }
@@ -1652,6 +1282,20 @@ public class AutoSanBoss implements Runnable {
                     if (treoMode) {
                         restoreDummyAuto();
                         GameScr.gameAC("TSB-TV: Treo t\u1ea1i M" + targetMap + " K" + TileMap.zoneID);
+                        while (isRunning && !Thread.currentThread().isInterrupted() && treoMode) {
+                            if (isDead() || TileMap.mapID != targetMap) {
+                                if (isDead()) respawnFast();
+                                if (!navigateToMap(targetMap)) {
+                                    sleep(1000L);
+                                    continue;
+                                }
+                                if (TileMap.zoneID != targetZone) {
+                                    doChangeZone(targetZone);
+                                    for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
+                                }
+                            }
+                            sleep(1000L);
+                        }
                         return;
                     }
 
@@ -1668,35 +1312,60 @@ public class AutoSanBoss implements Runnable {
                         attackBossDirectly(boss);
                     }
                     boolean bossEverSeen = (boss != null);
+                    long lastDeathTime = 0L;
+
                     // Vong lap danh boss tai cho - khong dung PkBoss
                     while (isRunning && !Thread.currentThread().isInterrupted()) {
-                        if (isDead()) {
-                            respawnFast();
-                            for (int nav = 0; nav < 30 && TileMap.mapID != targetMap; nav++) {
-                                try { TileMap.GoMap(targetMap); } catch (Exception ex) {}
-                                for (int nw = 0; nw < 30 && TileMap.mapID != targetMap; nw++) sleep(100L);
-                                if (isDead()) respawnFast();
+                        // 1. Uu tien xu ly chet / mat ket noi / lac map TRUOC TIEN (tuong tu Truong Nhom)
+                        if (isDead() || TileMap.mapID != targetMap) {
+                            lastDeathTime = System.currentTimeMillis();
+                            GameScr.gameAC("TSB-TV: Ch\u1ebft/l\u1ea1c map khi \u0111\u00e1nh boss M" + targetMap + "! H\u1ed3i sinh + quay l\u1ea1i...");
+                            if (isDead()) respawnFast();
+                            if (isDisconnected()) {
+                                if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
                             }
-                            if (TileMap.mapID != targetMap) break;
+
+                            // Dung navigateToMap de quay lai dung map (ho tro ca LC, LTT, VIP, Map Ngoai, VDMQ)
+                            if (!navigateToMap(targetMap)) {
+                                sleep(500L);
+                                if (!navigateToMap(targetMap)) {
+                                    GameScr.gameAC("TSB-TV: Kh\u00f4ng v\u00e0o l\u1ea1i \u0111\u01b0\u1ee3c M" + targetMap + ", th\u1eed l\u1ea1i...");
+                                    sleep(1000L);
+                                    continue;
+                                }
+                            }
+
+                            // Dong bo lai targetZone neu co cap nhat
+                            if (memberTargetZone >= 0) {
+                                targetZone = memberTargetZone;
+                            }
+
                             if (TileMap.zoneID != targetZone) {
                                 doChangeZone(targetZone);
                                 for (int zw = 0; zw < 20 && TileMap.zoneID != targetZone; zw++) sleep(100L);
                             }
-                            sleep(500L);
-                            boss = findBossMob();
-                            if (boss != null) {
+
+                            // Cho server nap mob (toi da 3s giong Truong Nhom de tranh tuong boss chet som)
+                            for (int wm = 0; wm < 30 && checkStillRunning() && !hasBossOnCurrentMap(); wm++) {
+                                sleep(100L);
+                            }
+
+                            restoreDummyAuto();
+                            Mob bRespawn = findBossMob();
+                            if (bRespawn != null) {
                                 bossEverSeen = true;
-                                teleportToBoss(boss);
+                                teleportToBoss(bRespawn);
                                 lockBossFocus();
-                                attackBossDirectly(boss);
+                                attackBossDirectly(bRespawn);
                             }
                             continue;
                         }
+
                         if (isDisconnected()) {
                             if (!waitForReconnect(RECONNECT_TIMEOUT)) break;
                             continue;
                         }
-                        if (TileMap.mapID != targetMap) break;
+
                         if (memberTargetZone >= 0 && memberTargetZone != targetZone) {
                             targetZone = memberTargetZone;
                         }
@@ -1704,6 +1373,7 @@ public class AutoSanBoss implements Runnable {
                             doChangeZone(targetZone);
                             for (int zw2 = 0; zw2 < 20 && TileMap.zoneID != targetZone; zw2++) sleep(100L);
                         }
+
                         boss = findBossMob();
                         if (boss != null && boss.hp > 0 && boss.status != 0) {
                             bossEverSeen = true;
@@ -1717,23 +1387,50 @@ public class AutoSanBoss implements Runnable {
                             lockBossFocus();
                             attackBossDirectly(boss);
                         }
-                        if (bossEverSeen && !hasBossOnCurrentMap() && !isDead()) {
-                            sleep(1500L);
-                            if (!hasBossOnCurrentMap() && !isDead()) {
+
+                        // Chi xac nhan boss chet khi dang o dung map + dung khu + con song (adaptive death check giong Truong Nhom)
+                        if (bossEverSeen && !hasBossOnCurrentMap() && TileMap.zoneID == targetZone && !isDead()) {
+                            boolean recentDeath = (System.currentTimeMillis() - lastDeathTime) < 10000L;
+                            int confirmWait = recentDeath ? 50 : 15; // 5s neu moi hoi sinh, 1.5s neu binh thuong
+                            boolean bossStillAlive = false;
+                            for (int wc = 0; wc < confirmWait && checkStillRunning(); wc++) {
+                                sleep(100L);
+                                if (hasBossOnCurrentMap()) {
+                                    bossStillAlive = true;
+                                    break;
+                                }
+                            }
+                            if (!bossStillAlive && !hasBossOnCurrentMap() && TileMap.zoneID == targetZone && !isDead()) {
                                 GameScr.gameAC("TSB-TV: Boss M" + targetMap + " K" + targetZone + " \u0111\u00e3 ch\u1ebft! Ch\u1edd l\u1ec7nh...");
                                 grabAllItems();
+                                memberTargetZone = -1;
+                                memberTargetMap = -1;
                                 break;
                             }
                         }
                         sleep(300L);
                     }
-                    memberTargetZone = -1;
-                    memberTargetMap = -1;
                     restoreDummyAuto();
                 } catch (Exception e) {}
             }
         });
         memberMoveThread.start();
+    }
+
+    public static void handleMemberLangCo(final int targetMap) {
+        handleMemberBoss(targetMap);
+    }
+
+    public static void handleMemberLangTT(final int targetMap) {
+        handleMemberBoss(targetMap);
+    }
+
+    public static void handleMemberMapVIP(final int targetMap) {
+        handleMemberBoss(targetMap);
+    }
+
+    public static void handleMemberNormalMap(final int targetMap) {
+        handleMemberBoss(targetMap);
     }
 
     /**
@@ -2249,11 +1946,11 @@ public class AutoSanBoss implements Runnable {
             if (TileMap.mapID == 196 && !isDead()) return true;
             if (isDead()) respawnFast();
             return enterMapVIP2();
-        } else if (mapID >= 134 && mapID <= 137) {
+        } else if (mapID >= 134 && mapID <= 138) {
             if (TileMap.mapID == mapID && !isDead()) return true;
             if (isDead()) respawnFast();
             return enterLangCoSpecificMap(mapID);
-        } else if (mapID >= 163 && mapID <= 165) {
+        } else if (mapID >= 162 && mapID <= 165) {
             if (TileMap.mapID == mapID && !isDead()) return true;
             if (isDead()) respawnFast();
             return enterLangTTSpecificMap(mapID);
@@ -4246,9 +3943,6 @@ public class AutoSanBoss implements Runnable {
                     // Neu memberMoveThread dang xu ly chuyen map / danh boss, giu nhip cho TV va tiep tuc
                     if (memberMoveThread != null && memberMoveThread.isAlive()) {
                         restoreDummyAuto();
-                        if (isDead()) {
-                            respawnFast();
-                        }
                         sleep(1000L);
                         continue;
                     }
@@ -4267,15 +3961,7 @@ public class AutoSanBoss implements Runnable {
                         if (TileMap.mapID != memberTargetMap) {
                             restoreDummyAuto();
                             if (memberMoveThread == null || !memberMoveThread.isAlive()) {
-                                if (memberTargetMap >= 134 && memberTargetMap <= 137) {
-                                    handleMemberLangCo(memberTargetMap);
-                                } else if (memberTargetMap >= 162 && memberTargetMap <= 165) {
-                                    handleMemberLangTT(memberTargetMap);
-                                } else if (memberTargetMap == 195 || memberTargetMap == 196) {
-                                    handleMemberMapVIP(memberTargetMap);
-                                } else {
-                                    handleMemberNormalMap(memberTargetMap);
-                                }
+                                handleMemberBoss(memberTargetMap);
                             }
                         } else {
                             // 2. Da o dung map boss -> Chuyen dung zone neu co targetZone

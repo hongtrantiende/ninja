@@ -123,7 +123,7 @@ Trưởng nhóm và thành viên giao tiếp thông qua tin nhắn Party Chat �
 
 ### 🎯 `AutoSanBoss.java` — Điều phối Săn Boss
 - Quản lý luồng quét map của Trưởng nhóm (`huntBossType`, `pkBossOnMap`, `treoScanMap`).
-- Quản lý luồng nhận lệnh của Thành viên (`handleMemberLangCo`, `handleMemberLangTT`, `handleMemberNormalMap`, `handleMemberMapVIP`).
+- Quản lý luồng nhận lệnh của Thành viên: điều phối tập trung qua `handleMemberBoss` (bọc `handleMemberLangCo`, `handleMemberLangTT`, `handleMemberNormalMap`, `handleMemberMapVIP`), tự động hồi sinh và tái nhập map boss qua `navigateToMap` khi bị boss đánh chết, hỗ trợ đầy đủ Làng Cổ, Làng TT, Map VIP, Map Ngoài, VDMQ.
 - Hàm rời map an toàn trung tâm: **`exitCurrentMapIfNeeded(int targetMap)`**.
 - Cơ chế rời Làng Cổ chuẩn: **`finishLangCoAndExit()`** (qua NPC 7 tại M138).
 - Cơ chế rời VDMQ: **`finishVDMQAndExit()`**.

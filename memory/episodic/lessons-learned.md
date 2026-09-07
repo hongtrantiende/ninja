@@ -1,5 +1,18 @@
 # Lessons Learned
 
+## 2026-09-07: Thành Viên Nhóm Bị Boss Đánh Chết — Vòng Lặp Break vs Tự Vào Lại Map Boss
+- **Nguyên nhân bug:**
+  1. Trong vòng lặp đánh boss của thành viên nhóm, câu lệnh `if (TileMap.mapID != targetMap) break;` làm đứt toàn bộ auto săn boss của thành viên ngay khi bị boss đánh chết và hồi sinh về làng.
+  2. Việc gán `memberTargetMap = -1` ngay khi thoát vòng lặp khiến luồng chính `AutoSanBoss.run()` không thể nhận diện được map boss để đưa thành viên trở lại.
+  3. Luồng chính `AutoSanBoss.run()` chạy song song và gọi `respawnFast()` tranh chấp với `memberMoveThread`, tạo race condition khiến `memberMoveThread` thức dậy thấy mình đang ở làng (`mapID != targetMap`) và lập tức `break`.
+  4. Cơ chế di chuyển khi chết bị chia nhỏ cho từng loại map và cài đặt thiếu sót (Map VIP gọi GoMap, Map Ngoài timeout 3s).
+- **Quy tắc vàng:**
+  1. Trong vòng lặp đánh boss của thành viên nhóm, LUÔN dùng điều kiện `if (isDead() || TileMap.mapID != targetMap)` làm trigger phục hồi (hồi sinh + vào lại map) — TUYỆT ĐỐI KHÔNG DÙNG `if (TileMap.mapID != targetMap) break;`.
+  2. Mọi logic đưa thành viên trở lại map boss sau khi chết PHẢI sử dụng hàm trung tâm `navigateToMap(targetMap)` (hàm này đã xử lý trọn vẹn cả Làng Cổ, Làng TT, Map VIP, Map Ngoài, VDMQ).
+  3. TUYỆT ĐỐI KHÔNG reset `memberTargetMap = -1` khi vòng lặp bị ngắt bất thường; chỉ reset khi boss được xác nhận đã THỰC SỰ chết.
+  4. Áp dụng đầy đủ `wm < 30` (3s nạp mob) và Adaptive Boss Death Confirmation (`lastDeathTime`) cho cả thành viên nhóm giống hệt như trưởng nhóm.
+
+
 ## 2026-09-06: Triệt Để Lỗi Tự Sát Nhiều Lần Khi Trở Về Map Cũ Sau Khi Săn Boss
 - **Nguyên nhân bug:**
   1. `AutoSanBoss.exitCurrentMapIfNeeded(targetMap)`: Điều kiện `if (curMap == 195 || curMap == 196 || curMap == 192 || AutoVipMap.isEnabled || AutoTuLuyen.isEnabled)`. Nếu `AutoVipMap.isEnabled` được lưu trong RMS từ trước, nó biến MỌI MAP (kể cả Map Ngoài như 14, 42 hoặc VDMQ) thành Map VIP → gọi `suicideAndEnsureAlive()` ngay lập tức.
